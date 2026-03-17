@@ -1,0 +1,46 @@
+name: ai_camera
+description: 현장 데이터 수집기 - 측정값 사진 촬영 및 서버 업로드 앱
+publish_to: "none"
+
+version: 1.0.0+26031700
+
+environment:
+  sdk: ">=3.2.6 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Core
+  get: ^5.0.0-release-candidate-9.3.2
+  dio: ^5.4.0
+  path_provider: ^2.1.5
+
+  # Camera & Media
+  camera: 0.11.3
+  permission_handler: ^12.0.1
+
+  # Local packages
+  utils:
+    path: ./ext/utils
+
+dependency_overrides:
+  camera_android_camerax: 0.6.29
+
+dev_dependencies:
+  flutter_launcher_icons: ^0.14.2
+  flutter_lints: ^3.0.2
+  flutter_test:
+    sdk: flutter
+
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+  android: true
+  ios: true
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/image/

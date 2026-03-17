@@ -1,0 +1,78 @@
+// import 'package:utils/utils.dart';
+
+//xx class EasyNetworkImage extends CachedNetworkImage {
+//   EasyNetworkImage({
+//     super.key,
+//     required String imageUrl,
+//     Map<String, String>? httpHeaders,
+//     ImageWidgetBuilder? imageBuilder,
+//     PlaceholderWidgetBuilder? placeholder,
+//     ProgressIndicatorBuilder? progressIndicatorBuilder,
+//     LoadingErrorWidgetBuilder? errorWidget,
+//     Duration fadeOutDuration = const Duration(milliseconds: 1000),
+//     Curve fadeOutCurve = Curves.easeOut,
+//     Duration fadeInDuration = const Duration(milliseconds: 500),
+//     Curve fadeInCurve = Curves.easeIn,
+//     double? width,
+//     double? height,
+//     BoxFit? fit,
+//     Alignment alignment = Alignment.center,
+//     ImageRepeat repeat = ImageRepeat.noRepeat,
+//     bool matchTextDirection = false,
+//     bool useOldImageOnUrlChange = false,
+//     Color? color,
+//     FilterQuality filterQuality = FilterQuality.low,
+//     BlendMode? colorBlendMode,
+//     Duration? placeholderFadeInDuration,
+//     int? memCacheWidth,
+//     int? memCacheHeight,
+//     String? cacheKey,
+//     int? maxWidthDiskCache,
+//     int? maxHeightDiskCache,
+//   }) : super(
+//           imageUrl: imageUrl.startsWith('http') ? imageUrl : '$urlSvr$imageUrl',
+//           httpHeaders: httpHeaders,
+//           imageBuilder: imageBuilder,
+//           placeholder: placeholder,
+//           progressIndicatorBuilder: progressIndicatorBuilder,
+//           errorWidget: errorWidget,
+//           fadeOutDuration: fadeOutDuration,
+//           fadeOutCurve: fadeOutCurve,
+//           fadeInDuration: fadeInDuration,
+//           fadeInCurve: fadeInCurve,
+//           width: width,
+//           height: height,
+//           fit: fit,
+//           alignment: alignment,
+//           repeat: repeat,
+//           matchTextDirection: matchTextDirection,
+//           useOldImageOnUrlChange: useOldImageOnUrlChange,
+//           color: color,
+//           filterQuality: filterQuality,
+//           colorBlendMode: colorBlendMode,
+//           placeholderFadeInDuration: placeholderFadeInDuration,
+//           memCacheWidth: memCacheWidth,
+//           memCacheHeight: memCacheHeight,
+//           cacheKey: cacheKey,
+//           maxWidthDiskCache: maxWidthDiskCache,
+//           maxHeightDiskCache: maxHeightDiskCache,
+//         );
+// }
+
+// class EasyNetworkImageProvider extends CachedNetworkImageProvider {
+//   EasyNetworkImageProvider(
+//     String url, {
+//     int? maxHeight,
+//     int? maxWidth,
+//     double scale = 1.0,
+//     Map<String, String>? headers,
+//     String? cacheKey,
+//   }) : super(
+//           url.startsWith('http') ? url : '$urlSvr$url',
+//           maxHeight: maxHeight,
+//           maxWidth: maxWidth,
+//           scale: scale,
+//           headers: headers,
+//           cacheKey: cacheKey,
+//         );
+//xx }

@@ -1,0 +1,31 @@
+name: utils
+description: A new Flutter plugin project.
+version: 0.0.1
+homepage: com.sgits.utils
+
+environment:
+  sdk: ">=3.1.5 <4.0.0"
+  flutter: ">=3.3.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  flutter_markdown: ^0.7.4+2
+  flutter_svg: ^2.0.17
+  fluttertoast: ^9.0.0
+  get: 5.0.0-release-candidate-9.3.2
+  logger: ^2.4.0
+  logging: ^1.2.0
+  material_design_icons_flutter: ^7.0.7296
+  shared_preferences: ^2.3.2
+  plugin_platform_interface: ^2.1.8
+
+dependency_overrides:
+  intl: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.2
