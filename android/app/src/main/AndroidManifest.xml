@@ -23,7 +23,7 @@
     </queries>
 
     <application
-        android:label="사진모아"
+        android:label="현장촬영AI"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
