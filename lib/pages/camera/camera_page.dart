@@ -3,6 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/pages/camera/camera_controller.dart';
+import 'package:ai_camera/routes/app_pages.dart';
 
 class CameraPage extends StatelessWidget {
   const CameraPage({super.key});
@@ -21,22 +22,33 @@ class CameraPage extends StatelessWidget {
           return Stack(
             children: [
               // 카메라 프리뷰 (전체 배경)
-              Positioned.fill(
-                child: CameraPreview(ctrl.cameraController),
+              Positioned.fill(child: CameraPreview(ctrl.cameraController)),
+
+              // 가이드 라벨 (상단 중앙)
+              Positioned(
+                top: 60,
+                left: 20,
+                right: 20,
+                child: Center(child: _buildGuideLabel()),
               ),
-              // UI 오버레이
-              Positioned.fill(
-                child: Column(
-                  children: [
-                    _buildTopBar(ctrl),
-                    const SizedBox(height: 8),
-                    _buildGuideLabel(),
-                    const SizedBox(height: 16),
-                    _buildGuideBox(),
-                    const Spacer(),
-                    _buildBottomControls(ctrl),
-                  ],
-                ),
+
+              // 가이드박스 (화면 정중앙)
+              Center(child: _buildGuideBox(ctrl)),
+
+              // 상단 바 (뒤로 + 플래시)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _buildTopBar(ctrl),
+              ),
+
+              // 하단 컨트롤
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _buildBottomControls(ctrl),
               ),
             ],
           );
@@ -77,7 +89,6 @@ class CameraPage extends StatelessWidget {
 
   Widget _buildGuideLabel() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.7),
@@ -90,7 +101,7 @@ class CameraPage extends StatelessWidget {
     );
   }
 
-  Widget _buildGuideBox() {
+  Widget _buildGuideBox(CameraController2 ctrl) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 28),
       child: AspectRatio(
@@ -98,18 +109,13 @@ class CameraPage extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // 노란 점선 사각형 가이드박스
-            CustomPaint(
-              painter: _DashedRectPainter(),
-              child: const SizedBox.expand(),
-            ),
-            // 크로스헤어 원 (점선)
-            CustomPaint(
-              painter: _DashedCirclePainter(),
-              child: const SizedBox.expand(),
-            ),
-            // 크로스헤어 중심선
-            const _Crosshair(),
+            CustomPaint(painter: _DashedRectPainter(), child: const SizedBox.expand()),
+            CustomPaint(painter: _DashedCirclePainter(), child: const SizedBox.expand()),
+            // 기울기에 따라 크로스헤어 회전
+            Obx(() => Transform.rotate(
+                  angle: ctrl.tiltAngle.value,
+                  child: _Crosshair(isLevel: ctrl.isLevel.value),
+                )),
           ],
         ),
       ),
@@ -117,35 +123,42 @@ class CameraPage extends StatelessWidget {
   }
 
   Widget _buildBottomControls(CameraController2 ctrl) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+    return Container(
+      color: Colors.black.withOpacity(0.3),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // 줌 선택
-          Obx(() => Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _ZoomButton(label: '1x', zoom: 1.0, ctrl: ctrl),
-                  const SizedBox(width: 8),
-                  _ZoomButton(label: '2x', zoom: 2.0, ctrl: ctrl),
-                  const SizedBox(width: 8),
-                  _ZoomButton(label: '3x', zoom: 3.0, ctrl: ctrl),
-                ],
-              )),
-          const SizedBox(height: 20),
-          // 썸네일 + 셔터
+          Obx(() {
+            final currentZoom = ctrl.zoomLevel.value;
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _ZoomButton(label: '1x', isActive: currentZoom == 1.0, onTap: () => ctrl.setZoom(1.0)),
+                const SizedBox(width: 8),
+                _ZoomButton(label: '2x', isActive: currentZoom == 2.0, onTap: () => ctrl.setZoom(2.0)),
+                const SizedBox(width: 8),
+                _ZoomButton(label: '3x', isActive: currentZoom == 3.0, onTap: () => ctrl.setZoom(3.0)),
+              ],
+            );
+          }),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 마지막 촬영 썸네일
-              Obx(() => _Thumbnail(path: ctrl.lastPhotoPath.value)),
-              // 셔터 버튼
               Obx(() => GestureDetector(
-                    onTap: ctrl.isCapturing.value ? null : ctrl.capture,
-                    child: _ShutterButton(isCapturing: ctrl.isCapturing.value),
+                    onTap: () => Get.toNamed(AppRoutes.archive),
+                    child: _Thumbnail(path: ctrl.lastPhotoPath.value),
                   )),
-              // 균형용 빈 공간
+              Obx(() => GestureDetector(
+                    onTap: (ctrl.isCapturing.value || ctrl.isLocked.value) ? null : ctrl.capture,
+                    child: _ShutterButton(
+                      isCapturing: ctrl.isCapturing.value,
+                      isLocked: ctrl.isLocked.value,
+                    ),
+                  )),
               const SizedBox(width: 60),
             ],
           ),
@@ -157,16 +170,14 @@ class CameraPage extends StatelessWidget {
 
 class _ZoomButton extends StatelessWidget {
   final String label;
-  final double zoom;
-  final CameraController2 ctrl;
-
-  const _ZoomButton({required this.label, required this.zoom, required this.ctrl});
+  final bool isActive;
+  final VoidCallback onTap;
+  const _ZoomButton({required this.label, required this.isActive, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final isActive = ctrl.zoomLevel.value == zoom;
     return GestureDetector(
-      onTap: () => ctrl.setZoom(zoom),
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
@@ -188,7 +199,8 @@ class _ZoomButton extends StatelessWidget {
 
 class _ShutterButton extends StatelessWidget {
   final bool isCapturing;
-  const _ShutterButton({required this.isCapturing});
+  final bool isLocked;
+  const _ShutterButton({required this.isCapturing, required this.isLocked});
 
   @override
   Widget build(BuildContext context) {
@@ -197,15 +209,20 @@ class _ShutterButton extends StatelessWidget {
       height: 72,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 4),
-        color: isCapturing ? Colors.grey : Colors.white,
+        border: Border.all(
+          color: isLocked ? Colors.red : Colors.white,
+          width: 4,
+        ),
+        color: isCapturing ? Colors.grey : (isLocked ? Colors.red.withOpacity(0.3) : Colors.white),
       ),
       child: isCapturing
           ? const Padding(
               padding: EdgeInsets.all(18),
               child: CircularProgressIndicator(color: Colors.black54, strokeWidth: 2),
             )
-          : null,
+          : isLocked
+              ? const Icon(Icons.lock, color: Colors.white, size: 28)
+              : null,
     );
   }
 }
@@ -233,19 +250,19 @@ class _Thumbnail extends StatelessWidget {
 }
 
 class _Crosshair extends StatelessWidget {
-  const _Crosshair();
+  final bool isLevel;
+  const _Crosshair({required this.isLevel});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: 40,
       height: 40,
-      child: CustomPaint(painter: _CrosshairPainter()),
+      child: CustomPaint(painter: _CrosshairPainter(isLevel: isLevel)),
     );
   }
 }
 
-// 노란 점선 사각형
 class _DashedRectPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -253,30 +270,25 @@ class _DashedRectPainter extends CustomPainter {
       ..color = const Color(0xFFFBBF24)
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke;
-
-    const dashWidth = 10.0;
-    const dashGap = 6.0;
     final path = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    _drawDashedPath(canvas, path, paint, dashWidth, dashGap);
+    _drawDashed(canvas, path, paint);
   }
 
-  void _drawDashedPath(Canvas canvas, Path path, Paint paint, double dashWidth, double dashGap) {
-    final metrics = path.computeMetrics();
-    for (final metric in metrics) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final segment = metric.extractPath(distance, distance + dashWidth);
-        canvas.drawPath(segment, paint);
-        distance += dashWidth + dashGap;
+  void _drawDashed(Canvas canvas, Path path, Paint paint) {
+    const dw = 10.0, dg = 6.0;
+    for (final m in path.computeMetrics()) {
+      double d = 0;
+      while (d < m.length) {
+        canvas.drawPath(m.extractPath(d, d + dw), paint);
+        d += dw + dg;
       }
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
-// 노란 점선 원
 class _DashedCirclePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -284,46 +296,40 @@ class _DashedCirclePainter extends CustomPainter {
       ..color = const Color(0xFFFBBF24)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
-
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.height * 0.38;
     final path = Path()..addOval(Rect.fromCircle(center: center, radius: radius));
-
-    final metrics = path.computeMetrics();
-    const dashWidth = 8.0;
-    const dashGap = 5.0;
-    for (final metric in metrics) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final segment = metric.extractPath(distance, distance + dashWidth);
-        canvas.drawPath(segment, paint);
-        distance += dashWidth + dashGap;
+    const dw = 8.0, dg = 5.0;
+    for (final m in path.computeMetrics()) {
+      double d = 0;
+      while (d < m.length) {
+        canvas.drawPath(m.extractPath(d, d + dw), paint);
+        d += dw + dg;
       }
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
-// 크로스헤어 선
 class _CrosshairPainter extends CustomPainter {
+  final bool isLevel;
+  _CrosshairPainter({required this.isLevel});
+
   @override
   void paint(Canvas canvas, Size size) {
+    final color = isLevel ? const Color(0xFF34D399) : Colors.red;
     final paint = Paint()
-      ..color = const Color(0xFF34D399)
+      ..color = color
       ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;
-
-    final cx = size.width / 2;
-    final cy = size.height / 2;
+    final cx = size.width / 2, cy = size.height / 2;
     canvas.drawLine(Offset(0, cy), Offset(size.width, cy), paint);
     canvas.drawLine(Offset(cx, 0), Offset(cx, size.height), paint);
-
-    // 중심 점
     canvas.drawCircle(Offset(cx, cy), 3, paint..style = PaintingStyle.fill);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _CrosshairPainter old) => old.isLevel != isLevel;
 }

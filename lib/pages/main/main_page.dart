@@ -17,33 +17,35 @@ class MainPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildAppBar(ctrl),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 '조사할 항목을 선택하세요',
                 style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.grey[600],
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                  letterSpacing: 0.1,
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _SurveyCard(
-                icon: Icons.straighten,
+                imagePath: 'assets/image/icon_ruler.png',
                 title: '탄산화 조사',
                 subtitle: '(버니어 캘리퍼스 수치 인식)',
                 enabled: true,
                 onTap: () => ctrl.goToCamera(SurveyType.carbonation),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _SurveyCard(
-                icon: Icons.architecture,
+                imagePath: 'assets/image/icon_triangle_ruler.png',
                 title: '배근 간격 조사 (줄자)',
                 subtitle: '서비스 준비 중...',
                 enabled: false,
@@ -60,32 +62,58 @@ class MainPage extends StatelessWidget {
 
   Widget _buildAppBar(MainController ctrl) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
+      padding: const EdgeInsets.fromLTRB(20, 20, 12, 0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const Expanded(
             child: Text(
               '현장 데이터 수집기',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF111827),
+                letterSpacing: -0.3,
+              ),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E3A8A),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: const Row(
-              children: [
-                Icon(Icons.language, color: Colors.white, size: 16),
-                SizedBox(width: 4),
-                Text('ON', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
+          // ON/OFF 배지
+          Obx(() {
+            final online = ctrl.isOnline.value;
+            return Container(
+              decoration: BoxDecoration(
+                color: online ? const Color(0xFFDCFCE7) : const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.language_rounded,
+                    color: online ? const Color(0xFF16A34A) : Colors.grey[500],
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    online ? 'ON' : 'OFF',
+                    style: TextStyle(
+                      color: online ? const Color(0xFF16A34A) : Colors.grey[500],
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      height: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.settings_outlined, color: Color(0xFF6B7280)),
+            iconSize: 22,
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(),
             onPressed: () {},
           ),
         ],
@@ -94,77 +122,140 @@ class MainPage extends StatelessWidget {
   }
 
   Widget _buildBottomStats(MainController ctrl) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: Row(
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFF9FAFB),
+        border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 헤더
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 '오늘의 수집 현황',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF111827),
+                ),
               ),
               GestureDetector(
                 onTap: ctrl.goToArchive,
-                child: const Text(
-                  '보관함 보기',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF1E3A8A),
-                    decoration: TextDecoration.underline,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: const Text(
+                    '보관함 보기',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF374151),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-        ),
-        Obx(() => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  _StatItem(label: '총 촬영', value: '${ctrl.totalToday}', color: Colors.black87),
-                  const SizedBox(width: 24),
-                  _StatItem(label: '미전송 대기', value: '${ctrl.pendingCount}', color: Colors.red),
-                  const SizedBox(width: 24),
-                  _StatItem(label: '전송 완료', value: '${ctrl.uploadedCount}', color: Colors.green[700]!),
-                ],
-              ),
-            )),
-        const SizedBox(height: 16),
-        Obx(() => Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-              child: SizedBox(
+          const SizedBox(height: 12),
+          // 통계 카드
+          Obx(() => Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _StatItem(
+                          label: '총 촬영',
+                          value: '${ctrl.totalToday}',
+                          color: const Color(0xFF111827),
+                        ),
+                      ),
+                      const VerticalDivider(width: 1, color: Color(0xFFE5E7EB)),
+                      Expanded(
+                        child: _StatItem(
+                          label: '미전송 대기',
+                          value: '${ctrl.pendingCount}',
+                          color: const Color(0xFFDC2626),
+                        ),
+                      ),
+                      const VerticalDivider(width: 1, color: Color(0xFFE5E7EB)),
+                      Expanded(
+                        child: _StatItem(
+                          label: '전송 완료',
+                          value: '${ctrl.uploadedCount}',
+                          color: const Color(0xFF16A34A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+          const SizedBox(height: 12),
+          // 전송 버튼
+          Obx(() => SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: ctrl.pendingCount.value > 0 ? ctrl.goToArchive : null,
+                  onPressed: (ctrl.pendingCount.value > 0 && !ctrl.isUploading.value)
+                      ? ctrl.uploadPending
+                      : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E3A8A),
+                    backgroundColor: const Color(0xFF2563EB),
+                    disabledBackgroundColor: const Color(0xFFD1D5DB),
                     foregroundColor: Colors.white,
+                    disabledForegroundColor: const Color(0xFF9CA3AF),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: Text(
-                    '${ctrl.pendingCount}건 일괄 전송 (서버 업로드)',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  child: ctrl.isUploading.value
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            ),
+                            SizedBox(width: 10),
+                            Text('전송 중...', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                          ],
+                        )
+                      : Text(
+                          ctrl.pendingCount.value > 0
+                              ? '${ctrl.pendingCount}건 일괄 전송 (서버 업로드)'
+                              : '전송할 데이터가 없습니다',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
                 ),
-              ),
-            )),
-      ],
+              )),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 }
 
 class _SurveyCard extends StatelessWidget {
-  final IconData icon;
+  final String imagePath;
   final String title;
   final String subtitle;
   final bool enabled;
   final VoidCallback? onTap;
 
   const _SurveyCard({
-    required this.icon,
+    required this.imagePath,
     required this.title,
     required this.subtitle,
     required this.enabled,
@@ -177,21 +268,23 @@ class _SurveyCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          color: enabled ? const Color(0xFFEFF6FF) : Colors.grey[100],
+          color: enabled ? const Color(0xFFEFF6FF) : const Color(0xFFF9FAFB),
           border: Border.all(
-            color: enabled ? const Color(0xFF1E3A8A) : Colors.grey[300]!,
-            width: enabled ? 2 : 1,
+            color: enabled ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
+            width: enabled ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 36,
-              color: enabled ? const Color(0xFF1E3A8A) : Colors.grey[400],
+            Image.asset(
+              imagePath,
+              width: 36,
+              height: 36,
+              color: enabled ? null : Colors.grey[400],
+              colorBlendMode: BlendMode.srcIn,
             ),
             const SizedBox(width: 16),
             Column(
@@ -200,17 +293,17 @@ class _SurveyCard extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: enabled ? Colors.black87 : Colors.grey[400],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: enabled ? const Color(0xFF111827) : const Color(0xFF9CA3AF),
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
                   style: TextStyle(
                     fontSize: 13,
-                    color: enabled ? const Color(0xFF1E3A8A) : Colors.grey[400],
+                    color: enabled ? const Color(0xFF2563EB) : const Color(0xFF9CA3AF),
                   ),
                 ),
               ],
@@ -231,13 +324,22 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-        const SizedBox(height: 2),
-        Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: color),
+          ),
+        ],
+      ),
     );
   }
 }

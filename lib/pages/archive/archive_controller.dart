@@ -50,15 +50,19 @@ class ArchiveController extends GetxController {
     _loadRecords();
     isUploading.value = false;
 
-    final successCount = records.where((r) => r.uploadStatus == UploadStatus.uploaded).length;
-    Get.snackbar(
-      '업로드 완료',
-      '${pending.length}건 중 ${pending.length}건 전송 완료',
-      snackPosition: SnackPosition.bottom,
-      backgroundColor: Colors.green[700],
-      colorText: Colors.white,
-      margin: const EdgeInsets.all(16),
-    );
+    final ctx = Get.context;
+    if (ctx != null) {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(
+          content: Text('${pending.length}건 전송 완료'),
+          backgroundColor: Colors.green[700],
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void editRecord(SurveyRecord record) {
@@ -67,26 +71,39 @@ class ArchiveController extends GetxController {
 
     Get.dialog(
       AlertDialog(
-        title: const Text('수정'),
+        contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Text(
+              '액정에 표시된 수치를 입력해주세요',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: valueCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               decoration: const InputDecoration(
-                labelText: '수치 (mm)',
                 border: OutlineInputBorder(),
                 suffixText: 'mm',
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            const Text(
+              '비고 (선택)',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: noteCtrl,
               maxLines: 3,
               decoration: const InputDecoration(
-                labelText: '비고',
+                hintText: '특이사항이나 메모를 입력하세요...',
                 border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.all(12),
               ),
             ),
           ],
@@ -102,7 +119,10 @@ class ArchiveController extends GetxController {
               _loadRecords();
               Get.back();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E3A8A), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3A8A),
+              foregroundColor: Colors.white,
+            ),
             child: const Text('저장'),
           ),
         ],

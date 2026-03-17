@@ -69,13 +69,13 @@ class DataInputPage extends StatelessWidget {
                     style: TextStyle(color: Colors.grey[500], fontSize: 14),
                   ),
                 )
-              : Image.file(File(ctrl.photoPath), fit: BoxFit.cover),
+              : Image.file(File(ctrl.photoPath), fit: BoxFit.cover, alignment: Alignment.center),
         ),
         Positioned(
           right: 12,
           bottom: 12,
           child: GestureDetector(
-            onTap: () => ctrl.showFullPhoto.toggle(),
+            onTap: ctrl.openPhotoViewer,
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -145,68 +145,80 @@ class DataInputPage extends StatelessWidget {
   Widget _buildBottomButtons(DataInputController ctrl) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: const Offset(0, -2))],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, -2))],
       ),
-      child: Row(
-        children: [
-          // 다시 촬영 버튼
-          Expanded(
-            flex: 2,
-            child: OutlinedButton.icon(
-              onPressed: ctrl.retake,
-              icon: const Icon(Icons.camera_alt_outlined, size: 18),
-              label: const Text('다시 촬영'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.grey[700],
-                side: BorderSide(color: Colors.grey[400]!),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Obx(() {
+        final valid = ctrl.isValid.value;
+        final saving = ctrl.isSaving.value;
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 다시 촬영 - 높이를 오른쪽 버튼들 합과 동일하게
+              Expanded(
+                flex: 2,
+                child: OutlinedButton.icon(
+                  onPressed: ctrl.retake,
+                  icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                  label: const Text('다시 촬영'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey[700],
+                    side: BorderSide(color: Colors.grey[400]!),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          // 저장 버튼들
-          Expanded(
-            flex: 3,
-            child: Obx(() => Column(
+              const SizedBox(width: 10),
+              // 저장 버튼 2개
+              Expanded(
+                flex: 3,
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: ctrl.isSaving.value ? null : () => ctrl.save(continueCapture: true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E3A8A),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    Expanded(
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: (valid && !saving) ? () => ctrl.save(continueCapture: true) : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E3A8A),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: saving
+                              ? const SizedBox(
+                                  height: 16,
+                                  width: 16,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Text('저장 후 계속 촬영', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                         ),
-                        child: ctrl.isSaving.value
-                            ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text('저장 후 계속 촬영', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: ctrl.isSaving.value ? null : () => ctrl.save(continueCapture: false),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF1E3A8A),
-                          side: const BorderSide(color: Color(0xFF1E3A8A)),
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    Expanded(
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: (valid && !saving) ? () => ctrl.save(continueCapture: false) : null,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF1E3A8A),
+                            side: const BorderSide(color: Color(0xFF1E3A8A)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('저장 후 메인으로', style: TextStyle(fontSize: 13)),
                         ),
-                        child: const Text('저장 후 메인으로', style: TextStyle(fontSize: 13)),
                       ),
                     ),
                   ],
-                )),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      }),
     );
   }
 }

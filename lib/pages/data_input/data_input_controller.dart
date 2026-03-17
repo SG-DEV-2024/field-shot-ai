@@ -13,7 +13,7 @@ class DataInputController extends GetxController {
   final valueController = TextEditingController();
   final noteController = TextEditingController();
   final isSaving = false.obs;
-  final showFullPhoto = false.obs;
+  final isValid = false.obs;
 
   @override
   void onInit() {
@@ -21,6 +21,11 @@ class DataInputController extends GetxController {
     final args = Get.arguments as Map<String, dynamic>?;
     photoPath = args?['photoPath'] ?? '';
     surveyType = args?['surveyType'] ?? SurveyType.carbonation;
+
+    valueController.addListener(() {
+      final val = double.tryParse(valueController.text.trim());
+      isValid.value = val != null;
+    });
   }
 
   @override
@@ -30,13 +35,12 @@ class DataInputController extends GetxController {
     super.onClose();
   }
 
-  bool get isValid {
-    final val = double.tryParse(valueController.text.trim());
-    return val != null;
+  void openPhotoViewer() {
+    Get.toNamed('/photo-viewer', arguments: {'photoPath': photoPath});
   }
 
   Future<void> save({required bool continueCapture}) async {
-    if (!isValid || isSaving.value) return;
+    if (!isValid.value || isSaving.value) return;
     isSaving.value = true;
 
     final record = SurveyRecord(
@@ -55,10 +59,7 @@ class DataInputController extends GetxController {
   }
 
   void retake() {
-    // 임시 사진 삭제 후 돌아가기
-    try {
-      File(photoPath).deleteSync();
-    } catch (_) {}
+    try { File(photoPath).deleteSync(); } catch (_) {}
     Get.back();
   }
 }

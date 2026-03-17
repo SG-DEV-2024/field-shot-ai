@@ -7,6 +7,7 @@ import 'package:ai_camera/pages/main/main_page.dart';
 
 main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   cameras = await availableCameras();
   await StorageService.I.init();
@@ -25,7 +26,7 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      title: '현장촬영AI',
+      title: 'FieldShotAI',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E3A8A)),
         useMaterial3: true,
