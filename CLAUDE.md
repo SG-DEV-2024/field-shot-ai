@@ -119,6 +119,32 @@ version: 1.0.0+1
 2. **GetX snackbar**: GetX 5.x에서 `Get.snackbar` 작동 안 함 → `ScaffoldMessenger.of(Get.context!).showSnackBar()` 사용
 3. **Obx 스코프**: observable을 Obx 클로저 내부에서 직접 읽어야 함
 
+## TODO (PDF 기획서 미구현 항목)
+
+> 기준 문서: `현장촬영앱_ver1.0_260316.pdf`
+
+### 촬영 화면
+- [ ] **터치 포커스 링**: 화면 터치 시 노란색 링 표시 (AF + 노출 조정 영역 표시)
+- [ ] **밝기 경고**: 조도 센서(lux)로 어두운 환경 감지 시 하단에 "플래시를 켜주세요" 팝업 표시
+- [ ] **줌 1x~5x 확장**: 현재 1x/2x/3x → 5x까지 지원 (기기 최대 줌에 clamp)
+- [ ] **핀치줌 (데이터입력 화면)**: 촬영된 사진에서 두 손가락 확대/축소 지원 (낮은 우선순위)
+
+### 업로드 API
+- [ ] **실제 API 연동**: 현재 httpbin.org mock → 실제 서버 URL + API Key 인증 적용
+- [ ] **업로드 페이로드 완성**: PDF 기준 필수 필드 추가
+  - `record_id`: 고유 식별자 (현재 timestamp ID → UUID 검토)
+  - `worker_id`: 작업자/기기 ID (현재 미포함)
+  - `device_info`: OS 버전, 앱 버전 정보 (현재 미포함)
+  - `ground_truth.measured_value`: 측정값 (현재 `value`로 전송 중)
+
+### 보관함 화면
+- [ ] **보관함 내 업로드 버튼**: PDF 기준 보관함에도 "미전송 N건 업로드" 버튼 추가
+
+### 향후 버전 (v2)
+- [ ] **배근 간격 조사**: 줄자 수치 인식 (현재 "서비스 준비 중" 비활성화)
+
+---
+
 ## Change Log
 
 ### 2026-03-17: v1.0.0 최초 릴리즈
