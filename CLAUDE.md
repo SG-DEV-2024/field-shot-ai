@@ -145,6 +145,55 @@ version: 1.0.0+1
 
 ---
 
+## 서버 API 명세 (업로드)
+
+> 서버 담당자에게 전달한 스펙 기준 (2026-03-23)
+
+### POST /api/v1/records — 단건 업로드
+
+```
+Content-Type: multipart/form-data
+Authorization: Bearer {API_KEY}   ← 인증 방식 협의 필요
+```
+
+**Request 필드 (multipart/form-data)**
+
+| 필드명 | 타입 | 필수 | 설명 | 예시 |
+|--------|------|------|------|------|
+| `id` | string | ✅ | 레코드 고유 ID (timestamp 기반, 향후 UUID 전환 예정) | `"1742700123456"` |
+| `survey_type` | string | ✅ | 조사 종류: `carbonation` / `rebarSpacing` | `"carbonation"` |
+| `values` | string (JSON array) | ✅ | 측정값 목록 | `"[12.5, 13.0]"` |
+| `note` | string | ✅ | 비고 (없으면 빈 문자열) | `"3층 북측 벽면"` |
+| `timestamp` | string (ISO 8601) | ✅ | 촬영 시각 | `"2026-03-23T14:32:00+09:00"` |
+| `photo` | file (JPEG) | ✅ | 촬영 이미지 (파일명: `{id}.jpg`) | binary |
+| `worker_id` | string | ⬜ | 작업자/기기 식별자 (추후 추가 예정) | `"device-abc123"` |
+| `app_version` | string | ⬜ | 앱 버전 | `"1.0.0"` |
+| `os_version` | string | ⬜ | OS 버전 | `"Android 14"` |
+
+**Response**
+
+```json
+// 성공 (HTTP 200)
+{ "success": true, "record_id": "1742700123456" }
+
+// 실패 (HTTP 400/500)
+{ "success": false, "error": "invalid_survey_type" }
+```
+
+### 앱 연동 시 변경 필요 사항 (`upload_service.dart`)
+- URL: `httpbin.org/post` → 실제 서버 엔드포인트
+- `value` (double 단일값) → `values` (JSON array string)로 필드명/타입 변경
+- Authorization 헤더 추가
+- `worker_id`, `app_version`, `os_version` 필드 추가
+
+### 미확인 사항 (서버 담당자 확인 필요)
+1. 인증 방식 — API Key / JWT / 없음?
+2. `values` 포맷 — JSON array string vs 별도 필드?
+3. HTTP 200이면 성공 처리? 또는 body의 `success` 필드도 체크?
+4. 이미지 용량 제한?
+
+---
+
 ## Change Log
 
 ### 2026-03-17: v1.0.0 최초 릴리즈
@@ -168,3 +217,7 @@ version: 1.0.0+1
 
 **Android:**
 - `screenOrientation="portrait"` AndroidManifest 레벨 고정
+
+## 커밋 히스토리
+
+- Android 서명 키스토어 생성 (_keys/field-shot-ai.jks) 및 build_release.sh 추가 (v1.0.1)

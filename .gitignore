@@ -48,6 +48,7 @@ app.*.map.json
 /android/key.properties
 /android/app/upload-keystore.jks
 *.jks
+/_keys/
 
 # wantury
 lib/todo.dart

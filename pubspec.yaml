@@ -2,7 +2,7 @@ name: ai_camera
 description: 현장촬영AI - 현장 측정값 사진 촬영 및 AI 데이터 수집 앱
 publish_to: "none"
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ">=3.2.6 <4.0.0"
