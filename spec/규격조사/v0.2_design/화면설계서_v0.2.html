@@ -278,7 +278,7 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
       <table>
         <thead><tr><th>갭</th><th>v0.1 상태</th><th>v0.2 조치</th></tr></thead>
         <tbody>
-          <tr><td>메인 메뉴 통합</td><td>"규격조사" 카드 시안만</td><td>v1 카드 2개 → 3개 재편 (탄산화 / 규격 / 균열 폭)</td></tr>
+          <tr><td>메인 메뉴 통합</td><td>"규격조사" 카드 시안만</td><td>v1 카드 2개 → 3개 재편 (탄산화 / 규격 / 배근 간격)</td></tr>
           <tr><td>SurveyType enum</td><td><code>carbonation</code>, <code>rebarSpacing</code></td><td><code>dimension</code> 추가 + <code>MeasurementSubtype</code> 신설 (3종)</td></tr>
           <tr><td>측정점 지정</td><td>와이어 박스만</td><td>마커 = 측정 지점 + 라벨 + stem 분리, 자유 드래그</td></tr>
           <tr><td>가이드박스 모양</td><td>화면별 그림 다름</td><td><code>GuideBoxMode</code> enum 통합 (rectHorizontalWide / ovalVertical)</td></tr>
@@ -394,7 +394,7 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
       <ul>
         <li><a href="assets/icons/icon_caliper.svg">icon_caliper.svg</a> — 탄산화 조사 (디지털 캘리퍼스)</li>
         <li><a href="assets/icons/icon_tape.svg">icon_tape.svg</a> — 규격 조사 (줄자)</li>
-        <li><a href="assets/icons/icon_crack.svg">icon_crack.svg</a> — 균열 폭 (disabled 톤)</li>
+        <li><a href="assets/icons/icon_crack.svg">icon_crack.svg</a> — 비활성 카드(현 표기: "배근 간격 조사", disabled 톤)</li>
         <li><a href="assets/icons/icon_subtype_width.svg">icon_subtype_width.svg</a> — 폭 측정 카드 아이콘</li>
         <li><a href="assets/icons/icon_subtype_gap.svg">icon_subtype_gap.svg</a> — 간격 측정 카드 아이콘</li>
         <li><a href="assets/icons/icon_subtype_hole.svg">icon_subtype_hole.svg</a> — 홀 깊이 카드 아이콘</li>
@@ -410,8 +410,8 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
       <table>
         <thead><tr><th>enum 값</th><th>code (서버)</th><th>label (UI)</th><th>특징</th></tr></thead>
         <tbody>
-          <tr><td><code>wallOrMemberWidth</code></td><td><code>wall_or_member_width</code></td><td>벽/기둥/부재 폭 측정</td><td>줄자 0 = 측정 시작</td></tr>
-          <tr><td><code>memberGap</code></td><td><code>member_gap</code></td><td>부재 간 간격 측정</td><td>줄자 임의 눈금 = 시작</td></tr>
+          <tr><td><code>wallOrMemberWidth</code></td><td><code>wall_or_member_width</code></td><td>벽체/기둥/슬라브 폭 측정</td><td>줄자 0 = 측정 시작</td></tr>
+          <tr><td><code>memberGap</code></td><td><code>member_gap</code></td><td>부재 규격 조사</td><td>줄자 임의 눈금 = 시작</td></tr>
           <tr><td><code>holeDepth</code></td><td><code>hole_depth</code></td><td>홀 깊이 측정</td><td>visible_reading_value 단일</td></tr>
         </tbody>
       </table>
@@ -450,7 +450,7 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
       <ul>
         <li><b>탄산화 조사</b> 카드 (활성) → <code>/camera</code> 직행 (v1과 동일)</li>
         <li><b>규격 조사</b> 카드 (활성, 신규) → <code>/survey-type-select</code> (S-002)</li>
-        <li><b>균열 폭 조사</b> 카드 (비활성, 향후) — v3 예정</li>
+        <li><b>배근 간격 조사</b> 카드 (비활성, 향후) — 추후 활성화 예정</li>
         <li>하단 통계/일괄 전송 영역은 v1과 동일. 빈/미전송/전송중 3 데이터 상태 표시.</li>
       </ul>
     </section>
@@ -500,7 +500,7 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
       <ul>
         <li><b>가이드박스 좌/우 핸들</b> 드래그로 시작/끝점 사전 좌표 확보. 핸들은 박스 외곽(18px), 박스 끝의 얇은 세로선(measure-line)이 실제 측정점.</li>
         <li>자세(기울기) 잠금 미적용 — 천장·구조물 등 다양한 각도 촬영 가능.</li>
-        <li>안내 문구: 폭 = "줄자 0을 측정 시작면에 맞추고 촬영하세요" / 간격 = "줄자 양 끝의 눈금이 모두 보이게 촬영하세요"</li>
+        <li>안내 문구: 폭 = "측정 시작면에 맞추고 촬영하세요" / 간격 = "줄자 양 끝의 눈금이 모두 보이게 촬영하세요"</li>
       </ul>
     </section>
 

@@ -62,9 +62,9 @@
     ],
     'S-002': [
       { find: function (r) { return byAttr(r, 'data-subtype', 'wall_or_member_width'); },
-        target: 'S-003', label: '벽/기둥/부재 폭 카드' },
+        target: 'S-003', label: '벽체/기둥/슬라브 폭 카드' },
       { find: function (r) { return byAttr(r, 'data-subtype', 'member_gap'); },
-        target: 'S-003', label: '부재 간 간격 카드' },
+        target: 'S-003', label: '부재 규격 조사 카드' },
       { find: function (r) { return byAttr(r, 'data-subtype', 'hole_depth'); },
         target: 'S-006', label: '홀 깊이 카드' }
     ],

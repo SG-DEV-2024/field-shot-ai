@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>S-003 촬영 가이드 — 벽/기둥/부재 폭 (v0.2)</title>
+<title>S-003 촬영 가이드 — 벽체/기둥/슬라브 폭 (v0.2)</title>
 <style>
 /* ============================================================
-   S-003 촬영 가이드 — 벽/기둥/부재 폭 (wall_or_member_width)
+   S-003 촬영 가이드 — 벽체/기둥/슬라브 폭 (wall_or_member_width)
    진입: S-002 첫 번째 카드(폭) 탭
    라우트: /camera · {surveyType: dimension, subtype: wall_or_member_width}
 
@@ -407,7 +407,7 @@ body{
           </div>
         </div>
 
-        <div class="hint-bubble">줄자 0을 측정 시작면에 맞추고 촬영하세요</div>
+        <div class="hint-bubble">측정 시작면에 맞추고 촬영하세요</div>
 
         <div class="guide-area">
           <div class="guide-box"></div>
@@ -492,7 +492,7 @@ body{
           <thead><tr><th>구분</th><th>폭 (<code>wall_or_member_width</code>)</th><th>간격 (<code>member_gap</code>)</th></tr></thead>
           <tbody>
             <tr><td><b>줄자 시작</b></td><td>줄자 <code>0</code> = 측정 시작면</td><td>줄자 <b>임의 눈금</b> (예: 120) = 측정 시작점</td></tr>
-            <tr><td>안내 문구</td><td>"줄자 0을 측정 시작면에 맞추고 촬영하세요"</td><td>"줄자 양 끝의 눈금이 모두 보이게 촬영하세요"</td></tr>
+            <tr><td>안내 문구</td><td>"측정 시작면에 맞추고 촬영하세요"</td><td>"줄자 양 끝의 눈금이 모두 보이게 촬영하세요"</td></tr>
             <tr><td>시작값 입력 (S-005)</td><td>일반적으로 <code>0</code></td><td>임의 값 (예: 120)</td></tr>
             <tr><td>측정값 계산</td><td><code>= end - 0 = end</code></td><td><code>= end - start</code></td></tr>
             <tr><td>현장 시나리오</td><td>부재 끝에 줄자 0을 정확히 맞출 수 있을 때</td><td>부재 모서리 손상·접근 어려움 등으로 줄자 0이 아닌 임의 눈금에서 시작해야 할 때</td></tr>
@@ -501,7 +501,7 @@ body{
         </table>
         <ul class="flow" style="margin-top:14px;">
           <li><b>학습 데이터 가치</b> · 폭은 "줄자 0이 항상 측정 시작" 케이스, 간격은 "줄자 임의 위치에서 시작" 케이스를 분리 수집 → 모델이 줄자 0 의존 없이 학습 가능</li>
-          <li><b>본 mockup 표시 상태</b> · 안내 버블에는 폭 케이스 문구("줄자 0을 측정 시작면에 맞추고 촬영하세요") 표시. 실제 앱에선 <code>subtype</code> 인자에 따라 두 문구 중 하나가 노출</li>
+          <li><b>본 mockup 표시 상태</b> · 안내 버블에는 폭 케이스 문구("측정 시작면에 맞추고 촬영하세요") 표시. 실제 앱에선 <code>subtype</code> 인자에 따라 두 문구 중 하나가 노출</li>
         </ul>
       </div>
 

@@ -269,8 +269,8 @@ body{
 
       <div class="cards">
 
-        <!-- ① 벽/기둥/부재 폭 -->
-        <div class="card" data-subtype="wall_or_member_width" data-label="벽/기둥/부재 폭">
+        <!-- ① 벽체/기둥/슬라브 폭 -->
+        <div class="card" data-subtype="wall_or_member_width" data-label="벽체/기둥/슬라브 폭">
           <div class="icon-slot">
             <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
               <rect x="6" y="20" width="32" height="12" rx="1" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
@@ -284,13 +284,13 @@ body{
             </svg>
           </div>
           <div class="text">
-            <div class="title">벽 / 기둥 / 부재 폭 측정</div>
+            <div class="title">벽체 / 기둥 / 슬라브 폭 측정</div>
             <div class="sub-line">시작면과 끝면 사이의 폭 측정</div>
           </div>
         </div>
 
-        <!-- ② 부재 간 간격 -->
-        <div class="card" data-subtype="member_gap" data-label="부재 간 간격">
+        <!-- ② 부재 규격 조사 -->
+        <div class="card" data-subtype="member_gap" data-label="부재 규격 조사">
           <div class="icon-slot">
             <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
               <rect x="5" y="10" width="8" height="24" rx="1" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
@@ -303,7 +303,7 @@ body{
             </svg>
           </div>
           <div class="text">
-            <div class="title">부재 간 간격 측정</div>
+            <div class="title">부재 규격 조사</div>
             <div class="sub-line">두 부재 사이의 거리 측정</div>
           </div>
         </div>
@@ -369,8 +369,8 @@ body{
           <thead><tr><th>요소</th><th>동작</th><th>다음 화면 / 결과</th></tr></thead>
           <tbody>
             <tr><td>← 뒤로가기</td><td>탭</td><td><code>/</code> (S-001 메인)</td></tr>
-            <tr><td>벽/기둥/부재 폭 카드</td><td>탭</td><td><code>/camera</code> · <code>{surveyType: dimension, subtype: wall_or_member_width}</code></td></tr>
-            <tr><td>부재 간 간격 카드</td><td>탭</td><td><code>/camera</code> · <code>{surveyType: dimension, subtype: member_gap}</code></td></tr>
+            <tr><td>벽체/기둥/슬라브 폭 카드</td><td>탭</td><td><code>/camera</code> · <code>{surveyType: dimension, subtype: wall_or_member_width}</code></td></tr>
+            <tr><td>부재 규격 조사 카드</td><td>탭</td><td><code>/camera</code> · <code>{surveyType: dimension, subtype: member_gap}</code></td></tr>
             <tr><td>홀 깊이 카드</td><td>탭</td><td><code>/camera</code> · <code>{surveyType: dimension, subtype: hole_depth}</code></td></tr>
             <tr><td>카드 (호버)</td><td>마우스 위</td><td>살짝 들림 + 미세 그림자 (Android ink ripple 대응)</td></tr>
           </tbody>

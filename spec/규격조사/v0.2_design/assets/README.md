@@ -9,9 +9,9 @@ assets/
 ├── icons/
 │   ├── icon_caliper.svg          ← 탄산화 조사 (디지털 버니어 캘리퍼스)
 │   ├── icon_tape.svg             ← 규격 조사 (줄자)           ← v0.2 신규
-│   ├── icon_crack.svg            ← 균열 폭 조사               ← v0.2 신규 (disabled 톤)
-│   ├── icon_subtype_width.svg    ← 규격조사 ▸ 벽/기둥/부재 폭  ← S-002
-│   ├── icon_subtype_gap.svg      ← 규격조사 ▸ 부재 간 간격     ← S-002
+│   ├── icon_crack.svg            ← 비활성 카드(현 표기 "배근 간격 조사", disabled 톤)
+│   ├── icon_subtype_width.svg    ← 규격조사 ▸ 벽체/기둥/슬라브 폭  ← S-002
+│   ├── icon_subtype_gap.svg      ← 규격조사 ▸ 부재 규격 조사       ← S-002
 │   └── icon_subtype_hole.svg     ← 규격조사 ▸ 홀 깊이          ← S-002
 └── README.md
 ```
@@ -86,7 +86,7 @@ Android 멀티 해상도가 필요한 경우 `1.5x/2x/3x/4x` 폴더에 각각 54
 |------|------|------------|
 | 탄산화 조사 | `icon_caliper.svg` | enabled |
 | 규격 조사 (v0.2 신규) | `icon_tape.svg` | enabled |
-| 균열 폭 조사 | `icon_crack.svg` | disabled (이미 톤다운된 회색 상태) |
+| 배근 간격 조사 (현 표기) | `icon_crack.svg` | disabled (이미 톤다운된 회색 상태) |
 
 > 비활성 시 추가 처리: 기존 v1 코드는 `Image.asset(..., color: Colors.grey[400], colorBlendMode: BlendMode.srcIn)`로 PNG에 그레이 틴트를 입혔다. `icon_crack.svg`는 이미 disabled 톤(#cbd5e1 / #e2e8f0)으로 그려져 있어 별도 틴트 불필요. SVG 사용 시 colorFilter 미적용 권장.
 
@@ -94,8 +94,8 @@ Android 멀티 해상도가 필요한 경우 `1.5x/2x/3x/4x` 폴더에 각각 54
 
 | 카드 | 자산 | MeasurementSubtype |
 |------|------|--------------------|
-| 벽 / 기둥 / 부재 폭 측정 | `icon_subtype_width.svg` | `wall_or_member_width` |
-| 부재 간 간격 측정 | `icon_subtype_gap.svg` | `member_gap` |
+| 벽체 / 기둥 / 슬라브 폭 측정 | `icon_subtype_width.svg` | `wall_or_member_width` |
+| 부재 규격 조사 | `icon_subtype_gap.svg` | `member_gap` |
 | 홀 깊이 측정 | `icon_subtype_hole.svg` | `hole_depth` |
 
 > S-002 카드는 모두 선택 가능하다. 카드 탭 시 `Get.toNamed('/camera', arguments: {surveyType: dimension, subtype: <code>})`로 이동.
