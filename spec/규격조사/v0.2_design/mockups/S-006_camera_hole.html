@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>S-006 촬영 가이드 — 홀 깊이 (v0.2)</title>
+<style>
+/* ============================================================
+   S-006 촬영 가이드 — 홀 깊이 측정 (hole_depth)
+   진입: S-002 "홀 깊이 측정" 카드 탭
+   라우트: /camera · {surveyType: dimension, subtype: hole_depth}
+
+   S-003(폭)과의 차이:
+     - 가이드박스: 가로 long 직사각형 → 세로 타원 (GuideBoxMode.ovalVertical)
+     - 핸들 없음 — 홀 입구는 단일 점이므로 S-007에서 한 번에 지정
+     - 자세 잠금 미적용은 동일 (dimension subtype 공통 정책)
+
+   인터랙션 (JS):
+     - 줌 1x/2x/3x 토글
+     - 플래시 Auto/On/Off 순환
+     - 셔터/← 버튼 hover/active
+   ============================================================ */
+:root{
+  --ink:#111827; --muted:#6B7280; --line:#E5E7EB;
+  --blue:#2563EB; --blue-deep:#1E40AF;
+  --yellow:#facc15; --red:#ef4444;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#f1f5f9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#0f172a;
+  padding:40px 24px 60px;
+  line-height:1.55;
+}
+
+/* ====== 페이지 헤더 ====== */
+.page-head{
+  max-width:1280px; margin:0 auto 28px;
+  text-align:center;
+}
+.page-head .eyebrow{
+  display:inline-block;
+  font-size:11.5px; letter-spacing:0.14em; font-weight:800;
+  color:#2563EB; background:#DBEAFE;
+  padding:5px 12px; border-radius:999px;
+  margin-bottom:10px;
+}
+.page-head h1{
+  margin:0; font-size:24px; font-weight:800; letter-spacing:-0.025em; color:#0f172a;
+}
+.page-head p{margin:6px 0 0; color:#64748b; font-size:13.5px;}
+.page-head .hint{
+  display:inline-block; margin-top:10px;
+  font-size:12px; color:#0f172a; background:#fef3c7; border:1px solid #fcd34d;
+  border-radius:8px; padding:6px 12px;
+}
+.page-head .hint kbd{
+  display:inline-block; background:#fff; border:1px solid #f59e0b; border-radius:4px;
+  padding:1px 6px; font-size:11px; color:#92400e; font-weight:700;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+
+/* ====== 폰 목업 ====== */
+.mockup-row{
+  display:flex; justify-content:center; align-items:flex-start;
+  margin-bottom:48px;
+}
+.stage{display:flex; flex-direction:column; align-items:center;}
+
+/* ====== 스크린 (Android 논리 360dp) ====== */
+.screen{
+  width:360px; height:720px;
+  background:#1f2937;
+  border:1px solid #e2e8f0;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(15,23,42,.10);
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+  color:#fff;
+}
+.screen::before{
+  content:"";
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(255,255,255,0.08), transparent 60%),
+    linear-gradient(180deg, #2a323d 0%, #1f2937 55%, #161c25 100%);
+  z-index:0;
+}
+
+/* ---- 상단 헤더 ---- */
+.cam-topbar{
+  position:relative; z-index:2;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px 0;
+}
+.cam-back{
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff;
+  cursor:pointer; border-radius:50%;
+  transition:background-color .12s;
+}
+.cam-back:hover{background:rgba(255,255,255,0.10);}
+.cam-back:active{background:rgba(255,255,255,0.20);}
+.cam-back svg{width:22px; height:22px;}
+
+.flash-pill{
+  display:inline-flex; align-items:center; gap:5px;
+  background:rgba(0,0,0,0.55);
+  color:#facc15;
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:12.5px; font-weight:700;
+  cursor:pointer; user-select:none;
+  transition:background-color .12s;
+}
+.flash-pill:hover{background:rgba(0,0,0,0.75);}
+.flash-pill:active{background:rgba(0,0,0,0.90);}
+.flash-pill svg{width:14px; height:14px;}
+.flash-pill.off{color:#9ca3af;}
+.flash-pill.on{color:#fbbf24;}
+
+/* ---- 안내 버블 ---- */
+.hint-bubble{
+  position:absolute; z-index:2;
+  top:108px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,0.78);
+  color:#fff;
+  padding:9px 16px;
+  border-radius:20px;
+  font-size:12px; font-weight:600;
+  white-space:nowrap;
+  letter-spacing:-0.1px;
+}
+
+/* ---- 가이드박스 — 세로 타원 (홀 깊이용) ---- */
+.guide-oval{
+  position:absolute; z-index:2;
+  top:50%; left:50%;
+  transform:translate(-50%, -50%);
+  width:172px; height:236px;
+  border:2.5px dashed var(--yellow);
+  border-radius:50%;
+  pointer-events:none;
+}
+/* 가이드박스 내부 보조 표시 — 가운데 작은 십자(촬영 중심) */
+.guide-oval::before,
+.guide-oval::after{
+  content:"";
+  position:absolute; top:50%; left:50%;
+  background:rgba(250,204,21,0.55);
+}
+.guide-oval::before{
+  width:1.5px; height:18px;
+  transform:translate(-50%, -50%);
+}
+.guide-oval::after{
+  width:18px; height:1.5px;
+  transform:translate(-50%, -50%);
+}
+
+/* ---- 하단 컨트롤바 ---- */
+.cam-controls{
+  position:relative; z-index:2;
+  margin-top:auto;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(8px);
+  padding:14px 20px 22px;
+}
+
+.zoom-pill-wrap{display:flex; justify-content:center;}
+.zoom-pill{
+  background:rgba(0,0,0,0.55);
+  border-radius:999px;
+  padding:4px;
+  display:inline-flex; align-items:center; justify-content:center;
+  margin:0 auto 12px;
+}
+.zoom-pill button{
+  width:42px; height:28px;
+  border-radius:999px;
+  border:none; background:transparent;
+  color:#fff; font-size:13px; font-weight:700;
+  cursor:pointer;
+  transition:background-color .12s, color .12s;
+}
+.zoom-pill button:hover:not(.active){background:rgba(255,255,255,0.10);}
+.zoom-pill button.active{background:var(--yellow); color:#111827;}
+
+.cam-bottom{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+}
+
+.thumb{
+  width:54px; height:54px;
+  border-radius:10px;
+  border:1.5px solid rgba(255,255,255,0.5);
+  background:linear-gradient(135deg, #525b69, #2a323d);
+  cursor:pointer;
+  position:relative; overflow:hidden;
+  transition:transform .12s, border-color .12s;
+}
+.thumb:hover{border-color:rgba(255,255,255,0.85); transform:scale(1.02);}
+.thumb:active{transform:scale(0.97);}
+.thumb::after{
+  content:"";
+  position:absolute; inset:0;
+  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.20), transparent 50%);
+}
+
+.shutter{
+  width:66px; height:66px;
+  border-radius:50%;
+  background:#fff;
+  border:4px solid rgba(255,255,255,0.35);
+  cursor:pointer;
+  position:relative;
+  transition:transform .08s, background-color .12s;
+}
+.shutter:hover{transform:scale(1.04);}
+.shutter:active{transform:scale(0.94); background:#e5e7eb;}
+
+.cam-right-space{visibility:hidden;}
+
+/* ====== 기획 명세 패널 ====== */
+.spec-section{
+  max-width:1280px; margin:0 auto;
+}
+.spec-grid{
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:18px;
+}
+.spec-card{
+  background:#fff; border:1px solid #e2e8f0;
+  border-radius:16px; padding:22px 24px;
+  box-shadow:0 4px 12px rgba(15,23,42,.04);
+}
+.spec-card h2{
+  margin:0 0 14px;
+  font-size:15px; font-weight:800; letter-spacing:-0.01em;
+  color:#0f172a;
+  display:flex; align-items:center; gap:8px;
+}
+.spec-card h2::before{
+  content:""; width:4px; height:16px; background:var(--blue);
+  border-radius:2px;
+}
+.spec-card .kv{
+  display:grid; grid-template-columns:96px 1fr; gap:8px 16px;
+  font-size:13px;
+}
+.spec-card .kv b{font-weight:700; color:#475569;}
+.spec-card .kv code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:5px; padding:1px 6px; font-size:11.5px;
+  color:#1e293b; font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.spec-card ul.flow{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:8px;
+  font-size:13px; color:#334155;
+}
+.spec-card ul.flow li{
+  position:relative; padding-left:22px;
+}
+.spec-card ul.flow li::before{
+  content:""; position:absolute; left:6px; top:6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--blue); opacity:.6;
+}
+.spec-card ul.flow li b{color:#0f172a; font-weight:700;}
+.spec-card table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.spec-card table th,.spec-card table td{
+  border:1px solid #e5e7eb; padding:7px 10px; text-align:left;
+  vertical-align:top;
+}
+.spec-card table th{background:#f8fafc; color:#475569; font-weight:700;}
+.spec-card table td code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:4px; padding:1px 5px; font-size:11px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.chip{
+  display:inline-block; padding:2px 9px; border-radius:999px;
+  font-size:11px; font-weight:700; margin-right:3px;
+}
+.chip.new{background:#DBEAFE; color:#1E40AF;}
+
+@media (max-width:980px){
+  .spec-grid{grid-template-columns:1fr;}
+}
+@media print{
+  body{background:#fff; padding:0;}
+  .screen{box-shadow:none;}
+  .spec-card{box-shadow:none;}
+  .page-head .hint{display:none;}
+}
+</style>
+</head>
+<body>
+
+  <!-- ========== Header ========== -->
+  <div class="page-head">
+    <span class="eyebrow">SCREEN MOCKUP & SPEC · S-006</span>
+    <h1>촬영 가이드 — 홀 깊이 측정</h1>
+    <p>S-002 "홀 깊이 측정" 선택 시 진입. 세로 타원 가이드박스로 <b>홀 입구 + 줄자 숫자</b>가 함께 보이도록 촬영. 핸들 없음 — 시작/끝점은 사진 한 장에 단일 기준점만 존재.</p>
+    <div class="hint">💡 <kbd>줌</kbd>·<kbd>플래시</kbd>·<kbd>셔터</kbd> 실제 동작. 자세(기울기) 잠금은 미적용.</div>
+  </div>
+
+  <!-- ========== Mockup ========== -->
+  <div class="mockup-row">
+    <div class="stage">
+      <div class="screen">
+        <div class="cam-topbar">
+          <div class="cam-back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </div>
+          <div class="flash-pill">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            <span class="flash-label">Auto</span>
+          </div>
+        </div>
+
+        <div class="hint-bubble">홀 입구와 줄자 숫자가 함께 보이게 촬영하세요</div>
+
+        <div class="guide-oval"></div>
+
+        <div class="cam-controls">
+          <div class="zoom-pill-wrap">
+            <div class="zoom-pill">
+              <button>1x</button>
+              <button class="active">2x</button>
+              <button>3x</button>
+            </div>
+          </div>
+          <div class="cam-bottom">
+            <div class="thumb"></div>
+            <div class="shutter"></div>
+            <div class="cam-right-space"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Spec Section ========== -->
+  <div class="spec-section">
+    <div class="spec-grid">
+
+      <!-- 화면 정보 -->
+      <div class="spec-card">
+        <h2>화면 정보</h2>
+        <div class="kv">
+          <b>화면 ID</b><div><code>S-006</code></div>
+          <b>라우트</b><div><code>/camera</code></div>
+          <b>인자</b><div><code>{surveyType: dimension, subtype: hole_depth}</code></div>
+          <b>페이지</b><div><code>CameraPage</code> (기존)</div>
+          <b>컨트롤러</b><div><code>CameraController2</code><br><span style="color:#6B7280; font-size:11.5px;">lib/pages/camera/camera_controller.dart</span></div>
+          <b>가이드 모드</b><div><code>GuideBoxMode.ovalVertical</code> <span class="chip new">v0.2 신규</span></div>
+          <b>핸들</b><div>미적용 — 홀 입구는 단일 점, S-007에서 한 번에 지정</div>
+          <b>다음 화면</b><div>촬영 후 <code>/annotate</code> (S-007 기준점 지정)</div>
+        </div>
+      </div>
+
+      <!-- 인터랙션 시나리오 -->
+      <div class="spec-card">
+        <h2>인터랙션 시나리오</h2>
+        <table>
+          <thead><tr><th>요소</th><th>동작</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>← 뒤로가기</td><td>탭</td><td>S-002로 복귀</td></tr>
+            <tr><td>플래시 pill</td><td>탭</td><td>Auto → On → Off → Auto 순환</td></tr>
+            <tr><td>줌 1x/2x/3x</td><td>탭</td><td>선택 줌 적용</td></tr>
+            <tr><td>셔터</td><td>탭</td><td>이미지 캡처 → 사진 경로 + 이미지 크기를 인자로 <code>/annotate</code> 진입 (사전 좌표 없음)</td></tr>
+            <tr><td>썸네일</td><td>탭</td><td>보관함(S-012)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 자세 잠금 정책 -->
+      <div class="spec-card">
+        <h2>자세(기울기) 잠금 정책</h2>
+        <ul class="flow">
+          <li><b>규격 조사 카메라 공통 정책</b> · 자세 잠금 미적용 — 홀 깊이는 천장/바닥/수직면 등 다양한 각도 촬영이 빈번</li>
+          <li><b>가이드박스 색상</b> · 노랑 단일 (기울어짐 빨강 상태 없음)</li>
+          <li><b>셔터·줌·플래시</b> 항상 활성</li>
+          <li><b>코드</b> · <code>CameraController2._initTiltSensor()</code> 진입 시 <code>surveyType == SurveyType.dimension</code>이면 조기 return (S-003과 동일 정책)</li>
+        </ul>
+      </div>
+
+      <!-- 핸들 미적용 사유 -->
+      <div class="spec-card">
+        <h2>핸들 미적용 사유 (S-003/S-009와의 차이)</h2>
+        <ul class="flow">
+          <li><b>측정 모델 차이</b> · 폭/간격은 <b>시작점 + 끝점 2개 좌표</b>가 필요. 홀 깊이는 <b>홀 입구 1개 좌표</b>(+ 시작점 가시성 같은 부속 정보)만 필요</li>
+          <li><b>사전 좌표 미사용</b> · 카메라 단계에서 핸들로 잡을 수 있는 정보가 없음. S-007에서 처음 찍기 모드로 진입</li>
+          <li><b>가이드박스의 역할</b> · 핸들 위치 표시가 아니라 <b>촬영 구도 가이드</b> — 홀 입구가 타원 안에 들어오고 줄자 숫자가 함께 보이도록 작업자 유도</li>
+          <li><b>S-007에서 수집하는 정보</b> · <code>hole_lip_pixel</code> (홀 입구 1점), <code>start_visibility</code> (시작점 가시성 라디오), <code>contact_confirmation</code> (줄자 끝 접촉 여부 라디오)</li>
+        </ul>
+      </div>
+
+      <!-- 디자인 스펙 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>디자인 스펙</h2>
+        <table>
+          <tbody>
+            <tr><td>배경</td><td>실제 카메라 영상 (mockup은 dark gradient <code>#2a323d → #1f2937 → #161c25</code>로 대체)</td></tr>
+            <tr><td>← 아이콘</td><td>22px 흰색 · padding 40×40 ripple</td></tr>
+            <tr><td>플래시 pill</td><td>bg <code>rgba(0,0,0,0.55)</code> · 12.5 w700 · padding 7v/12h · radius 999</td></tr>
+            <tr><td>안내 버블</td><td>bg <code>rgba(0,0,0,0.78)</code> · 12 w600 · padding 9v/16h · radius 20 · top 108</td></tr>
+            <tr><td>가이드박스 (세로 타원)</td><td>172×236 · 2.5px dashed <code>#facc15</code> · radius 50% · 화면 정중앙 (top 50% left 50% translate -50/-50%)</td></tr>
+            <tr><td>가이드박스 중심 십자</td><td>18×1.5px 가로 + 1.5×18px 세로 · <code>rgba(250,204,21,0.55)</code> · 촬영 중심 보조 표시</td></tr>
+            <tr><td>하단 컨트롤바</td><td>bg <code>rgba(0,0,0,0.55)</code> + backdrop-filter blur · padding 14t/20h/22b</td></tr>
+            <tr><td>줌 pill</td><td>bg <code>rgba(0,0,0,0.55)</code> · 버튼 42×28 · active <code>#facc15</code> + <code>#111827</code></td></tr>
+            <tr><td>썸네일</td><td>54×54 · radius 10 · 1.5px <code>rgba(255,255,255,0.5)</code></td></tr>
+            <tr><td>셔터</td><td>66×66 흰 원 · 4px <code>rgba(255,255,255,0.35)</code> 외곽 · hover scale 1.04 / active 0.94 · 항상 활성</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function(){
+  // 줌 토글
+  document.querySelectorAll('.zoom-pill').forEach(pill => {
+    const buttons = pill.querySelectorAll('button');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  });
+
+  // 플래시 토글 (Auto → On → Off)
+  document.querySelectorAll('.flash-pill').forEach(pill => {
+    const states = [
+      { label:'Auto', cls:'' },
+      { label:'On',   cls:'on' },
+      { label:'Off',  cls:'off' },
+    ];
+    let idx = 0;
+    pill.addEventListener('click', () => {
+      idx = (idx + 1) % states.length;
+      pill.classList.remove('on','off');
+      if(states[idx].cls) pill.classList.add(states[idx].cls);
+      const labelEl = pill.querySelector('.flash-label');
+      if(labelEl) labelEl.textContent = states[idx].label;
+    });
+  });
+
+  // 셔터 클릭 피드백
+  document.querySelectorAll('.shutter').forEach(sh => {
+    sh.addEventListener('click', () => {
+      sh.style.background = '#fbbf24';
+      setTimeout(() => sh.style.background = '', 120);
+    });
+  });
+})();
+</script>
+
+<script src="_embed.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  icon_caliper.svg
+  탄산화 조사 — 디지털 버니어 캘리퍼스 (액정에 표시된 수치 인식)
+  사용 위치: 메인 화면(S-001) 탄산화 조사 카드 (36×36 영역)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+  <!-- 메인 빔 (가로 자) -->
+  <rect x="2" y="17" width="22" height="5.5" rx="0.6"
+        fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9"/>
+
+  <!-- 빔 눈금 -->
+  <g stroke="#64748b" stroke-width="0.4" stroke-linecap="round">
+    <path d="M3.5 17.5 v0.9"/><path d="M4.6 17.5 v1.3"/>
+    <path d="M5.7 17.5 v0.9"/><path d="M6.8 17.5 v1.3"/>
+    <path d="M7.9 17.5 v0.9"/><path d="M9 17.5 v1.3"/>
+    <path d="M10.1 17.5 v0.9"/><path d="M11.2 17.5 v1.3"/>
+    <path d="M12.3 17.5 v0.9"/><path d="M13.4 17.5 v1.3"/>
+    <path d="M14.5 17.5 v0.9"/><path d="M15.6 17.5 v1.3"/>
+    <path d="M16.7 17.5 v0.9"/><path d="M17.8 17.5 v1.3"/>
+    <path d="M18.9 17.5 v0.9"/><path d="M20 17.5 v1.3"/>
+    <path d="M21.1 17.5 v0.9"/><path d="M22.2 17.5 v1.3"/>
+  </g>
+
+  <!-- 좌측 끝 작은 죠 (위/아래) -->
+  <path d="M2 17 V13.5 L4 13.5 L4 17 Z"
+        fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9" stroke-linejoin="round"/>
+  <path d="M2 22.5 V26 L4 26 L4 22.5 Z"
+        fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9" stroke-linejoin="round"/>
+
+  <!-- 슬라이더 본체 (다크) -->
+  <rect x="22" y="13.5" width="10" height="13" rx="0.8"
+        fill="#64748b" stroke="#334155" stroke-width="0.6"/>
+
+  <!-- LCD 액정 -->
+  <rect x="23.4" y="16.5" width="7.2" height="3.6" rx="0.4"
+        fill="#f8fafc" stroke="#334155" stroke-width="0.4"/>
+  <path d="M24.6 18.3 H26.2 M27.6 18.3 H29.4"
+        stroke="#94a3b8" stroke-width="0.55" stroke-linecap="round"/>
+
+  <!-- 오렌지 버튼 -->
+  <rect x="23.7" y="21.4" width="2.4" height="1.3" rx="0.2" fill="#f59e0b"/>
+
+  <!-- 우측 큰 죠 (위/아래) -->
+  <path d="M29 13.5 V5 L32 5 L32 13.5 Z"
+        fill="#64748b" stroke="#334155" stroke-width="0.6" stroke-linejoin="round"/>
+  <path d="M29 26.5 V32 L32 32 L32 26.5 Z"
+        fill="#64748b" stroke="#334155" stroke-width="0.6" stroke-linejoin="round"/>
+</svg>

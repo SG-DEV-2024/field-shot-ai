@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  icon_crack.svg
+  균열 폭 조사 — 비활성 카드 아이콘
+  사용 위치: 메인 화면(S-001) 균열 폭 조사 카드 (36×36 영역, disabled 상태)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+  <path d="M9 5 L14 11 L11 18 L17 23 L13 31"
+        stroke="#cbd5e1" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M22 7 L24 11 L29 10 L26 17 L30 22"
+        stroke="#e2e8f0" stroke-width="1.8"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

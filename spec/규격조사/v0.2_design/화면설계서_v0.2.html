@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>현장촬영AI 규격조사 모듈 — 화면설계서 v0.2</title>
+<style>
+:root{
+  --bg:#f5f7fb; --paper:#fff; --ink:#111827; --muted:#6b7280;
+  --line:#e5e7eb;
+  --blue:#2563eb; --blue-weak:#eff6ff; --blue-deep:#1e40af;
+  --green:#16a34a; --green-weak:#dcfce7;
+  --red:#dc2626; --red-weak:#fee2e2;
+  --amber:#f59e0b; --amber-weak:#fef3c7;
+  --slate-900:#0f172a; --slate-800:#1e293b; --slate-700:#334155;
+  --radius:18px;
+  --shadow:0 12px 28px rgba(15,23,42,.08);
+  --shadow-strong:0 18px 40px rgba(15,23,42,.16);
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--ink); line-height:1.62;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--blue); text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/* ===== Layout ===== */
+.layout{display:grid; grid-template-columns:282px 1fr; min-height:100vh;}
+aside{
+  position:sticky; top:0; height:100vh; padding:28px 22px;
+  background:var(--slate-900); color:#e5e7eb; overflow-y:auto;
+}
+aside h1{font-size:18px; margin:0 0 6px; line-height:1.3; letter-spacing:-0.02em;}
+aside .ver{
+  display:inline-block; padding:4px 10px; border-radius:999px;
+  background:rgba(37,99,235,.22); color:#bfdbfe; font-size:12px; margin:6px 0 22px;
+}
+aside nav a{
+  display:block; padding:7px 10px; border-radius:8px;
+  color:#cbd5e1; font-size:13px; margin-bottom:2px;
+}
+aside nav a:hover{background:rgba(255,255,255,.08); color:#fff; text-decoration:none;}
+aside nav a.active{background:rgba(37,99,235,.25); color:#bfdbfe;}
+aside nav .nav-group{margin:14px 0 4px; font-size:11px; color:#94a3b8; letter-spacing:.1em; text-transform:uppercase;}
+
+main{padding:44px 52px 80px; max-width:1320px; width:100%;}
+
+/* ===== Hero ===== */
+.hero{
+  background:linear-gradient(135deg,#fff,#eef5ff);
+  border:1px solid var(--line); border-radius:28px;
+  padding:40px; box-shadow:var(--shadow); margin-bottom:30px;
+}
+.eyebrow{
+  color:var(--blue); font-weight:800; font-size:12.5px;
+  letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px;
+}
+h2.title{font-size:34px; line-height:1.2; letter-spacing:-0.045em; margin:0 0 12px;}
+.hero p{max-width:920px; margin:0; color:var(--muted); font-size:15.5px;}
+.meta{display:grid; grid-template-columns:repeat(4,minmax(160px,1fr)); gap:12px; margin-top:24px;}
+.meta .box{background:rgba(255,255,255,.72); border:1px solid var(--line); border-radius:16px; padding:14px 16px;}
+.meta b{display:block; font-size:12.5px; color:var(--muted); margin-bottom:3px;}
+.meta span{font-size:14.5px; font-weight:700;}
+
+/* ===== Section ===== */
+section{
+  background:var(--paper); border:1px solid var(--line); border-radius:22px;
+  box-shadow:var(--shadow); padding:30px 32px; margin:24px 0;
+}
+section > h2{margin:0 0 14px; font-size:24px; letter-spacing:-0.03em;}
+section > h2 .sec-num{
+  display:inline-block; font-size:14px; font-weight:800;
+  color:var(--blue); margin-right:8px; vertical-align:middle;
+}
+section h3{margin:24px 0 10px; font-size:18px; letter-spacing:-0.02em;}
+section p{color:#374151;}
+
+.note{
+  background:#f8fafc; border-left:4px solid var(--blue);
+  border-radius:12px; padding:14px 16px; color:#334155; margin:14px 0 18px;
+}
+.note.warn{border-color:var(--amber); background:#fffbeb; color:#92400e;}
+.note.success{border-color:var(--green); background:var(--green-weak); color:#166534;}
+
+.screen-id{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12px; color:#475467; background:#f2f4f7;
+  border:1px solid var(--line); border-radius:999px; padding:3px 9px;
+}
+
+table{width:100%; border-collapse:collapse; margin:14px 0 8px; font-size:14px;}
+th,td{border:1px solid var(--line); padding:10px 12px; vertical-align:top;}
+th{background:#f8fafc; color:#334155; text-align:left;}
+code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; padding:1px 5px; font-size:.92em;}
+
+/* ===== Chip / Badge ===== */
+.chip{
+  display:inline-block; padding:3px 9px; border-radius:999px;
+  font-size:11.5px; font-weight:700; margin-right:6px;
+}
+.chip.blue{background:var(--blue-weak); color:var(--blue-deep);}
+.chip.green{background:var(--green-weak); color:#15803d;}
+.chip.red{background:var(--red-weak); color:#991b1b;}
+.chip.amber{background:var(--amber-weak); color:#92400e;}
+.chip.gray{background:#f3f4f6; color:#374151;}
+.chip.new{background:#dbeafe; color:var(--blue-deep);}
+
+/* ===== Flow diagram ===== */
+.flow-row{
+  display:flex; gap:8px; align-items:stretch; flex-wrap:wrap;
+  margin:18px 0;
+}
+.flow-step{
+  background:#fff; border:1.5px solid var(--line); border-radius:14px;
+  padding:12px 14px; flex:1 1 130px; min-width:130px;
+  text-align:center; transition:border-color .12s, transform .12s;
+}
+.flow-step.start{border-color:var(--blue); background:var(--blue-weak);}
+.flow-step.amber{border-color:var(--amber); background:var(--amber-weak);}
+.flow-step.end{border-color:var(--green); background:var(--green-weak);}
+.flow-step .sid{font-size:10.5px; font-weight:800; color:var(--blue); letter-spacing:0.04em;}
+.flow-step .lbl{font-size:13px; font-weight:700; color:var(--ink); margin-top:3px;}
+.flow-step .sub{font-size:10.5px; color:var(--muted); margin-top:2px;}
+.flow-arrow{display:flex; align-items:center; color:var(--muted); font-weight:900; font-size:18px;}
+
+/* ===== Mockup embed ===== */
+.mockup-screen{
+  margin:22px 0;
+  border:1px solid #cbd5e1;
+  border-radius:14px; overflow:hidden;
+  background:#f1f5f9;
+  position:relative;
+}
+.mockup-screen .toolbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 14px;
+  background:#0f172a; color:#fff;
+  font-size:12px;
+}
+.mockup-screen .toolbar .meta{
+  display:flex; align-items:center; gap:10px; margin-top:0;
+  grid-template-columns:none;
+}
+.mockup-screen .toolbar .meta .box{
+  background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1);
+  border-radius:6px; padding:3px 8px; font-size:11px; font-weight:600;
+}
+.mockup-screen .toolbar .meta .box b{display:inline; color:#94a3b8; margin:0 4px 0 0; font-weight:600; font-size:10px;}
+.mockup-screen .toolbar .meta .box span{font-size:11px;}
+.mockup-screen .toolbar a{
+  color:#bfdbfe; font-weight:700; font-size:11.5px;
+  display:inline-flex; align-items:center; gap:4px;
+  background:rgba(37,99,235,0.2); padding:5px 10px; border-radius:6px;
+}
+.mockup-screen .toolbar a:hover{background:rgba(37,99,235,0.4); text-decoration:none;}
+.mockup-screen iframe{
+  width:100%; height:1800px; border:none; display:block;
+  background:#f1f5f9;
+}
+
+/* ===== Spec strip ===== */
+.spec-strip{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px; margin:14px 0;
+}
+.spec-strip .item{
+  background:#f8fafc; border:1px solid var(--line); border-radius:10px;
+  padding:10px 12px;
+}
+.spec-strip .item b{
+  display:block; font-size:10.5px; color:var(--muted);
+  letter-spacing:0.04em; text-transform:uppercase; margin-bottom:3px;
+}
+.spec-strip .item span{font-size:13px; font-weight:600; color:var(--ink);}
+.spec-strip .item code{
+  background:#fff; font-size:11.5px;
+}
+
+/* ===== Color tokens ===== */
+.color-grid{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:10px; margin:12px 0;
+}
+.color-chip{
+  border:1px solid var(--line); border-radius:10px; overflow:hidden;
+  background:#fff;
+}
+.color-chip .swatch{height:42px;}
+.color-chip .info{padding:8px 10px; font-size:11.5px;}
+.color-chip .info b{display:block; font-size:12px; margin-bottom:1px;}
+.color-chip .info code{
+  font-size:10.5px; background:#f8fafc; border:1px solid var(--line);
+  padding:1px 4px; border-radius:4px;
+}
+
+.print-tip{margin:28px 0 0; color:var(--muted); font-size:13px;}
+
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr;}
+  aside{position:relative; height:auto;}
+  main{padding:24px 16px 48px;}
+  .meta{grid-template-columns:1fr;}
+}
+@media print{
+  body{background:#fff;}
+  aside{display:none;}
+  .layout{display:block;}
+  main{padding:0; max-width:none;}
+  section, .hero{box-shadow:none; break-inside:avoid;}
+  .mockup-screen{break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside>
+    <h1>현장촬영AI 규격조사 모듈</h1>
+    <div class="ver">화면설계서 v0.2 · 2026-06-01</div>
+    <nav>
+      <div class="nav-group">개요</div>
+      <a href="#overview">1. 문서 개요</a>
+      <a href="#flow">2. 사용자 흐름</a>
+      <a href="플로우_v0.2.html" target="_blank" style="background:rgba(34,197,94,0.15); color:#86efac; font-weight:700;">▶ 인터랙티브 플로우 프로토타입 ↗</a>
+      <a href="#inventory">3. 화면 목록</a>
+
+      <div class="nav-group">시스템</div>
+      <a href="#design-system">4. 디자인 시스템</a>
+      <a href="#data-model">5. 데이터 모델</a>
+
+      <div class="nav-group">화면별 명세</div>
+      <a href="#s001">S-001 메인</a>
+      <a href="#s002">S-002 유형 선택</a>
+      <a href="#s003">S-003 촬영 (폭/간격)</a>
+      <a href="#s004">S-004 측정점 (폭/간격)</a>
+      <a href="#s005">S-005 수치 입력 (폭/간격)</a>
+      <a href="#s006">S-006 촬영 (홀 깊이)</a>
+      <a href="#s007">S-007 기준점 (홀 깊이)</a>
+      <a href="#s008">S-008 수치 입력 (홀 깊이)</a>
+      <a href="#s009">S-009 보관함</a>
+
+      <div class="nav-group">정리</div>
+      <a href="#decisions">6. v0.2 주요 결정</a>
+      <a href="#handoff">7. 개발자 인도</a>
+    </nav>
+  </aside>
+
+  <main>
+
+    <!-- ===== HERO ===== -->
+    <div class="hero" id="overview">
+      <div class="eyebrow">Screen Design Specification</div>
+      <h2 class="title">현장촬영AI 규격조사 모듈<br/>화면설계서 v0.2</h2>
+      <p>
+        v1.0(탄산화 조사) 앱에 규격조사 모듈을 추가하기 위한 화면설계서. 줄자 기반 폭·간격·홀 깊이 측정 3가지 subtype을 다루며,
+        v1 디자인 톤(흰 배경 + 네이비 텍스트 + 파랑 액센트)을 유지한 채 측정 메타데이터 수집을 위한 마커·핸들·라디오 등 신규 컴포넌트를 추가했다.
+        9개의 mockup HTML로 구성되며, 각각은 데이터/인터랙션 상태와 기획 명세를 모두 포함한 완성형 산출물이다.
+      </p>
+      <div class="meta">
+        <div class="box"><b>문서 버전</b><span>v0.2 · 9개 화면</span></div>
+        <div class="box"><b>대상 플랫폼</b><span>Android Portrait</span></div>
+        <div class="box"><b>측정 단위</b><span>mm</span></div>
+        <div class="box"><b>참고 문서</b><span>screen_spec_v0.2.md</span></div>
+      </div>
+    </div>
+
+    <!-- ===== 1. 문서 개요 ===== -->
+    <section>
+      <h2><span class="sec-num">§1</span>문서 개요</h2>
+      <p>
+        본 문서는 9개의 단독 mockup HTML과 그 명세를 통합한 마스터 화면설계서다. 각 mockup은 v1 실제 빌드(<code>lib/pages/...</code>)의
+        디자인 토큰을 1:1로 적용했고, v0.2 신규 컴포넌트는 그 디자인 톤을 자연스럽게 따라간다.
+      </p>
+      <h3>v0.1 → v0.2 주요 갭 (해결)</h3>
+      <table>
+        <thead><tr><th>갭</th><th>v0.1 상태</th><th>v0.2 조치</th></tr></thead>
+        <tbody>
+          <tr><td>메인 메뉴 통합</td><td>"규격조사" 카드 시안만</td><td>v1 카드 2개 → 3개 재편 (탄산화 / 규격 / 균열 폭)</td></tr>
+          <tr><td>SurveyType enum</td><td><code>carbonation</code>, <code>rebarSpacing</code></td><td><code>dimension</code> 추가 + <code>MeasurementSubtype</code> 신설 (3종)</td></tr>
+          <tr><td>측정점 지정</td><td>와이어 박스만</td><td>마커 = 측정 지점 + 라벨 + stem 분리, 자유 드래그</td></tr>
+          <tr><td>가이드박스 모양</td><td>화면별 그림 다름</td><td><code>GuideBoxMode</code> enum 통합 (rectHorizontalWide / ovalVertical)</td></tr>
+          <tr><td>카메라 사전 좌표</td><td>없음 (정지 이미지에서 처음 찍기)</td><td>가이드박스 핸들로 사전 좌표 → S-004 정밀 보정 모드</td></tr>
+          <tr><td>좌표 환산</td><td>"원본 픽셀 환산" 한 줄</td><td>BoxFit.contain 환산식 명시 (preview ↔ original)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===== 2. 사용자 흐름 ===== -->
+    <section id="flow">
+      <h2><span class="sec-num">§2</span>사용자 흐름</h2>
+      <p>측정 유형 3가지에 따라 분기된다. 폭과 간격은 같은 화면(S-003/S-004/S-005)을 공유.</p>
+      <div class="note success">
+        <b>▶ 인터랙티브 플로우 프로토타입</b>: 9개 목업을 실제 앱처럼 버튼 클릭으로 연결한 단일 시뮬레이션 페이지가 별도 문서로 정리되어 있다 —
+        <a href="플로우_v0.2.html" target="_blank" style="font-weight:800;">플로우_v0.2.html ↗</a>
+        <br/>
+        파란 점선으로 강조된 영역(카드/셔터/다음/저장)을 탭하면 실제 앱과 동일한 화면 전이를 체험할 수 있다. 좌측 플로우맵으로 임의 화면 점프, 우측 패널에서 현재 화면 정보·가능 액션·이동 히스토리 확인 가능.
+      </div>
+
+      <h3>탄산화 조사 (v1 유지)</h3>
+      <div class="flow-row">
+        <div class="flow-step start"><div class="sid">S-001</div><div class="lbl">메인</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="sid">v1</div><div class="lbl">카메라</div><div class="sub">/camera</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="sid">v1</div><div class="lbl">데이터 입력</div><div class="sub">/data-input</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step end"><div class="sid">S-009</div><div class="lbl">보관함</div></div>
+      </div>
+
+      <h3>규격 조사 — 폭 / 간격 (S-003·S-004·S-005 공유)</h3>
+      <div class="flow-row">
+        <div class="flow-step start"><div class="sid">S-001</div><div class="lbl">메인</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step start"><div class="sid">S-002</div><div class="lbl">유형 선택</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="sid">S-003</div><div class="lbl">촬영 가이드</div><div class="sub">핸들 사전 좌표</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="sid">S-004</div><div class="lbl">측정점 지정</div><div class="sub">정밀 보정</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><div class="sid">S-005</div><div class="lbl">수치 입력</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step end"><div class="sid">S-009</div><div class="lbl">보관함</div></div>
+      </div>
+
+      <h3>규격 조사 — 홀 깊이</h3>
+      <div class="flow-row">
+        <div class="flow-step start"><div class="sid">S-001</div><div class="lbl">메인</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step start"><div class="sid">S-002</div><div class="lbl">유형 선택</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step amber"><div class="sid">S-006</div><div class="lbl">촬영 가이드</div><div class="sub">세로 타원</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step amber"><div class="sid">S-007</div><div class="lbl">기준점 지정</div><div class="sub">처음 찍기 · 4단계</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step amber"><div class="sid">S-008</div><div class="lbl">수치 입력</div></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step end"><div class="sid">S-009</div><div class="lbl">보관함</div></div>
+      </div>
+    </section>
+
+    <!-- ===== 3. 화면 목록 ===== -->
+    <section id="inventory">
+      <h2><span class="sec-num">§3</span>화면 목록 (9종)</h2>
+      <table>
+        <thead><tr><th>화면 ID</th><th>화면명</th><th>측정 유형</th><th>주요 기능</th><th>핵심 컴포넌트</th></tr></thead>
+        <tbody>
+          <tr><td><span class="screen-id">S-001</span></td><td>메인</td><td><span class="chip gray">공통</span></td><td>조사 항목 선택 · 오늘 수집 현황 · 일괄 전송</td><td>3카드 (탄산화/규격/균열)</td></tr>
+          <tr><td><span class="screen-id">S-002</span></td><td>유형 선택</td><td><span class="chip gray">공통</span></td><td>측정 subtype 결정</td><td>3카드 + JS 선택</td></tr>
+          <tr><td><span class="screen-id">S-003</span></td><td>촬영 가이드</td><td><span class="chip blue">폭/간격</span></td><td>핸들 사전 좌표 + 가로 가이드박스</td><td>가이드박스 + 핸들 외곽 + 측정점 표시선</td></tr>
+          <tr><td><span class="screen-id">S-004</span></td><td>측정점 지정</td><td><span class="chip blue">폭/간격</span></td><td>정밀 보정 (라벨 자유 드래그)</td><td>point + label + SVG stem 분리</td></tr>
+          <tr><td><span class="screen-id">S-005</span></td><td>수치 입력</td><td><span class="chip blue">폭/간격</span></td><td>시작값/끝값 → 자동 계산</td><td>입력 검증 + 자동 계산 카드</td></tr>
+          <tr><td><span class="screen-id">S-006</span></td><td>촬영 가이드</td><td><span class="chip amber">홀 깊이</span></td><td>세로 타원 가이드 · 핸들 없음</td><td>oval 가이드박스</td></tr>
+          <tr><td><span class="screen-id">S-007</span></td><td>기준점 지정</td><td><span class="chip amber">홀 깊이</span></td><td>홀 입구·읽기 위치 + 가시성·접촉 라디오</td><td>마커 2개 + 라디오 카드 2 · 4단계 진행</td></tr>
+          <tr><td><span class="screen-id">S-008</span></td><td>수치 입력</td><td><span class="chip amber">홀 깊이</span></td><td>visible_reading_value 단일 입력</td><td>단일 입력 + 깊이 측정값</td></tr>
+          <tr><td><span class="screen-id">S-009</span></td><td>보관함</td><td><span class="chip gray">공통</span></td><td>오늘 수집 리스트 · 수정 모달 · 일괄 업로드</td><td>subtype 배지 + 수정 다이얼로그</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===== 4. 디자인 시스템 ===== -->
+    <section id="design-system">
+      <h2><span class="sec-num">§4</span>디자인 시스템</h2>
+      <p>v1 코드(<code>lib/pages/...</code>)의 디자인 토큰을 그대로 사용. v0.2 신규 컬러는 측정 의미별로 분리.</p>
+
+      <h3>핵심 색상 토큰</h3>
+      <div class="color-grid">
+        <div class="color-chip"><div class="swatch" style="background:#2563EB"></div><div class="info"><b>blue</b><code>#2563EB</code> 시작점·활성</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#1E40AF"></div><div class="info"><b>blue-deep</b><code>#1E40AF</code> 일괄 업로드</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#EFF6FF; border:1px solid #cbd5e1"></div><div class="info"><b>blue-weak</b><code>#EFF6FF</code> 활성 카드 bg</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#ef4444"></div><div class="info"><b>red</b><code>#ef4444</code> 끝점</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#DC2626"></div><div class="info"><b>red-strong</b><code>#DC2626</code> 대기중·에러</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#facc15"></div><div class="info"><b>yellow</b><code>#facc15</code> 가이드박스</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#f59e0b"></div><div class="info"><b>amber</b><code>#f59e0b</code> 홀 입구</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#FEF3C7; border:1px solid #fcd34d"></div><div class="info"><b>amber-weak</b><code>#FEF3C7</code> 홀 깊이 톤</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#16A34A"></div><div class="info"><b>green</b><code>#16A34A</code> 완료·ON</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#DCFCE7; border:1px solid #cbd5e1"></div><div class="info"><b>green-weak</b><code>#DCFCE7</code> ON pill bg</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#111827"></div><div class="info"><b>ink</b><code>#111827</code> 본문</div></div>
+        <div class="color-chip"><div class="swatch" style="background:#6B7280"></div><div class="info"><b>muted</b><code>#6B7280</code> 보조</div></div>
+      </div>
+
+      <h3>주요 컴포넌트</h3>
+      <ul>
+        <li><b>마커 (composite)</b> — 측정 지점(point) + 라벨(label pill) + stem(SVG line) 3요소 분리. point/label 각각 자유 드래그, stem 자동 연결. (S-004 / S-007)</li>
+        <li><b>가이드박스 핸들</b> — 32×32 흰 외곽 원, 가이드박스 외곽 18px에 위치. 측정점은 박스 좌/우 끝 얇은 세로선(measure-line)로 표시. (S-003)</li>
+        <li><b>입력 필드</b> — type=text inputmode=decimal, 56px height, 20px monospace, 우측 × 클리어 버튼. (S-005 / S-008)</li>
+        <li><b>subtype 배지</b> — 보관함 카드의 dimension 레코드 표시. 폭/간격=파랑, 홀깊이=amber. (S-009)</li>
+        <li><b>단계 안내 카드</b> — 번호 원 + 한 줄 제목. amber/blue 톤으로 측정 의미 구분, 완료 시 초록 ✓. (S-004 / S-007)</li>
+      </ul>
+
+      <h3>자산 (assets/icons/)</h3>
+      <ul>
+        <li><a href="assets/icons/icon_caliper.svg">icon_caliper.svg</a> — 탄산화 조사 (디지털 캘리퍼스)</li>
+        <li><a href="assets/icons/icon_tape.svg">icon_tape.svg</a> — 규격 조사 (줄자)</li>
+        <li><a href="assets/icons/icon_crack.svg">icon_crack.svg</a> — 균열 폭 (disabled 톤)</li>
+        <li><a href="assets/icons/icon_subtype_width.svg">icon_subtype_width.svg</a> — 폭 측정 카드 아이콘</li>
+        <li><a href="assets/icons/icon_subtype_gap.svg">icon_subtype_gap.svg</a> — 간격 측정 카드 아이콘</li>
+        <li><a href="assets/icons/icon_subtype_hole.svg">icon_subtype_hole.svg</a> — 홀 깊이 카드 아이콘</li>
+      </ul>
+      <p>자세한 자산 사용 가이드: <a href="assets/README.md">assets/README.md</a></p>
+    </section>
+
+    <!-- ===== 5. 데이터 모델 ===== -->
+    <section id="data-model">
+      <h2><span class="sec-num">§5</span>데이터 모델</h2>
+
+      <h3>MeasurementSubtype (신설)</h3>
+      <table>
+        <thead><tr><th>enum 값</th><th>code (서버)</th><th>label (UI)</th><th>특징</th></tr></thead>
+        <tbody>
+          <tr><td><code>wallOrMemberWidth</code></td><td><code>wall_or_member_width</code></td><td>벽/기둥/부재 폭 측정</td><td>줄자 0 = 측정 시작</td></tr>
+          <tr><td><code>memberGap</code></td><td><code>member_gap</code></td><td>부재 간 간격 측정</td><td>줄자 임의 눈금 = 시작</td></tr>
+          <tr><td><code>holeDepth</code></td><td><code>hole_depth</code></td><td>홀 깊이 측정</td><td>visible_reading_value 단일</td></tr>
+        </tbody>
+      </table>
+
+      <h3>SurveyType 확장</h3>
+      <p><code>SurveyType.dimension</code> 신설 (v1의 <code>rebarSpacing</code>은 v2에서 dimension으로 대체).</p>
+
+      <h3>SurveyRecord 확장</h3>
+      <p><code>measurementSubtype</code> (nullable)와 <code>annotation</code> (<code>DimensionAnnotation?</code>) 필드 추가. v1 탄산화 호환 유지.</p>
+
+      <h3>DimensionAnnotation 신설</h3>
+      <p>좌표·측정값·속성·이미지 메타를 묶는 클래스. 폭/간격은 start/endPointPixel + startValue/endValue 사용. 홀 깊이는 holeLipPixel + tapeReadingPixel + visibleReadingValue 사용.</p>
+      <p>자세한 클래스 정의는 <a href="../screen_spec_v0.2.md">screen_spec_v0.2.md §5</a></p>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- 화면별 명세 -->
+    <!-- ============================================================ -->
+
+    <!-- ========== S-001 ========== -->
+    <section id="s001">
+      <h2><span class="sec-num">S-001</span>메인 화면 (3카드 재편)</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/</code></span></div>
+        <div class="item"><b>페이지</b><span><code>MainPage</code></span></div>
+        <div class="item"><b>측정 유형</b><span>공통 진입</span></div>
+        <div class="item"><b>핵심 변경</b><span>카드 2 → 3개 재편</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#1e40af; color:#fff; border:none;">S-001</span> &nbsp;메인 화면</span>
+          <a href="mockups/S-001_main.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="mockups/S-001_main.html" loading="lazy" title="S-001 메인 화면"></iframe>
+      </div>
+      <ul>
+        <li><b>탄산화 조사</b> 카드 (활성) → <code>/camera</code> 직행 (v1과 동일)</li>
+        <li><b>규격 조사</b> 카드 (활성, 신규) → <code>/survey-type-select</code> (S-002)</li>
+        <li><b>균열 폭 조사</b> 카드 (비활성, 향후) — v3 예정</li>
+        <li>하단 통계/일괄 전송 영역은 v1과 동일. 빈/미전송/전송중 3 데이터 상태 표시.</li>
+      </ul>
+    </section>
+
+    <!-- ========== S-002 ========== -->
+    <section id="s002">
+      <h2><span class="sec-num">S-002</span>규격조사 유형 선택</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/survey-type-select</code></span></div>
+        <div class="item"><b>페이지</b><span><code>SurveyTypeSelectPage</code> (신규)</span></div>
+        <div class="item"><b>subtype</b><span>3종 선택</span></div>
+        <div class="item"><b>인터랙션</b><span>단일 폰 + JS 선택</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#1e40af; color:#fff; border:none;">S-002</span> &nbsp;유형 선택</span>
+          <a href="mockups/S-002_subtype_select.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="mockups/S-002_subtype_select.html" loading="lazy" title="S-002 유형 선택"></iframe>
+      </div>
+      <ul>
+        <li>카드 3개 (폭/간격/홀깊이), 카드 선택 시 즉시 <code>/camera</code>로 이동 + subtype 인자 전달</li>
+        <li>카드 클릭 시 실제 선택 상태 토글 + 하단 라우팅 토스트 표시 (JS 인터랙션)</li>
+        <li>v0.1에 있던 "기타 측정" 항목은 v0.2에서 제거 (정의된 측정 방식만 수집)</li>
+      </ul>
+    </section>
+
+    <!-- ========== S-003 ========== -->
+    <section id="s003">
+      <h2><span class="sec-num">S-003</span>촬영 가이드 — 폭/간격 (공통)</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/camera</code></span></div>
+        <div class="item"><b>인자</b><span><code>subtype: wall_or_member_width | member_gap</code></span></div>
+        <div class="item"><b>가이드 모드</b><span><code>rectHorizontalWide</code></span></div>
+        <div class="item"><b>다음 화면</b><span>S-004</span></div>
+      </div>
+      <div class="note success">
+        <b>화면 통합 (v0.2)</b>: 폭과 간격은 시각/인터랙션 100% 동일하므로 단일 mockup으로 통합. 차이는 안내 문구(줄자 시작 위치 가정)뿐.
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#1e40af; color:#fff; border:none;">S-003</span> &nbsp;촬영 가이드 — 폭/간격</span>
+          <a href="mockups/S-003_camera_width_or_gap.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="mockups/S-003_camera_width_or_gap.html" loading="lazy" title="S-003 촬영 가이드 폭/간격"></iframe>
+      </div>
+      <ul>
+        <li><b>가이드박스 좌/우 핸들</b> 드래그로 시작/끝점 사전 좌표 확보. 핸들은 박스 외곽(18px), 박스 끝의 얇은 세로선(measure-line)이 실제 측정점.</li>
+        <li>자세(기울기) 잠금 미적용 — 천장·구조물 등 다양한 각도 촬영 가능.</li>
+        <li>안내 문구: 폭 = "줄자 0을 측정 시작면에 맞추고 촬영하세요" / 간격 = "줄자 양 끝의 눈금이 모두 보이게 촬영하세요"</li>
+      </ul>
+    </section>
+
+    <!-- ========== S-004 ========== -->
+    <section id="s004">
+      <h2><span class="sec-num">S-004</span>측정점 지정 — 폭/간격 (공통)</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/annotate</code></span></div>
+        <div class="item"><b>인자</b><span><code>subtype + prefilledStart/End</code></span></div>
+        <div class="item"><b>모드</b><span>정밀 보정 모드</span></div>
+        <div class="item"><b>다음 화면</b><span>S-005</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#1e40af; color:#fff; border:none;">S-004</span> &nbsp;측정점 지정 — 폭/간격</span>
+          <a href="mockups/S-004_annotate_width_or_gap.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="mockups/S-004_annotate_width_or_gap.html" loading="lazy" title="S-004 측정점 지정 폭/간격"></iframe>
+      </div>
+      <ul>
+        <li><b>마커 = 측정 지점(point) + 라벨(label) + stem(SVG line)</b> 분리, point/label 각각 자유 드래그. 라벨 이동으로 사진의 줄자 영역 가림 회피.</li>
+        <li>S-003 핸들 좌표가 사전 채워진 정밀 보정 모드 (처음 찍기가 아님).</li>
+        <li>사진 빈 곳 탭 → 가까운 측정 지점으로 이동 (라벨도 오프셋 유지 동반).</li>
+      </ul>
+    </section>
+
+    <!-- ========== S-005 ========== -->
+    <section id="s005">
+      <h2><span class="sec-num">S-005</span>수치 입력 — 폭/간격 (공통)</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/dimension-input</code></span></div>
+        <div class="item"><b>계산식</b><span><code>end - start</code></span></div>
+        <div class="item"><b>입력</b><span>시작값 + 끝값 (mm)</span></div>
+        <div class="item"><b>저장 후</b><span>메인(/) 복귀</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#1e40af; color:#fff; border:none;">S-005</span> &nbsp;수치 입력 — 폭/간격</span>
+          <a href="mockups/S-005_input_width_or_gap.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="mockups/S-005_input_width_or_gap.html" loading="lazy" title="S-005 수치 입력 폭/간격"></iframe>
+      </div>
+      <ul>
+        <li>type=text + inputmode=decimal (모바일 키패드 자동 + spinner 제거).</li>
+        <li>폭은 시작값 보통 0, 간격은 임의 값 (예: 120). 측정값 = end - start.</li>
+        <li>학습 품질 자가 체크 제거 — 비고 자유 기입으로 통합 (작업자 입력 부담 ↓).</li>
+        <li>끝값 ≤ 시작값 → 빨간 에러 + 저장 비활성.</li>
+      </ul>
+    </section>
+
+    <!-- ========== S-006 ========== -->
+    <section id="s006">
+      <h2><span class="sec-num">S-006</span>촬영 가이드 — 홀 깊이</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/camera</code></span></div>
+        <div class="item"><b>인자</b><span><code>subtype: hole_depth</code></span></div>
+        <div class="item"><b>가이드 모드</b><span><code>ovalVertical</code></span></div>
+        <div class="item"><b>다음 화면</b><span>S-007</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#92400e; color:#fff; border:none;">S-006</span> &nbsp;촬영 가이드 — 홀 깊이</span>
+          <a href="mockups/S-006_camera_hole.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="mockups/S-006_camera_hole.html" loading="lazy" title="S-006 촬영 가이드 홀 깊이"></iframe>
+      </div>
+      <ul>
+        <li>세로 타원 가이드박스 + 중앙 십자 보조 마크.</li>
+        <li>핸들 미적용 (홀 입구는 단일 점이므로 S-007에서 한 번에 지정).</li>
+        <li>자세 잠금 미적용 — 천장 측정 등 다양한 각도 필요.</li>
+        <li>안내 문구: "홀 입구와 줄자 숫자가 함께 보이게 촬영하세요"</li>
+      </ul>
+    </section>
+
+    <!-- ========== S-007 ========== -->
+    <section id="s007">
+      <h2><span class="sec-num">S-007</span>기준점 지정 — 홀 깊이</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/annotate</code></span></div>
+        <div class="item"><b>모드</b><span>처음 찍기 (사전 좌표 없음)</span></div>
+        <div class="item"><b>마커</b><span>2개 (홀 입구·읽기 위치)</span></div>
+        <div class="item"><b>다음 화면</b><span>S-008</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#92400e; color:#fff; border:none;">S-007</span> &nbsp;기준점 지정 — 홀 깊이</span>
+          <a href="mockups/S-007_annotate_hole.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="mockups/S-007_annotate_hole.html" loading="lazy" title="S-007 기준점 지정 홀 깊이"></iframe>
+      </div>
+      <ul>
+        <li><b>4단계 진행 모델</b>: ① 홀 입구 (amber) ② 읽기 위치 (파랑) ③ 시작점 가시성 라디오 ④ 줄자 끝 접촉 라디오</li>
+        <li>마커 = point + label + SVG stem (S-004와 동일 구조), 라벨 자유 드래그.</li>
+        <li>첫 사진 탭 = 홀 입구, 두 번째 탭 = 읽기 위치. 둘 다 표시 후 가까운 마커 이동.</li>
+        <li>모든 단계 완료 시 "다음 · 수치 입력" 버튼 활성.</li>
+      </ul>
+    </section>
+
+    <!-- ========== S-008 ========== -->
+    <section id="s008">
+      <h2><span class="sec-num">S-008</span>수치 입력 — 홀 깊이</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/dimension-input</code></span></div>
+        <div class="item"><b>계산식</b><span><code>= visible_reading_value</code></span></div>
+        <div class="item"><b>입력</b><span>단일 값 (mm)</span></div>
+        <div class="item"><b>저장 후</b><span>메인(/) 복귀</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#92400e; color:#fff; border:none;">S-008</span> &nbsp;수치 입력 — 홀 깊이</span>
+          <a href="mockups/S-008_input_hole.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="mockups/S-008_input_hole.html" loading="lazy" title="S-008 수치 입력 홀 깊이"></iframe>
+      </div>
+      <ul>
+        <li>입력 1개 (보이는 줄자 숫자). 측정값 = 입력값 그대로.</li>
+        <li>0 이하면 빨간 에러 + 저장 비활성.</li>
+        <li>subtype chip 색상 amber 톤으로 홀 깊이 일관성.</li>
+        <li>저장 시 S-007에서 받은 좌표·라디오 값을 모두 포함.</li>
+      </ul>
+    </section>
+
+    <!-- ========== S-009 ========== -->
+    <section id="s009">
+      <h2><span class="sec-num">S-009</span>사진 보관함</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/archive</code></span></div>
+        <div class="item"><b>페이지</b><span><code>ArchivePage</code> (v1 수정)</span></div>
+        <div class="item"><b>v2 변경</b><span>subtype 배지 추가</span></div>
+        <div class="item"><b>모달</b><span>수정 다이얼로그 (v1 패턴)</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#1e40af; color:#fff; border:none;">S-009</span> &nbsp;사진 보관함</span>
+          <a href="mockups/S-009_archive.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="mockups/S-009_archive.html" loading="lazy" title="S-009 사진 보관함"></iframe>
+      </div>
+      <ul>
+        <li>데이터 상태 5종 표시: ① 빈 보관함 ② 데이터 있음 ③ 수정 모달 — 탄산화 ④ 수정 모달 — 폭/간격 ⑤ 수정 모달 — 홀 깊이</li>
+        <li><b>탄산화 + 규격조사 3종(폭·간격·홀깊이) 카드 모두 포함</b> — 4개의 측정 유형이 한 화면에 어떻게 표시되는지 확인 가능.</li>
+        <li>dimension 레코드 카드에 subtype 배지 (폭/간격=파랑, 홀깊이=amber).</li>
+        <li>썸네일 SVG도 측정 유형별로 차별화: 탄산화(균열), 폭(부재+줄자 0부터), 간격(두 부재+줄자 중간부터), 홀깊이(원형 홀+amber/파랑 마커).</li>
+        <li><b>수정 모달 subtype별 분기 (v0.2 변경)</b> — 카드의 <code>data-survey-type</code>에 따라 3가지 변형:
+          <ul style="margin-top:6px;">
+            <li><code>carbonation</code> → 탄산화 모달 (단일 값 + 비고, v1 패턴)</li>
+            <li><code>dimension-width</code> / <code>dimension-gap</code> → 폭/간격 모달 (시작값 + 끝값 + 자동 계산 + 비고, S-005 구조)</li>
+            <li><code>dimension-hole</code> → 홀 깊이 모달 (줄자 읽은 값 + 비고, S-008 구조)</li>
+          </ul>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ===== 6. v0.2 주요 결정사항 ===== -->
+    <section id="decisions">
+      <h2><span class="sec-num">§6</span>v0.2 주요 결정사항 요약</h2>
+      <table>
+        <thead><tr><th>결정</th><th>날짜</th><th>적용 화면</th></tr></thead>
+        <tbody>
+          <tr><td>"기타 측정(manual_other)" 제거 — 정의된 측정 방식만 수집</td><td>2026-05-28</td><td>S-002</td></tr>
+          <tr><td>학습 품질 메타데이터(quality_flags)는 현장 입력 단계에서 수집하지 않음 — 비고 자유 기입만</td><td>2026-05-29</td><td>S-005 / S-008</td></tr>
+          <tr><td>카메라 핸들로 사전 좌표 확보 → S-004는 정밀 보정 모드</td><td>2026-05-29</td><td>S-003 / S-004</td></tr>
+          <tr><td>규격 조사 카메라에서 자세(기울기) 잠금 미적용</td><td>2026-05-29</td><td>S-003 / S-006</td></tr>
+          <tr><td>마커 = point + label + stem 분리, 라벨 자유 드래그 (줄자 영역 가림 회피)</td><td>2026-05-29</td><td>S-004 / S-007</td></tr>
+          <tr><td>홀 깊이 마커 2종 (홀 입구·읽기 위치) + 4단계 진행 모델</td><td>2026-05-29</td><td>S-007</td></tr>
+          <tr><td>S-003 카메라 핸들 가이드박스 외곽 배치 + 측정점 표시선(measure-line) 추가</td><td>2026-06-01</td><td>S-003</td></tr>
+          <tr><td>폭/간격은 단일 화면(S-003·S-004·S-005)으로 통합 — S-009/S-010/S-011 ID 폐기</td><td>2026-06-01</td><td>S-003 / S-004 / S-005</td></tr>
+          <tr><td>S-003 → S-004 사전 좌표 연속성 — 핸들 위치(<code>--start-x</code>/<code>--end-x</code>)가 S-004 마커 초기값으로 동적 전달. S-004 simulated photo edge 선도 동일 좌표</td><td>2026-06-01</td><td>S-003 / S-004</td></tr>
+          <tr><td>S-004 마커 stem 대각 배치 — 시작/끝 라벨을 부재 띠 상단 위로 띄우고 좌·우 바깥쪽으로 펴서 stem이 대각선이 되도록 (수직 stem이 edge line 위에 겹쳐 어색했음)</td><td>2026-06-01</td><td>S-004</td></tr>
+          <tr><td>수정 모달 subtype별 분기 — 탄산화(단일 값), 폭/간격(시작값+끝값+자동계산), 홀 깊이(줄자 읽은 값) 3가지 변형. 각각 원본 입력 화면(S-탄산화/S-005/S-008) 구조와 일치</td><td>2026-06-01</td><td>S-009</td></tr>
+          <tr><td>입력 화면 키보드 buffer 120px — Flutter <code>resizeToAvoidBottomInset:true</code> 위에 안전 여유 공간 부여, 비고 textarea가 키패드 위로 올라올 수 있도록</td><td>2026-06-01</td><td>S-005 / S-008</td></tr>
+          <tr><td>인터랙티브 플로우 프로토타입 분리 — 9개 mockup + 3개 sub-screen 모달을 postMessage 기반 단일 시뮬레이션 페이지(<code>플로우_v0.2.html</code>)로 통합</td><td>2026-06-01</td><td>전체</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===== 7. 개발자 인도 ===== -->
+    <section id="handoff">
+      <h2><span class="sec-num">§7</span>개발자 인도</h2>
+
+      <h3>산출물 목록</h3>
+      <table>
+        <thead><tr><th>파일</th><th>용도</th><th>대상</th></tr></thead>
+        <tbody>
+          <tr><td><code>화면설계서_v0.2.html</code> (이 문서)</td><td>9개 mockup + 명세를 통합한 마스터 화면설계서. iframe으로 각 mockup을 직접 확인</td><td>기획·디자인·개발 공통</td></tr>
+          <tr><td><a href="플로우_v0.2.html" target="_blank"><code>플로우_v0.2.html</code></a></td><td>인터랙티브 플로우 프로토타입. 실제 앱처럼 카드·셔터·다음·저장 등 탭하면 화면 전이. S-003 핸들 조정도 S-004로 그대로 전달됨. 좌측 플로우맵·우측 액션 패널·이동 히스토리 포함</td><td>UX 검토·QA·개발자 동작 확인</td></tr>
+          <tr><td><code>mockups/S-001 ~ S-009.html</code> (9개)</td><td>각 화면의 완성형 mockup + 데이터 상태 변형 + 인터랙션 사양 + 개발자 명세를 한 파일에 통합</td><td>개발자 픽셀·코드 값 참조</td></tr>
+          <tr><td><code>mockups/_embed.js</code></td><td><b>프로토타입 전용</b> — iframe 내에서 page-head/spec을 숨기고 트리거를 부착해 부모와 postMessage 통신. <b>실제 앱 코드에 포함하지 않음</b></td><td>프로토타입 인프라</td></tr>
+          <tr><td><a href="../screen_spec_v0.2.md"><code>screen_spec_v0.2.md</code></a></td><td>Flutter 위젯 트리, 데이터 모델(SurveyType/MeasurementSubtype/DimensionAnnotation), 좌표 변환식, 라우팅, Phase 분할 등 코드 레벨 상세</td><td>개발자 구현 기준</td></tr>
+          <tr><td><a href="assets/README.md"><code>assets/README.md</code></a> + <code>assets/icons/</code></td><td>v0.2에서 새로 그린 SVG 아이콘 6종 + 사용 가이드 (메인 카드, 가이드박스 분기 등)</td><td>개발자 자산</td></tr>
+        </tbody>
+      </table>
+
+      <h3>라우트 (AppRoutes)</h3>
+      <pre style="background:#0b1220; color:#e5e7eb; padding:18px; border-radius:14px; overflow-x:auto; font-size:13px; line-height:1.55;">abstract class AppRoutes {
+  // v1 기존
+  static const main          = '/';
+  static const camera        = '/camera';
+  static const dataInput     = '/data-input';
+  static const archive       = '/archive';
+  static const photoViewer   = '/photo-viewer';
+
+  // v0.2 신규
+  static const surveyTypeSelect = '/survey-type-select';   // S-002
+  static const annotate         = '/annotate';             // S-004 (폭/간격) · S-007 (홀 깊이)
+  static const dimensionInput   = '/dimension-input';      // S-005 (폭/간격) · S-008 (홀 깊이)
+}</pre>
+
+      <h3>Phase 분할</h3>
+      <table>
+        <thead><tr><th>Phase</th><th>범위</th><th>산출물</th></tr></thead>
+        <tbody>
+          <tr><td><b>P1</b></td><td>모델/라우팅 골격 — enum/모델/라우트 추가, S-001 카드 3개 재편, S-002</td><td>새 카드 → 빈 라우트 이동까지</td></tr>
+          <tr><td><b>P2</b></td><td>측정점 지정 — S-004 (폭/간격 공통) + 좌표 변환 + 마커</td><td>두 점 찍고 데이터 전달</td></tr>
+          <tr><td><b>P3</b></td><td>수치 입력 (폭/간격) — S-005 + DimensionAnnotation 저장</td><td>보관함에 dimension 레코드 노출</td></tr>
+          <tr><td><b>P4</b></td><td>홀 깊이 — S-006/S-007/S-008 + ovalVertical 가이드 + visibleReadingValue</td><td>hole_depth subtype 전체 동작</td></tr>
+          <tr><td><b>P5</b></td><td>업로드/보관함 — UploadService v2 마이그레이션, 보관함 subtype 배지</td><td>서버 일괄 전송</td></tr>
+          <tr><td><b>P6</b></td><td>품질/검증 강화 — 핀치 줌(photo_view), edge 인접 자동 플래그, 후처리 큐레이션</td><td>학습데이터 품질 ↑</td></tr>
+        </tbody>
+      </table>
+
+      <h3>참조 문서</h3>
+      <ul>
+        <li><a href="../screen_spec_v0.2.md">screen_spec_v0.2.md</a> — 개발자 작업용 상세 명세 (Flutter 위젯 트리, 데이터 모델, 좌표 변환, 위젯별 사양)</li>
+        <li><a href="assets/README.md">assets/README.md</a> — 자산(SVG icons) 사용 가이드</li>
+        <li><a href="../_inbound/규격조사_화면설계서_와이어프레임_명세_v0.1.html">v0.1 와이어프레임</a> — 최초 기획서</li>
+      </ul>
+
+      <p class="print-tip">인쇄/공유: 브라우저의 "PDF로 저장" 기능을 사용하면 이 HTML 문서를 그대로 배포 가능. iframe 내부 mockup도 함께 인쇄됨.</p>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// 사이드바 active 표시 (현재 보이는 섹션 하이라이트)
+(function(){
+  const links = document.querySelectorAll('aside nav a');
+  const sections = Array.from(links).map(a => {
+    const id = a.getAttribute('href').slice(1);
+    return { link: a, el: document.getElementById(id) };
+  }).filter(s => s.el);
+
+  function onScroll(){
+    const y = window.scrollY + 100;
+    let current = null;
+    for(const s of sections){
+      if(s.el.offsetTop <= y) current = s;
+      else break;
+    }
+    links.forEach(a => a.classList.remove('active'));
+    if(current) current.link.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>S-002 규격조사 유형 선택 — 화면 목업 & 인터랙션 명세 (v0.2)</title>
+<style>
+/* ============================================================
+   S-002 규격조사 유형 선택 — 완성도 높은 mockup (v0.2)
+   진입: S-001 "규격 조사" 카드 탭
+   라우트: /survey-type-select
+   카드를 클릭하면 실제로 선택 상태가 토글되고, 하단 토스트로
+   다음 화면 라우팅 정보가 표시된다.
+   ============================================================ */
+:root{
+  --ink:#111827; --muted:#6B7280; --line:#E5E7EB;
+  --blue:#2563EB; --blue-weak:#EFF6FF; --blue-deep:#1E40AF;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#f1f5f9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#0f172a;
+  padding:40px 24px 60px;
+  line-height:1.55;
+}
+
+/* ====== 페이지 헤더 ====== */
+.page-head{
+  max-width:1280px; margin:0 auto 28px;
+  text-align:center;
+}
+.page-head .eyebrow{
+  display:inline-block;
+  font-size:11.5px; letter-spacing:0.14em; font-weight:800;
+  color:#2563EB; background:#DBEAFE;
+  padding:5px 12px; border-radius:999px;
+  margin-bottom:10px;
+}
+.page-head h1{
+  margin:0; font-size:24px; font-weight:800; letter-spacing:-0.025em; color:#0f172a;
+}
+.page-head p{margin:6px 0 0; color:#64748b; font-size:13.5px;}
+.page-head .hint{
+  display:inline-block; margin-top:10px;
+  font-size:12px; color:#0f172a; background:#fef3c7; border:1px solid #fcd34d;
+  border-radius:8px; padding:6px 12px;
+}
+.page-head .hint kbd{
+  display:inline-block; background:#fff; border:1px solid #f59e0b; border-radius:4px;
+  padding:1px 6px; font-size:11px; color:#92400e; font-weight:700;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+
+/* ====== 폰 목업 ====== */
+.mockup-row{
+  display:flex; justify-content:center; align-items:flex-start;
+  margin-bottom:48px;
+}
+
+/* ====== 스크린 (Android 논리 360dp) ====== */
+.screen{
+  width:360px; height:720px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(15,23,42,.10);
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+}
+
+/* ---- 헤더 (← + 제목) ---- */
+.appbar{
+  display:flex; align-items:center;
+  padding:14px 12px 6px 8px;
+  gap:4px;
+}
+.back-btn{
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  color:#111827;
+  cursor:pointer; border-radius:8px;
+  transition:background-color .12s;
+}
+.back-btn:hover{background:rgba(0,0,0,0.05);}
+.back-btn:active{background:rgba(0,0,0,0.10);}
+.back-btn svg{width:22px; height:22px;}
+.appbar h1{
+  margin:0;
+  font-size:22px; font-weight:800;
+  letter-spacing:-0.3px; color:var(--ink);
+  line-height:1.2;
+}
+
+/* ---- 부제 ---- */
+.sub-question{
+  padding:14px 20px 0;
+  font-size:14px; font-weight:600;
+  color:#374151; letter-spacing:0.1px;
+}
+
+/* ---- 카드 ---- */
+.cards{padding:10px 20px 0;}
+.card{
+  display:flex; align-items:center; gap:16px;
+  border-radius:12px;
+  padding:16px 20px; margin-top:10px;
+  cursor:pointer;
+  background:#fff;
+  border:1px solid var(--line);
+  transition:transform .12s, box-shadow .12s, background-color .12s, border-color .12s;
+}
+/* 기본(미선택) — default */
+.card .title{color:var(--ink);}
+.card .sub-line{color:var(--muted);}
+.card:hover{
+  border-color:#cbd5e1;
+  background:#fafbfc;
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(15,23,42,.06);
+}
+.card:active{transform:translateY(0); box-shadow:0 1px 3px rgba(15,23,42,.10);}
+
+/* 선택됨 */
+.card.is-selected{
+  background:var(--blue-weak);
+  border:1.5px solid var(--blue);
+  box-shadow:0 4px 14px rgba(37,99,235,.18);
+  transform:translateY(0);
+}
+.card.is-selected .sub-line{color:var(--blue);}
+
+.card .icon-slot{
+  width:44px; height:44px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.card .text{flex:1; min-width:0;}
+.card .title{font-size:16px; font-weight:700; letter-spacing:-0.1px;}
+.card .sub-line{font-size:13px; margin-top:3px; line-height:1.35;}
+
+/* ---- 하단 라우팅 토스트 ---- */
+.route-toast{
+  position:absolute; left:16px; right:16px; bottom:16px;
+  background:#0f172a; color:#fff;
+  border-radius:12px;
+  padding:12px 16px;
+  display:flex; align-items:center; gap:10px;
+  box-shadow:0 8px 20px rgba(15,23,42,.30);
+  opacity:0; transform:translateY(8px);
+  transition:opacity .2s, transform .2s;
+  pointer-events:none;
+}
+.route-toast.show{opacity:1; transform:translateY(0);}
+.route-toast .arrow{
+  width:20px; height:20px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(37,99,235,0.25); border-radius:6px;
+}
+.route-toast .arrow svg{width:14px; height:14px;}
+.route-toast .info{flex:1; min-width:0;}
+.route-toast .info .label{font-size:11px; opacity:.7; font-weight:600;}
+.route-toast .info .target{
+  font-size:12.5px; font-weight:700; margin-top:2px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* ====== 기획 명세 패널 ====== */
+.spec-section{
+  max-width:1280px; margin:0 auto;
+}
+.spec-grid{
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:18px;
+}
+.spec-card{
+  background:#fff; border:1px solid #e2e8f0;
+  border-radius:16px; padding:22px 24px;
+  box-shadow:0 4px 12px rgba(15,23,42,.04);
+}
+.spec-card h2{
+  margin:0 0 14px;
+  font-size:15px; font-weight:800; letter-spacing:-0.01em;
+  color:#0f172a;
+  display:flex; align-items:center; gap:8px;
+}
+.spec-card h2::before{
+  content:""; width:4px; height:16px; background:var(--blue);
+  border-radius:2px;
+}
+.spec-card .kv{
+  display:grid; grid-template-columns:96px 1fr; gap:8px 16px;
+  font-size:13px;
+}
+.spec-card .kv b{font-weight:700; color:#475569;}
+.spec-card .kv code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:5px; padding:1px 6px; font-size:11.5px;
+  color:#1e293b; font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.spec-card ul.flow{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:8px;
+  font-size:13px; color:#334155;
+}
+.spec-card ul.flow li{
+  position:relative; padding-left:22px;
+}
+.spec-card ul.flow li::before{
+  content:""; position:absolute; left:6px; top:6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--blue); opacity:.6;
+}
+.spec-card ul.flow li b{color:#0f172a; font-weight:700;}
+.spec-card table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.spec-card table th,.spec-card table td{
+  border:1px solid #e5e7eb; padding:7px 10px; text-align:left;
+  vertical-align:top;
+}
+.spec-card table th{background:#f8fafc; color:#475569; font-weight:700;}
+.spec-card table td code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:4px; padding:1px 5px; font-size:11px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+
+@media (max-width:980px){
+  .spec-grid{grid-template-columns:1fr;}
+}
+@media print{
+  body{background:#fff; padding:0;}
+  .screen{box-shadow:none;}
+  .spec-card{box-shadow:none;}
+  .page-head .hint{display:none;}
+}
+</style>
+</head>
+<body>
+
+  <!-- ========== Header ========== -->
+  <div class="page-head">
+    <span class="eyebrow">SCREEN MOCKUP & SPEC · S-002</span>
+    <h1>규격조사 유형 선택 — 측정 subtype 결정</h1>
+    <p>S-001 "규격 조사" 카드 탭 시 진입. 측정 유형을 한 번 더 선택한 뒤 카메라 화면으로 이동.</p>
+    <div class="hint">💡 카드를 <kbd>클릭</kbd>하면 실제로 선택됩니다. 선택 시 하단에 다음 라우트가 표시됩니다.</div>
+  </div>
+
+  <!-- ========== Interactive Mockup ========== -->
+  <div class="mockup-row">
+    <div class="screen">
+
+      <div class="appbar">
+        <span class="back-btn" data-action="back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/>
+            <polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </span>
+        <h1>규격 조사</h1>
+      </div>
+
+      <div class="sub-question">측정 유형을 선택하세요</div>
+
+      <div class="cards">
+
+        <!-- ① 벽/기둥/부재 폭 -->
+        <div class="card" data-subtype="wall_or_member_width" data-label="벽/기둥/부재 폭">
+          <div class="icon-slot">
+            <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+              <rect x="6" y="20" width="32" height="12" rx="1" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+              <circle cx="8" cy="26" r="1.7" fill="#2563EB"/>
+              <circle cx="36" cy="26" r="1.7" fill="#2563EB"/>
+              <path d="M8 13 H36" stroke="#475569" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M11 10.5 L8 13 L11 15.5" stroke="#475569" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M33 10.5 L36 13 L33 15.5" stroke="#475569" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M8 19 V14" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="1.5 1.5"/>
+              <path d="M36 19 V14" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="1.5 1.5"/>
+            </svg>
+          </div>
+          <div class="text">
+            <div class="title">벽 / 기둥 / 부재 폭 측정</div>
+            <div class="sub-line">시작면과 끝면 사이의 폭 측정</div>
+          </div>
+        </div>
+
+        <!-- ② 부재 간 간격 -->
+        <div class="card" data-subtype="member_gap" data-label="부재 간 간격">
+          <div class="icon-slot">
+            <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+              <rect x="5" y="10" width="8" height="24" rx="1" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+              <rect x="31" y="10" width="8" height="24" rx="1" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+              <circle cx="13" cy="22" r="1.7" fill="#2563EB"/>
+              <circle cx="31" cy="22" r="1.7" fill="#2563EB"/>
+              <path d="M13 22 H31" stroke="#475569" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M16 19.5 L13 22 L16 24.5" stroke="#475569" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M28 19.5 L31 22 L28 24.5" stroke="#475569" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="text">
+            <div class="title">부재 간 간격 측정</div>
+            <div class="sub-line">두 부재 사이의 거리 측정</div>
+          </div>
+        </div>
+
+        <!-- ③ 홀 깊이 -->
+        <div class="card" data-subtype="hole_depth" data-label="홀 깊이">
+          <div class="icon-slot">
+            <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+              <rect x="4" y="9" width="36" height="3.5" rx="0.6" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+              <path d="M16 12.5 L16 32 Q16 35 19 35 L25 35 Q28 35 28 32 L28 12.5 Z" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" stroke-linejoin="round"/>
+              <circle cx="16" cy="12.5" r="1.6" fill="#facc15" stroke="#a16207" stroke-width="0.8"/>
+              <circle cx="28" cy="12.5" r="1.6" fill="#facc15" stroke="#a16207" stroke-width="0.8"/>
+              <path d="M22 15 V32" stroke="#2563EB" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M19.5 29 L22 32 L24.5 29" stroke="#2563EB" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="text">
+            <div class="title">홀 깊이 측정</div>
+            <div class="sub-line">홀 입구에서 내부 바닥까지의 깊이</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 라우팅 토스트 (카드 선택 시 표시) -->
+      <div class="route-toast" id="routeToast">
+        <div class="arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="label" id="toastLabel">다음 화면 (탭 즉시 이동)</div>
+          <div class="target" id="toastTarget">/camera · subtype: wall_or_member_width</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== Spec Section ========== -->
+  <div class="spec-section">
+    <div class="spec-grid">
+
+      <!-- 화면 정보 -->
+      <div class="spec-card">
+        <h2>화면 정보</h2>
+        <div class="kv">
+          <b>화면 ID</b><div><code>S-002</code></div>
+          <b>라우트</b><div><code>/survey-type-select</code> ← <b>신규</b></div>
+          <b>페이지</b><div><code>SurveyTypeSelectPage</code> (신규)</div>
+          <b>컨트롤러</b><div><code>SurveyTypeSelectController</code> (선택 → 라우팅만)</div>
+          <b>진입 인자</b><div>없음</div>
+          <b>핵심 기능</b><div>측정 subtype 결정 + 카메라 라우팅</div>
+        </div>
+      </div>
+
+      <!-- 인터랙션 시나리오 -->
+      <div class="spec-card">
+        <h2>인터랙션 시나리오</h2>
+        <table>
+          <thead><tr><th>요소</th><th>동작</th><th>다음 화면 / 결과</th></tr></thead>
+          <tbody>
+            <tr><td>← 뒤로가기</td><td>탭</td><td><code>/</code> (S-001 메인)</td></tr>
+            <tr><td>벽/기둥/부재 폭 카드</td><td>탭</td><td><code>/camera</code> · <code>{surveyType: dimension, subtype: wall_or_member_width}</code></td></tr>
+            <tr><td>부재 간 간격 카드</td><td>탭</td><td><code>/camera</code> · <code>{surveyType: dimension, subtype: member_gap}</code></td></tr>
+            <tr><td>홀 깊이 카드</td><td>탭</td><td><code>/camera</code> · <code>{surveyType: dimension, subtype: hole_depth}</code></td></tr>
+            <tr><td>카드 (호버)</td><td>마우스 위</td><td>살짝 들림 + 미세 그림자 (Android ink ripple 대응)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 상태 전이 -->
+      <div class="spec-card">
+        <h2>상태 전이</h2>
+        <ul class="flow">
+          <li><b>① 기본 (default)</b> · 진입 시 모든 카드 미선택 (흰 bg + 1px <code>#E5E7EB</code> 외곽선)</li>
+          <li><b>② 호버 (hover)</b> · 마우스/터치 시 살짝 들림 (translateY -1px) + 미세 그림자</li>
+          <li><b>③ 선택 (selected)</b> · 탭 직후 파란 강조 (bg <code>#EFF6FF</code> + 1.5px <code>#2563EB</code> + shadow). 본 mockup에선 데모용으로 유지되지만, 실제 앱에서는 즉시 카메라로 navigate</li>
+          <li><b>뒤로</b> · 어느 시점이든 ← 탭 → S-001 복귀</li>
+        </ul>
+      </div>
+
+      <!-- 디자인 스펙 -->
+      <div class="spec-card">
+        <h2>디자인 스펙</h2>
+        <table>
+          <tbody>
+            <tr><td>AppBar 패딩</td><td>LTRB(8, 14, 12, 6) · 좌측 ← 아이콘 슬롯 40×40</td></tr>
+            <tr><td>← 아이콘</td><td>22px <code>#111827</code> · hover 시 bg 5% black</td></tr>
+            <tr><td>제목</td><td>22 / w800 / -0.3 / <code>#111827</code></td></tr>
+            <tr><td>"측정 유형..."</td><td>14 / w600 / <code>#374151</code> · padding 14h horizontal 20</td></tr>
+            <tr><td>카드 padding</td><td>20h / 16v · radius 12 · row gap 16 · 카드 간 간격 10</td></tr>
+            <tr><td>카드 (기본)</td><td>bg <code>#FFFFFF</code> · 1px <code>#E5E7EB</code> border</td></tr>
+            <tr><td>카드 (선택)</td><td>bg <code>#EFF6FF</code> · 1.5px <code>#2563EB</code> · shadow <code>0 4px 14px rgba(37,99,235,.18)</code></td></tr>
+            <tr><td>카드 아이콘</td><td>SvgPicture.asset 44×44 (메인 36×36 대비 큼)</td></tr>
+            <tr><td>카드 title</td><td>16 / w700 / <code>#111827</code> (양 상태 동일)</td></tr>
+            <tr><td>카드 subtitle</td><td>13 · 기본 <code>#6B7280</code> · 선택 <code>#2563EB</code></td></tr>
+            <tr><td>전환 시간</td><td>transform/box-shadow/bg 120ms ease</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function(){
+  const cards = document.querySelectorAll('.card[data-subtype]');
+  const toast = document.getElementById('routeToast');
+  const targetEl = document.getElementById('toastTarget');
+
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      cards.forEach(c => c.classList.remove('is-selected'));
+      card.classList.add('is-selected');
+      const subtype = card.dataset.subtype;
+      targetEl.textContent = '/camera · subtype: ' + subtype;
+      toast.classList.add('show');
+    });
+  });
+
+  // 뒤로가기는 선택 해제 + 토스트 숨김
+  document.querySelector('.back-btn').addEventListener('click', () => {
+    cards.forEach(c => c.classList.remove('is-selected'));
+    toast.classList.remove('show');
+  });
+})();
+</script>
+
+<script src="_embed.js"></script>
+</body>
+</html>

@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>S-001 메인 화면 — 화면 목업 & 인터랙션 명세 (v0.2)</title>
+<style>
+/* ============================================================
+   S-001 메인 화면 — 완성도 높은 mockup (v0.2)
+   기준: spec/origin_assets/현장촬영앱어셋/1.메인화면.png
+         + lib/pages/main/main_page.dart 코드 값 1:1
+   포함: 데이터 상태 3종(빈/미전송/전송중) + 인터랙션(:hover/:active)
+         + 기획 내용(라우팅/상호작용/전이/스펙)
+   ============================================================ */
+:root{
+  --ink:#111827; --muted:#6B7280; --line:#E5E7EB;
+  --blue:#2563EB; --blue-weak:#EFF6FF; --blue-deep:#1E40AF;
+  --green:#16A34A; --green-weak:#DCFCE7;
+  --red:#DC2626; --gray-50:#F9FAFB; --gray-100:#F3F4F6; --gray-disabled:#D1D5DB;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#f1f5f9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#0f172a;
+  padding:40px 24px 60px;
+  line-height:1.55;
+}
+
+/* ====== 페이지 헤더 ====== */
+.page-head{
+  max-width:1280px; margin:0 auto 28px;
+  text-align:center;
+}
+.page-head .eyebrow{
+  display:inline-block;
+  font-size:11.5px; letter-spacing:0.14em; font-weight:800;
+  color:#2563EB; background:#DBEAFE;
+  padding:5px 12px; border-radius:999px;
+  margin-bottom:10px;
+}
+.page-head h1{
+  margin:0; font-size:24px; font-weight:800; letter-spacing:-0.025em; color:#0f172a;
+}
+.page-head p{margin:6px 0 0; color:#64748b; font-size:13.5px;}
+
+/* ====== 폰 목업 그리드 ====== */
+.mockup-row{
+  display:flex; justify-content:center; align-items:flex-start;
+  gap:36px; flex-wrap:wrap;
+  margin-bottom:48px;
+}
+.stage{display:flex; flex-direction:column; align-items:center; gap:14px;}
+.stage .tag{
+  font-size:12px; font-weight:700; color:#475569;
+  background:#fff; border:1px solid #cbd5e1;
+  border-radius:999px; padding:6px 14px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.stage .tag .dot{
+  width:6px; height:6px; border-radius:50%; background:#94a3b8;
+}
+.stage .tag.empty .dot{background:#6B7280;}
+.stage .tag.pending .dot{background:#DC2626;}
+.stage .tag.uploading .dot{background:#2563EB;}
+.stage .desc{
+  text-align:center; font-size:11.5px; color:#64748b;
+  max-width:300px; line-height:1.4;
+}
+
+/* ====== 스크린 (Android 논리 360dp) ====== */
+.screen{
+  width:360px; height:720px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(15,23,42,.10);
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+}
+
+/* ---- 헤더 (fromLTRB 20,20,12,0) ---- */
+.topbar{
+  display:flex; align-items:center;
+  padding:20px 12px 0 20px;
+}
+.topbar h1{
+  flex:1; margin:0;
+  font-size:22px; font-weight:800;
+  letter-spacing:-0.3px; color:var(--ink);
+  line-height:1.2;
+}
+.pill-on,.pill-off{
+  display:inline-flex; align-items:center; gap:4px;
+  border-radius:20px; padding:5px 10px;
+  font-size:12px; font-weight:700; line-height:1;
+}
+.pill-on{background:var(--green-weak); color:var(--green);}
+.pill-off{background:var(--gray-100); color:var(--muted);}
+.pill-on svg,.pill-off svg{width:14px; height:14px;}
+
+.icon-btn{
+  color:var(--muted); padding:8px;
+  display:inline-flex; align-items:center;
+  cursor:pointer; border-radius:8px;
+  transition:background-color .12s;
+}
+.icon-btn:hover{background:rgba(0,0,0,0.05);}
+.icon-btn:active{background:rgba(0,0,0,0.10);}
+.icon-btn svg{width:22px; height:22px;}
+
+/* ---- 부제 ---- */
+.sub-question{
+  padding:20px 20px 0;
+  font-size:14px; font-weight:600;
+  color:#374151; letter-spacing:0.1px;
+}
+
+/* ---- 카드 ---- */
+.cards{padding:10px 20px 0;}
+.card{
+  display:flex; align-items:center; gap:16px;
+  border-radius:12px;
+  padding:18px 20px; margin-top:10px;
+  transition:transform .12s, box-shadow .12s, background-color .12s;
+}
+.card.enabled{
+  background:var(--blue-weak); border:1.5px solid var(--blue);
+  cursor:pointer;
+}
+.card.enabled:hover{
+  transform:translateY(-1px);
+  box-shadow:0 6px 16px rgba(37,99,235,.16);
+}
+.card.enabled:active{transform:translateY(0); box-shadow:0 2px 4px rgba(37,99,235,.20);}
+.card.disabled{
+  background:var(--gray-50); border:1px solid var(--line);
+  cursor:not-allowed;
+}
+.card .icon-slot{
+  width:36px; height:36px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.card .text{flex:1; min-width:0;}
+.card .title{font-size:16px; font-weight:700; letter-spacing:-0.1px;}
+.card.enabled .title{color:var(--ink);}
+.card.disabled .title{color:#9CA3AF;}
+.card .sub-line{font-size:13px; margin-top:3px; line-height:1.35;}
+.card.enabled .sub-line{color:var(--blue);}
+.card.disabled .sub-line{color:#9CA3AF;}
+
+/* ---- 하단 통계 영역 ---- */
+.stats-zone{
+  margin-top:auto;
+  background:var(--gray-50);
+  border-top:1px solid var(--line);
+  padding:16px 20px 22px;
+}
+.stats-head{display:flex; align-items:center; justify-content:space-between;}
+.stats-head .h{font-size:14px; font-weight:700; color:var(--ink);}
+.stats-head .link{
+  background:#fff; color:#374151;
+  border:1px solid var(--line); border-radius:20px;
+  padding:5px 12px; font-size:12px; font-weight:500;
+  cursor:pointer; transition:background-color .12s, border-color .12s;
+}
+.stats-head .link:hover{background:#F3F4F6; border-color:#cbd5e1;}
+.stats-head .link:active{background:#E5E7EB;}
+
+.stats-card{
+  margin-top:12px;
+  background:#fff; border:1px solid var(--line); border-radius:12px;
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+}
+.stats-card > div{
+  text-align:center; padding:12px 10px;
+  border-right:1px solid var(--line);
+}
+.stats-card > div:last-child{border-right:0;}
+.stats-card .label{font-size:11px; color:var(--muted); font-weight:500;}
+.stats-card .val{font-size:24px; font-weight:800; margin-top:4px; line-height:1.05;}
+.stats-card .val.black{color:var(--ink);}
+.stats-card .val.red{color:var(--red);}
+.stats-card .val.green{color:var(--green);}
+
+.upload-btn{
+  margin-top:12px; width:100%; height:52px;
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; font-weight:700;
+  transition:background-color .12s, transform .08s;
+}
+.upload-btn.active{
+  background:var(--blue); color:#fff;
+  cursor:pointer;
+  box-shadow:0 4px 12px rgba(37,99,235,.22);
+}
+.upload-btn.active:hover{background:#1D4ED8;}
+.upload-btn.active:active{background:var(--blue-deep); transform:scale(0.98);}
+.upload-btn.disabled{
+  background:var(--gray-disabled); color:#9CA3AF;
+  cursor:not-allowed;
+}
+.upload-btn.loading{
+  background:var(--gray-disabled); color:#6B7280;
+  cursor:wait;
+  gap:8px;
+}
+
+/* 스피너 */
+.spinner{
+  width:18px; height:18px;
+  border:2.5px solid rgba(255,255,255,0.4);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:spin 0.9s linear infinite;
+}
+.upload-btn.loading .spinner{
+  border:2.5px solid rgba(107,114,128,0.3);
+  border-top-color:#6B7280;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ====== 기획 명세 패널 ====== */
+.spec-section{
+  max-width:1280px; margin:0 auto;
+}
+.spec-grid{
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:18px;
+}
+.spec-card{
+  background:#fff; border:1px solid #e2e8f0;
+  border-radius:16px; padding:22px 24px;
+  box-shadow:0 4px 12px rgba(15,23,42,.04);
+}
+.spec-card h2{
+  margin:0 0 14px;
+  font-size:15px; font-weight:800; letter-spacing:-0.01em;
+  color:#0f172a;
+  display:flex; align-items:center; gap:8px;
+}
+.spec-card h2::before{
+  content:""; width:4px; height:16px; background:var(--blue);
+  border-radius:2px;
+}
+.spec-card .kv{
+  display:grid; grid-template-columns:96px 1fr; gap:8px 16px;
+  font-size:13px;
+}
+.spec-card .kv b{font-weight:700; color:#475569;}
+.spec-card .kv code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:5px; padding:1px 6px; font-size:11.5px;
+  color:#1e293b; font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.spec-card ul.flow{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:8px;
+  font-size:13px; color:#334155;
+}
+.spec-card ul.flow li{
+  position:relative; padding-left:22px;
+}
+.spec-card ul.flow li::before{
+  content:""; position:absolute; left:6px; top:6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--blue); opacity:.6;
+}
+.spec-card ul.flow li b{color:#0f172a; font-weight:700;}
+.spec-card table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.spec-card table th,.spec-card table td{
+  border:1px solid #e5e7eb; padding:7px 10px; text-align:left;
+  vertical-align:top;
+}
+.spec-card table th{background:#f8fafc; color:#475569; font-weight:700;}
+.spec-card table td code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:4px; padding:1px 5px; font-size:11px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.chip{
+  display:inline-block; padding:2px 9px; border-radius:999px;
+  font-size:11px; font-weight:700; margin-right:3px;
+}
+.chip.empty{background:#F3F4F6; color:#374151;}
+.chip.pending{background:#FEE2E2; color:#991B1B;}
+.chip.uploading{background:#DBEAFE; color:#1E40AF;}
+
+@media (max-width:980px){
+  .mockup-row{flex-direction:column; align-items:center;}
+  .spec-grid{grid-template-columns:1fr;}
+}
+@media print{
+  body{background:#fff; padding:0;}
+  .screen{box-shadow:none;}
+  .spec-card{box-shadow:none;}
+}
+</style>
+</head>
+<body>
+
+  <!-- ========== Header ========== -->
+  <div class="page-head">
+    <span class="eyebrow">SCREEN MOCKUP & SPEC · S-001</span>
+    <h1>메인 화면 — 조사 항목 선택 (3카드 재편)</h1>
+    <p>v1.0 메인 화면에 "규격 조사" 카드를 추가한 v0.2 안. 데이터 3가지 상태와 모든 인터랙션을 한 페이지에 망라.</p>
+  </div>
+
+  <!-- ========== Mockup Row (3 states) ========== -->
+  <div class="mockup-row">
+
+    <!-- ① 빈 상태 -->
+    <div class="stage">
+      <div class="screen">
+        <div class="topbar">
+          <h1>현장 데이터 수집기</h1>
+          <span class="pill-on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>ON
+          </span>
+          <span class="icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </span>
+        </div>
+        <div class="sub-question">조사할 항목을 선택하세요</div>
+        <div class="cards">
+          <div class="card enabled">
+            <div class="icon-slot">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <rect x="2" y="17" width="22" height="5.5" rx="0.6" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9"/>
+                <g stroke="#64748b" stroke-width="0.4" stroke-linecap="round">
+                  <path d="M3.5 17.5 v0.9"/><path d="M4.6 17.5 v1.3"/><path d="M5.7 17.5 v0.9"/><path d="M6.8 17.5 v1.3"/>
+                  <path d="M7.9 17.5 v0.9"/><path d="M9 17.5 v1.3"/><path d="M10.1 17.5 v0.9"/><path d="M11.2 17.5 v1.3"/>
+                  <path d="M12.3 17.5 v0.9"/><path d="M13.4 17.5 v1.3"/><path d="M14.5 17.5 v0.9"/><path d="M15.6 17.5 v1.3"/>
+                  <path d="M16.7 17.5 v0.9"/><path d="M17.8 17.5 v1.3"/><path d="M18.9 17.5 v0.9"/><path d="M20 17.5 v1.3"/>
+                  <path d="M21.1 17.5 v0.9"/><path d="M22.2 17.5 v1.3"/>
+                </g>
+                <path d="M2 17 V13.5 L4 13.5 L4 17 Z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9" stroke-linejoin="round"/>
+                <path d="M2 22.5 V26 L4 26 L4 22.5 Z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9" stroke-linejoin="round"/>
+                <rect x="22" y="13.5" width="10" height="13" rx="0.8" fill="#64748b" stroke="#334155" stroke-width="0.6"/>
+                <rect x="23.4" y="16.5" width="7.2" height="3.6" rx="0.4" fill="#f8fafc" stroke="#334155" stroke-width="0.4"/>
+                <path d="M24.6 18.3 H26.2 M27.6 18.3 H29.4" stroke="#94a3b8" stroke-width="0.55" stroke-linecap="round"/>
+                <rect x="23.7" y="21.4" width="2.4" height="1.3" rx="0.2" fill="#f59e0b"/>
+                <path d="M29 13.5 V5 L32 5 L32 13.5 Z" fill="#64748b" stroke="#334155" stroke-width="0.6" stroke-linejoin="round"/>
+                <path d="M29 26.5 V32 L32 32 L32 26.5 Z" fill="#64748b" stroke="#334155" stroke-width="0.6" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="text"><div class="title">탄산화 조사</div><div class="sub-line">(버니어 캘리퍼스 수치 인식)</div></div>
+          </div>
+          <div class="card enabled">
+            <div class="icon-slot">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <path d="M5 19 a9 9 0 0 1 18 0 v6 a2 2 0 0 1 -2 2 h-14 a2 2 0 0 1 -2 -2 z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+                <circle cx="14" cy="19" r="4.5" fill="#fff" stroke="#94a3b8" stroke-width="1"/>
+                <circle cx="14" cy="19" r="1.4" fill="#94a3b8"/>
+                <path d="M23 21 H31 V25 H23 z" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1"/>
+                <path d="M25 21 V22.6 M27.5 21 V23.4 M30 21 V22.6" stroke="#64748b" stroke-width="0.9" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="text"><div class="title">규격 조사</div><div class="sub-line">(줄자 기반 폭 · 간격 · 깊이 측정)</div></div>
+          </div>
+          <div class="card disabled">
+            <div class="icon-slot">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 5 L14 11 L11 18 L17 23 L13 31" stroke="#cbd5e1" stroke-width="2"/>
+                <path d="M22 7 L24 11 L29 10 L26 17 L30 22" stroke="#e2e8f0" stroke-width="1.8"/>
+              </svg>
+            </div>
+            <div class="text"><div class="title">균열 폭 조사</div><div class="sub-line">서비스 준비 중...</div></div>
+          </div>
+        </div>
+        <div class="stats-zone">
+          <div class="stats-head">
+            <div class="h">오늘의 수집 현황</div>
+            <div class="link">보관함 보기</div>
+          </div>
+          <div class="stats-card">
+            <div><div class="label">총 촬영</div><div class="val black">0</div></div>
+            <div><div class="label">미전송 대기</div><div class="val red">0</div></div>
+            <div><div class="label">전송 완료</div><div class="val green">0</div></div>
+          </div>
+          <div class="upload-btn disabled">전송할 데이터가 없습니다</div>
+        </div>
+      </div>
+      <div class="tag empty"><span class="dot"></span>① 빈 상태 (첫 진입 / 0건)</div>
+      <div class="desc">신규 설치 직후 또는 모든 데이터가 전송 완료된 상태. 일괄 전송 버튼은 비활성.</div>
+    </div>
+
+    <!-- ② 미전송 있음 -->
+    <div class="stage">
+      <div class="screen">
+        <div class="topbar">
+          <h1>현장 데이터 수집기</h1>
+          <span class="pill-on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>ON
+          </span>
+          <span class="icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </span>
+        </div>
+        <div class="sub-question">조사할 항목을 선택하세요</div>
+        <div class="cards">
+          <div class="card enabled">
+            <div class="icon-slot">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <rect x="2" y="17" width="22" height="5.5" rx="0.6" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9"/>
+                <g stroke="#64748b" stroke-width="0.4" stroke-linecap="round">
+                  <path d="M3.5 17.5 v0.9"/><path d="M4.6 17.5 v1.3"/><path d="M5.7 17.5 v0.9"/><path d="M6.8 17.5 v1.3"/>
+                  <path d="M7.9 17.5 v0.9"/><path d="M9 17.5 v1.3"/><path d="M10.1 17.5 v0.9"/><path d="M11.2 17.5 v1.3"/>
+                  <path d="M12.3 17.5 v0.9"/><path d="M13.4 17.5 v1.3"/><path d="M14.5 17.5 v0.9"/><path d="M15.6 17.5 v1.3"/>
+                  <path d="M16.7 17.5 v0.9"/><path d="M17.8 17.5 v1.3"/><path d="M18.9 17.5 v0.9"/><path d="M20 17.5 v1.3"/>
+                  <path d="M21.1 17.5 v0.9"/><path d="M22.2 17.5 v1.3"/>
+                </g>
+                <path d="M2 17 V13.5 L4 13.5 L4 17 Z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9" stroke-linejoin="round"/>
+                <path d="M2 22.5 V26 L4 26 L4 22.5 Z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9" stroke-linejoin="round"/>
+                <rect x="22" y="13.5" width="10" height="13" rx="0.8" fill="#64748b" stroke="#334155" stroke-width="0.6"/>
+                <rect x="23.4" y="16.5" width="7.2" height="3.6" rx="0.4" fill="#f8fafc" stroke="#334155" stroke-width="0.4"/>
+                <path d="M24.6 18.3 H26.2 M27.6 18.3 H29.4" stroke="#94a3b8" stroke-width="0.55" stroke-linecap="round"/>
+                <rect x="23.7" y="21.4" width="2.4" height="1.3" rx="0.2" fill="#f59e0b"/>
+                <path d="M29 13.5 V5 L32 5 L32 13.5 Z" fill="#64748b" stroke="#334155" stroke-width="0.6" stroke-linejoin="round"/>
+                <path d="M29 26.5 V32 L32 32 L32 26.5 Z" fill="#64748b" stroke="#334155" stroke-width="0.6" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="text"><div class="title">탄산화 조사</div><div class="sub-line">(버니어 캘리퍼스 수치 인식)</div></div>
+          </div>
+          <div class="card enabled">
+            <div class="icon-slot">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <path d="M5 19 a9 9 0 0 1 18 0 v6 a2 2 0 0 1 -2 2 h-14 a2 2 0 0 1 -2 -2 z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+                <circle cx="14" cy="19" r="4.5" fill="#fff" stroke="#94a3b8" stroke-width="1"/>
+                <circle cx="14" cy="19" r="1.4" fill="#94a3b8"/>
+                <path d="M23 21 H31 V25 H23 z" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1"/>
+                <path d="M25 21 V22.6 M27.5 21 V23.4 M30 21 V22.6" stroke="#64748b" stroke-width="0.9" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="text"><div class="title">규격 조사</div><div class="sub-line">(줄자 기반 폭 · 간격 · 깊이 측정)</div></div>
+          </div>
+          <div class="card disabled">
+            <div class="icon-slot">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 5 L14 11 L11 18 L17 23 L13 31" stroke="#cbd5e1" stroke-width="2"/>
+                <path d="M22 7 L24 11 L29 10 L26 17 L30 22" stroke="#e2e8f0" stroke-width="1.8"/>
+              </svg>
+            </div>
+            <div class="text"><div class="title">균열 폭 조사</div><div class="sub-line">서비스 준비 중...</div></div>
+          </div>
+        </div>
+        <div class="stats-zone">
+          <div class="stats-head">
+            <div class="h">오늘의 수집 현황</div>
+            <div class="link">보관함 보기</div>
+          </div>
+          <div class="stats-card">
+            <div><div class="label">총 촬영</div><div class="val black">152</div></div>
+            <div><div class="label">미전송 대기</div><div class="val red">12</div></div>
+            <div><div class="label">전송 완료</div><div class="val green">140</div></div>
+          </div>
+          <div class="upload-btn active">12건 일괄 전송 (서버 업로드)</div>
+        </div>
+      </div>
+      <div class="tag pending"><span class="dot"></span>② 미전송 있음 (N건)</div>
+      <div class="desc">데이터가 누적되고 미전송 건이 있는 일반 사용 상태. 일괄 전송 버튼 활성 (파랑).</div>
+    </div>
+
+    <!-- ③ 전송 중 -->
+    <div class="stage">
+      <div class="screen">
+        <div class="topbar">
+          <h1>현장 데이터 수집기</h1>
+          <span class="pill-on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>ON
+          </span>
+          <span class="icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </span>
+        </div>
+        <div class="sub-question">조사할 항목을 선택하세요</div>
+        <div class="cards">
+          <div class="card enabled">
+            <div class="icon-slot">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <rect x="2" y="17" width="22" height="5.5" rx="0.6" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9"/>
+                <g stroke="#64748b" stroke-width="0.4" stroke-linecap="round">
+                  <path d="M3.5 17.5 v0.9"/><path d="M4.6 17.5 v1.3"/><path d="M5.7 17.5 v0.9"/><path d="M6.8 17.5 v1.3"/>
+                  <path d="M7.9 17.5 v0.9"/><path d="M9 17.5 v1.3"/><path d="M10.1 17.5 v0.9"/><path d="M11.2 17.5 v1.3"/>
+                  <path d="M12.3 17.5 v0.9"/><path d="M13.4 17.5 v1.3"/><path d="M14.5 17.5 v0.9"/><path d="M15.6 17.5 v1.3"/>
+                  <path d="M16.7 17.5 v0.9"/><path d="M17.8 17.5 v1.3"/><path d="M18.9 17.5 v0.9"/><path d="M20 17.5 v1.3"/>
+                  <path d="M21.1 17.5 v0.9"/><path d="M22.2 17.5 v1.3"/>
+                </g>
+                <path d="M2 17 V13.5 L4 13.5 L4 17 Z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9" stroke-linejoin="round"/>
+                <path d="M2 22.5 V26 L4 26 L4 22.5 Z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="0.9" stroke-linejoin="round"/>
+                <rect x="22" y="13.5" width="10" height="13" rx="0.8" fill="#64748b" stroke="#334155" stroke-width="0.6"/>
+                <rect x="23.4" y="16.5" width="7.2" height="3.6" rx="0.4" fill="#f8fafc" stroke="#334155" stroke-width="0.4"/>
+                <path d="M24.6 18.3 H26.2 M27.6 18.3 H29.4" stroke="#94a3b8" stroke-width="0.55" stroke-linecap="round"/>
+                <rect x="23.7" y="21.4" width="2.4" height="1.3" rx="0.2" fill="#f59e0b"/>
+                <path d="M29 13.5 V5 L32 5 L32 13.5 Z" fill="#64748b" stroke="#334155" stroke-width="0.6" stroke-linejoin="round"/>
+                <path d="M29 26.5 V32 L32 32 L32 26.5 Z" fill="#64748b" stroke="#334155" stroke-width="0.6" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="text"><div class="title">탄산화 조사</div><div class="sub-line">(버니어 캘리퍼스 수치 인식)</div></div>
+          </div>
+          <div class="card enabled">
+            <div class="icon-slot">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <path d="M5 19 a9 9 0 0 1 18 0 v6 a2 2 0 0 1 -2 2 h-14 a2 2 0 0 1 -2 -2 z" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+                <circle cx="14" cy="19" r="4.5" fill="#fff" stroke="#94a3b8" stroke-width="1"/>
+                <circle cx="14" cy="19" r="1.4" fill="#94a3b8"/>
+                <path d="M23 21 H31 V25 H23 z" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1"/>
+                <path d="M25 21 V22.6 M27.5 21 V23.4 M30 21 V22.6" stroke="#64748b" stroke-width="0.9" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="text"><div class="title">규격 조사</div><div class="sub-line">(줄자 기반 폭 · 간격 · 깊이 측정)</div></div>
+          </div>
+          <div class="card disabled">
+            <div class="icon-slot">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 5 L14 11 L11 18 L17 23 L13 31" stroke="#cbd5e1" stroke-width="2"/>
+                <path d="M22 7 L24 11 L29 10 L26 17 L30 22" stroke="#e2e8f0" stroke-width="1.8"/>
+              </svg>
+            </div>
+            <div class="text"><div class="title">균열 폭 조사</div><div class="sub-line">서비스 준비 중...</div></div>
+          </div>
+        </div>
+        <div class="stats-zone">
+          <div class="stats-head">
+            <div class="h">오늘의 수집 현황</div>
+            <div class="link">보관함 보기</div>
+          </div>
+          <div class="stats-card">
+            <div><div class="label">총 촬영</div><div class="val black">152</div></div>
+            <div><div class="label">미전송 대기</div><div class="val red">12</div></div>
+            <div><div class="label">전송 완료</div><div class="val green">140</div></div>
+          </div>
+          <div class="upload-btn loading">
+            <span class="spinner"></span>전송 중...
+          </div>
+        </div>
+      </div>
+      <div class="tag uploading"><span class="dot"></span>③ 전송 중</div>
+      <div class="desc">"일괄 전송" 탭 직후. 버튼은 회색 + 스피너 + "전송 중..." 표시. 완료 시 자동으로 ①/② 상태로 갱신.</div>
+    </div>
+
+  </div>
+
+  <!-- ========== Spec Section ========== -->
+  <div class="spec-section">
+    <div class="spec-grid">
+
+      <!-- 화면 정보 -->
+      <div class="spec-card">
+        <h2>화면 정보</h2>
+        <div class="kv">
+          <b>화면 ID</b><div><code>S-001</code></div>
+          <b>라우트</b><div><code>/</code> (기본)</div>
+          <b>페이지</b><div><code>MainPage</code><br><span style="color:#6B7280; font-size:11.5px;">lib/pages/main/main_page.dart</span></div>
+          <b>컨트롤러</b><div><code>MainController</code><br><span style="color:#6B7280; font-size:11.5px;">lib/pages/main/main_controller.dart</span></div>
+          <b>진입 경로</b><div>앱 실행 직후 (홈)</div>
+          <b>핵심 기능</b><div>조사 항목 선택 · 오늘 수집 현황 · 일괄 전송</div>
+        </div>
+      </div>
+
+      <!-- 인터랙션 시나리오 -->
+      <div class="spec-card">
+        <h2>인터랙션 시나리오</h2>
+        <table>
+          <thead><tr><th>요소</th><th>동작</th><th>다음 화면 / 결과</th></tr></thead>
+          <tbody>
+            <tr><td>탄산화 조사 카드</td><td>탭</td><td><code>/camera</code> · <code>{surveyType: carbonation}</code></td></tr>
+            <tr><td>규격 조사 카드</td><td>탭</td><td><code>/survey-type-select</code> (S-002) <b>← v0.2 신규</b></td></tr>
+            <tr><td>균열 폭 조사 카드</td><td>탭</td><td>비활성 (반응 없음)</td></tr>
+            <tr><td>보관함 보기 pill</td><td>탭</td><td><code>/archive</code></td></tr>
+            <tr><td>일괄 전송 버튼</td><td>탭 (활성 시)</td><td>업로드 시작 → 버튼 ③ 상태로 전환</td></tr>
+            <tr><td>설정 아이콘</td><td>탭</td><td>현재 미연결 (placeholder)</td></tr>
+            <tr><td>ON/OFF 배지</td><td>표시 전용</td><td>connectivity_plus 결과 자동 반영</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 상태 전이 -->
+      <div class="spec-card">
+        <h2>상태 전이</h2>
+        <ul class="flow">
+          <li><b><span class="chip empty">①</span>빈 상태</b> · 0/0/0, 일괄전송 disabled → 카드 탭 → 카메라 진입, 촬영/저장 후 복귀</li>
+          <li><b><span class="chip pending">②</span>미전송 있음</b> · N건 누적, 일괄전송 활성 → 일괄전송 탭 → ③</li>
+          <li><b><span class="chip uploading">③</span>전송 중</b> · 스피너 표시, 다른 액션 가능 (전송은 백그라운드) → 완료 → ②(잔여) 또는 ①(모두 완료)</li>
+          <li><b>오프라인</b> · 어느 상태에서나 ON pill → OFF pill로 변경 (배지만 변경, 다른 기능 그대로)</li>
+        </ul>
+      </div>
+
+      <!-- 디자인 스펙 -->
+      <div class="spec-card">
+        <h2>디자인 스펙 (v1 코드 1:1)</h2>
+        <table>
+          <tbody>
+            <tr><td>헤더</td><td>22 / w800 / -0.3 / <code>#111827</code> · padding LTRB(20,20,12,0)</td></tr>
+            <tr><td>ON pill</td><td>bg <code>#DCFCE7</code> · text 12 bold <code>#16A34A</code> · padding 10h/5v</td></tr>
+            <tr><td>OFF pill</td><td>bg <code>#F3F4F6</code> · text 12 bold grey-500</td></tr>
+            <tr><td>설정 아이콘</td><td>22px <code>#6B7280</code></td></tr>
+            <tr><td>"조사할 항목..."</td><td>14 / w600 / grey-700 · padding horizontal 20</td></tr>
+            <tr><td>카드</td><td>padding 20h/18v · radius 12 · row gap 16 · 사이 SizedBox 10</td></tr>
+            <tr><td>카드 활성</td><td>bg <code>#EFF6FF</code> · 1.5px <code>#2563EB</code> border</td></tr>
+            <tr><td>카드 비활성</td><td>bg <code>#F9FAFB</code> · 1px <code>#E5E7EB</code> border</td></tr>
+            <tr><td>카드 아이콘</td><td>Image.asset 36×36 · 비활성 시 grey[400] tint</td></tr>
+            <tr><td>카드 title</td><td>16 w700 · 활성 <code>#111827</code> · 비활성 <code>#9CA3AF</code></td></tr>
+            <tr><td>카드 subtitle</td><td>13 · 활성 <code>#2563EB</code> · 비활성 <code>#9CA3AF</code></td></tr>
+            <tr><td>통계영역</td><td>bg <code>#F9FAFB</code> · top border 1px <code>#E5E7EB</code> · padding LTRB(20,16,20,0)</td></tr>
+            <tr><td>보관함 보기 pill</td><td>padding 12h/5v · font 12 w500 <code>#374151</code> · bg <code>#fff</code> · 1px <code>#E5E7EB</code></td></tr>
+            <tr><td>통계 카드</td><td>radius 12 · bg <code>#fff</code> · 1px <code>#E5E7EB</code></td></tr>
+            <tr><td>_StatItem</td><td>padding 14v/12h · 라벨 11 w500 <code>#6B7280</code> · 값 24 w800</td></tr>
+            <tr><td>통계 값 색</td><td>총촬영 <code>#111827</code> · 미전송 <code>#DC2626</code> · 완료 <code>#16A34A</code></td></tr>
+            <tr><td>일괄 전송 버튼</td><td>height 52 · radius 10 · font 15 bold · 활성 <code>#2563EB</code> · 비활성 <code>#D1D5DB</code>/<code>#9CA3AF</code></td></tr>
+            <tr><td>전송 중 스피너</td><td>18×18 흰색 CircularProgressIndicator (Flutter)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script src="_embed.js"></script>
+</body>
+</html>

@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>S-007 기준점 지정 — 홀 깊이 (v0.2)</title>
+<style>
+/* ============================================================
+   S-007 기준점 지정 — 홀 깊이 (hole_depth)
+   진입: S-006 셔터 탭 (사전 좌표 없음)
+   라우트: /annotate · {photoPath, subtype: hole_depth, imageWidth, imageHeight}
+
+   S-004(폭)와의 차이:
+     - 마커 단일 (홀 입구) · 사전 좌표 없음 → 처음 찍기 모드
+     - 마커 색상 노랑/주황 (가이드박스 색·홀 입구 의미와 일관)
+     - 단계 카드 3개:
+        ① 사진 위 홀 입구 기준점 선택 (사진 액션)
+        ② 시작점 가시성 라디오 (보임 / 가려짐)
+        ③ 줄자 끝 접촉 라디오 (닿음 / 닿지 않음)
+
+   인터랙션 (단일 폰 + JS):
+     - 마커 드래그: 정밀 조정
+     - 사진 빈 곳 탭: 마커 즉시 이동
+     - 라디오 선택 (2, 3단계)
+     - 모두 완료 시 "다음" 활성
+   ============================================================ */
+:root{
+  --ink:#111827; --muted:#6B7280; --line:#E5E7EB;
+  --blue:#2563EB; --blue-deep:#1E40AF;
+  --amber:#f59e0b; --amber-deep:#b45309;
+  --yellow:#facc15;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#f1f5f9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#0f172a;
+  padding:40px 24px 60px;
+  line-height:1.55;
+}
+
+/* ====== 페이지 헤더 ====== */
+.page-head{
+  max-width:1280px; margin:0 auto 28px;
+  text-align:center;
+}
+.page-head .eyebrow{
+  display:inline-block;
+  font-size:11.5px; letter-spacing:0.14em; font-weight:800;
+  color:#2563EB; background:#DBEAFE;
+  padding:5px 12px; border-radius:999px;
+  margin-bottom:10px;
+}
+.page-head h1{
+  margin:0; font-size:24px; font-weight:800; letter-spacing:-0.025em; color:#0f172a;
+}
+.page-head p{margin:6px 0 0; color:#64748b; font-size:13.5px;}
+.page-head .hint{
+  display:inline-block; margin-top:10px;
+  font-size:12px; color:#0f172a; background:#fef3c7; border:1px solid #fcd34d;
+  border-radius:8px; padding:6px 12px;
+}
+.page-head .hint kbd{
+  display:inline-block; background:#fff; border:1px solid #f59e0b; border-radius:4px;
+  padding:1px 6px; font-size:11px; color:#92400e; font-weight:700;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+
+/* ====== 폰 목업 ====== */
+.mockup-row{
+  display:flex; justify-content:center; align-items:flex-start;
+  margin-bottom:48px;
+}
+
+/* ====== 스크린 ====== */
+.screen{
+  width:360px; height:720px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(15,23,42,.10);
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+}
+
+/* ---- 상단 헤더 ---- */
+.appbar{
+  display:flex; align-items:center;
+  padding:14px 12px 6px 8px;
+  gap:4px;
+  flex-shrink:0;
+  border-bottom:1px solid #f1f5f9;
+}
+.back-btn{
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  color:#111827;
+  cursor:pointer; border-radius:8px;
+  transition:background-color .12s;
+}
+.back-btn:hover{background:rgba(0,0,0,0.05);}
+.back-btn:active{background:rgba(0,0,0,0.10);}
+.back-btn svg{width:22px; height:22px;}
+.appbar h1{
+  margin:0;
+  font-size:18px; font-weight:800;
+  letter-spacing:-0.2px; color:var(--ink);
+  line-height:1.2;
+}
+.appbar .subtype-chip{
+  margin-left:auto;
+  background:#FEF3C7; color:#92400e;
+  padding:4px 10px; border-radius:999px;
+  font-size:10.5px; font-weight:800;
+  letter-spacing:0.02em;
+}
+
+/* ---- 스크롤 영역 ---- */
+.scroll-area{
+  flex:1; overflow-y:auto;
+}
+.scroll-area::-webkit-scrollbar{width:6px;}
+.scroll-area::-webkit-scrollbar-thumb{background:#e2e8f0; border-radius:3px;}
+
+/* ---- 사진 영역 ---- */
+.photo-frame{
+  position:relative;
+  margin:10px 16px 0;
+  height:240px;
+  border-radius:12px;
+  overflow:hidden;
+  border:1px solid #cbd5e1;
+  background:#1f2937;
+  cursor:crosshair;
+  touch-action:none;
+}
+.photo-frame svg.photo-bg{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+}
+.photo-frame .magnify-btn{
+  position:absolute; right:10px; bottom:10px; z-index:5;
+  width:34px; height:34px; border-radius:50%;
+  background:rgba(0,0,0,0.7); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  transition:background-color .12s;
+}
+.photo-frame .magnify-btn:hover{background:rgba(0,0,0,0.85);}
+.photo-frame .magnify-btn svg{width:18px; height:18px;}
+
+/* 마커 — 측정 지점(point)과 라벨(label)이 분리되어 각자 자유 드래그.
+   stem(점선)은 두 점을 잇는 SVG 라인으로 자동 갱신.
+   - point: 사진의 정확한 측정 좌표 (사용자 드래그 = 좌표 변경, 라벨도 오프셋 유지하며 함께 이동)
+   - label: 측정 지점에서 떨어진 임의 위치 (사용자 드래그 = 라벨만 이동, 사진의 줄자 영역 회피 등)
+   - stem: point와 label을 잇는 점선 (자동) */
+
+/* SVG stem 컨테이너 */
+svg.marker-stems{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  pointer-events:none;
+  z-index:3;
+}
+svg.marker-stems line{
+  stroke-width:1.6;
+  stroke-dasharray:4 3;
+}
+svg.marker-stems line.stem-hole{stroke:var(--amber);}
+svg.marker-stems line.stem-tape{stroke:var(--blue);}
+svg.marker-stems line.hidden{display:none;}
+
+/* 측정 지점 (point) */
+.marker-point{
+  position:absolute; z-index:5;
+  width:16px; height:16px;
+  border-radius:50%;
+  border:2.5px solid;
+  background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,0.4);
+  transform:translate(-50%, -50%);
+  cursor:grab;
+  touch-action:none;
+  transition:filter .12s;
+}
+.marker-point:hover{filter:brightness(1.08); box-shadow:0 3px 10px rgba(0,0,0,0.5);}
+.marker-point.dragging{
+  cursor:grabbing;
+  transform:translate(-50%, -50%) scale(1.18);
+  box-shadow:0 0 0 4px rgba(255,255,255,0.18), 0 4px 14px rgba(0,0,0,0.5);
+}
+.marker-point.hidden{display:none;}
+.marker-point.hole{border-color:var(--amber);}
+.marker-point.tape{border-color:var(--blue);}
+
+/* 라벨 (label) */
+.marker-label{
+  position:absolute; z-index:5;
+  padding:4px 12px;
+  border-radius:999px;
+  color:#fff;
+  font-size:11px; font-weight:800;
+  white-space:nowrap;
+  letter-spacing:-0.1px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.35);
+  transform:translate(-50%, -50%);
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+  transition:filter .12s;
+}
+.marker-label:hover{filter:brightness(1.08);}
+.marker-label.dragging{
+  cursor:grabbing;
+  transform:translate(-50%, -50%) scale(1.05);
+  filter:brightness(1.12) drop-shadow(0 4px 10px rgba(0,0,0,0.35));
+}
+.marker-label.hidden{display:none;}
+.marker-label.hole{background:var(--amber);}
+.marker-label.tape{background:var(--blue);}
+
+/* ---- 단계 카드 ---- */
+.steps{
+  padding:10px 16px 12px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.step-card{
+  display:flex; align-items:center; gap:12px;
+  padding:11px 14px;
+  background:#fff;
+  border:1.5px solid var(--line);
+  border-radius:12px;
+}
+.step-card.amber{border-color:#fcd34d; background:#fffbeb;}
+.step-card.blue{border-color:#bfdbfe; background:#f8fbff;}
+.step-card .step-num{
+  width:26px; height:26px; flex-shrink:0;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:13px; font-weight:800;
+  background:#94a3b8;
+}
+.step-card.amber .step-num{background:var(--amber);}
+.step-card.blue .step-num{background:var(--blue);}
+.step-card.done .step-num{background:#22c55e;}
+.step-card .step-title{
+  flex:1; min-width:0;
+  font-size:13.5px; font-weight:800; color:#0f172a;
+  letter-spacing:-0.2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.step-card .check-ic{
+  width:18px; height:18px; flex-shrink:0;
+  color:#22c55e;
+  display:none;
+}
+.step-card.done .check-ic{display:block;}
+
+/* ---- 라디오 카드 ---- */
+.radio-card{
+  margin:0 16px;
+  padding:12px 14px;
+  background:#fff;
+  border:1.5px solid var(--line);
+  border-radius:12px;
+}
+.radio-card.done{border-color:#bbf7d0; background:#f0fdf4;}
+.radio-head{
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:10px;
+}
+.radio-head .step-num{
+  width:24px; height:24px; flex-shrink:0;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:12px; font-weight:800;
+  background:#94a3b8;
+}
+.radio-card.done .radio-head .step-num{background:#22c55e;}
+.radio-head .radio-question{
+  font-size:13px; font-weight:800; color:#0f172a;
+  letter-spacing:-0.2px;
+}
+.radio-options{
+  display:flex; flex-direction:column; gap:4px;
+}
+.radio-option{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:12.5px;
+  transition:background-color .12s;
+}
+.radio-option:hover{background:#f8fafc;}
+.radio-option input{display:none;}
+.radio-mark{
+  width:18px; height:18px; flex-shrink:0;
+  border-radius:50%;
+  border:1.8px solid #cbd5e1;
+  background:#fff;
+  position:relative;
+  transition:border-color .12s;
+}
+.radio-option input:checked ~ .radio-mark{
+  border-color:var(--blue);
+}
+.radio-option input:checked ~ .radio-mark::after{
+  content:"";
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%, -50%);
+  width:8px; height:8px;
+  border-radius:50%;
+  background:var(--blue);
+}
+.radio-label{
+  flex:1; min-width:0;
+  color:#0f172a; font-weight:600;
+}
+.radio-option input:checked ~ .radio-label{color:#0f172a;}
+
+/* ---- 하단 버튼 ---- */
+.bottom-bar{
+  flex-shrink:0;
+  padding:14px 16px;
+  display:grid;
+  grid-template-columns:1fr 1.5fr;
+  gap:10px;
+  border-top:1px solid #e5e7eb;
+  background:#fff;
+}
+.btn{
+  height:48px;
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14.5px; font-weight:700;
+  cursor:pointer;
+  transition:transform .08s, background-color .12s, color .12s;
+  user-select:none;
+}
+.btn.secondary{
+  background:#fff; color:#374151;
+  border:1px solid #d1d5db;
+}
+.btn.secondary:hover{background:#f9fafb;}
+.btn.secondary:active{transform:scale(0.98); background:#f3f4f6;}
+.btn.secondary svg{width:16px; height:16px; margin-right:6px;}
+.btn.primary{
+  background:var(--blue); color:#fff;
+  border:1.5px solid var(--blue);
+  box-shadow:0 2px 8px rgba(37,99,235,.18);
+}
+.btn.primary:hover{background:#1D4ED8;}
+.btn.primary:active{transform:scale(0.98); background:var(--blue-deep);}
+.btn.primary svg{width:18px; height:18px; margin-left:6px;}
+.btn.primary.disabled{
+  background:#D1D5DB; color:#9CA3AF;
+  border-color:#D1D5DB;
+  box-shadow:none; cursor:not-allowed;
+}
+.btn.primary.disabled:hover{background:#D1D5DB;}
+.btn.primary.disabled:active{transform:none;}
+
+/* ====== 기획 명세 패널 ====== */
+.spec-section{
+  max-width:1280px; margin:0 auto;
+}
+.spec-grid{
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:18px;
+}
+.spec-card{
+  background:#fff; border:1px solid #e2e8f0;
+  border-radius:16px; padding:22px 24px;
+  box-shadow:0 4px 12px rgba(15,23,42,.04);
+}
+.spec-card h2{
+  margin:0 0 14px;
+  font-size:15px; font-weight:800; letter-spacing:-0.01em;
+  color:#0f172a;
+  display:flex; align-items:center; gap:8px;
+}
+.spec-card h2::before{
+  content:""; width:4px; height:16px; background:var(--blue);
+  border-radius:2px;
+}
+.spec-card .kv{
+  display:grid; grid-template-columns:96px 1fr; gap:8px 16px;
+  font-size:13px;
+}
+.spec-card .kv b{font-weight:700; color:#475569;}
+.spec-card .kv code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:5px; padding:1px 6px; font-size:11.5px;
+  color:#1e293b; font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.spec-card ul.flow{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:8px;
+  font-size:13px; color:#334155;
+}
+.spec-card ul.flow li{
+  position:relative; padding-left:22px;
+}
+.spec-card ul.flow li::before{
+  content:""; position:absolute; left:6px; top:6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--blue); opacity:.6;
+}
+.spec-card ul.flow li b{color:#0f172a; font-weight:700;}
+.spec-card table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.spec-card table th,.spec-card table td{
+  border:1px solid #e5e7eb; padding:7px 10px; text-align:left;
+  vertical-align:top;
+}
+.spec-card table th{background:#f8fafc; color:#475569; font-weight:700;}
+.spec-card table td code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:4px; padding:1px 5px; font-size:11px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.chip{
+  display:inline-block; padding:2px 9px; border-radius:999px;
+  font-size:11px; font-weight:700; margin-right:3px;
+}
+.chip.new{background:#DBEAFE; color:#1E40AF;}
+.chip.amber{background:#FEF3C7; color:#92400e;}
+
+@media (max-width:980px){
+  .spec-grid{grid-template-columns:1fr;}
+}
+@media print{
+  body{background:#fff; padding:0;}
+  .screen{box-shadow:none;}
+  .spec-card{box-shadow:none;}
+  .page-head .hint{display:none;}
+}
+</style>
+</head>
+<body>
+
+  <!-- ========== Header ========== -->
+  <div class="page-head">
+    <span class="eyebrow">SCREEN MOCKUP & SPEC · S-007</span>
+    <h1>기준점 지정 — 홀 깊이</h1>
+    <p>S-006 촬영 직후 사진과 함께 진입. 사전 좌표 없이 <b>처음 찍기 모드</b>. 마커 2개(<b>홀 입구·줄자 읽기 위치</b>) + 라디오 2개로 총 4단계 수집.</p>
+    <div class="hint">💡 사진 <kbd>첫 탭</kbd>=홀 입구 / <kbd>두 번째 탭</kbd>=읽기 위치 · 측정 지점(●)과 라벨(pill)을 <b>각각 자유 드래그</b>해 위치 조정 · 라벨 이동으로 줄자 영역 가림 회피.</div>
+  </div>
+
+  <!-- ========== Interactive Mockup ========== -->
+  <div class="mockup-row">
+    <div class="screen">
+
+      <div class="appbar">
+        <span class="back-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/>
+            <polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </span>
+        <h1>기준점 지정</h1>
+        <span class="subtype-chip">홀 깊이</span>
+      </div>
+
+      <div class="scroll-area">
+
+        <div class="photo-frame" id="photoFrame">
+          <!-- 사진 placeholder (콘크리트 + 홀 입구) -->
+          <svg class="photo-bg" viewBox="0 0 360 240" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#9b9991"/>
+                <stop offset="0.5" stop-color="#7e7c74"/>
+                <stop offset="1" stop-color="#65635c"/>
+              </linearGradient>
+              <radialGradient id="hole" cx="50%" cy="50%" r="50%">
+                <stop offset="0" stop-color="#000000"/>
+                <stop offset="0.4" stop-color="#0a0907"/>
+                <stop offset="0.8" stop-color="#1a1814"/>
+                <stop offset="1" stop-color="#2a2722"/>
+              </radialGradient>
+              <pattern id="noise" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                <rect width="40" height="40" fill="transparent"/>
+                <circle cx="5" cy="8" r="0.4" fill="#000" opacity="0.15"/>
+                <circle cx="15" cy="20" r="0.3" fill="#000" opacity="0.20"/>
+                <circle cx="25" cy="12" r="0.5" fill="#fff" opacity="0.10"/>
+                <circle cx="32" cy="33" r="0.35" fill="#000" opacity="0.15"/>
+                <circle cx="9" cy="35" r="0.4" fill="#fff" opacity="0.08"/>
+                <circle cx="22" cy="3" r="0.3" fill="#000" opacity="0.18"/>
+              </pattern>
+            </defs>
+            <rect width="360" height="240" fill="url(#bg)"/>
+            <rect width="360" height="240" fill="url(#noise)"/>
+            <!-- 홀 그림자 (살짝 오프셋) -->
+            <ellipse cx="182" cy="125" rx="64" ry="60" fill="#000" opacity="0.3"/>
+            <!-- 홀 입구 (타원, 위에서 본 모습) -->
+            <ellipse cx="180" cy="120" rx="60" ry="56" fill="url(#hole)" stroke="#0a0907" stroke-width="2"/>
+            <!-- 홀 내부 더 어둡게 -->
+            <ellipse cx="180" cy="122" rx="52" ry="48" fill="#000" opacity="0.8"/>
+            <!-- 홀 입구 가장자리 하이라이트 (위쪽 살짝 밝게) -->
+            <path d="M 130 105 Q 180 80 230 105"
+              stroke="#a8a59b" stroke-width="1.5" fill="none" opacity="0.5"/>
+          </svg>
+
+          <!-- 마커 = 측정 지점(point) + 라벨(label) + stem(SVG line) 분리.
+               point와 label 각각 독립 드래그 가능. stem은 두 점을 잇는 점선으로 자동 갱신. -->
+          <svg class="marker-stems" viewBox="0 0 360 240" preserveAspectRatio="none">
+            <line class="stem stem-hole hidden" id="stemHole" x1="0" y1="0" x2="0" y2="0"/>
+            <line class="stem stem-tape hidden" id="stemTape" x1="0" y1="0" x2="0" y2="0"/>
+          </svg>
+
+          <div class="marker-point hole hidden" id="pointHole" data-type="hole"></div>
+          <div class="marker-label hole hidden" id="labelHole" data-type="hole">홀 입구</div>
+
+          <div class="marker-point tape hidden" id="pointTape" data-type="tape"></div>
+          <div class="marker-label tape hidden" id="labelTape" data-type="tape">읽기 위치</div>
+
+          <div class="magnify-btn" title="확대 보기 (P6 예정)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 1·2단계: 사진에서 선택 (홀 입구 → 읽기 위치 순서) -->
+        <div class="steps">
+          <div class="step-card amber" id="step1">
+            <div class="step-num">1</div>
+            <div class="step-title">홀 입구 기준점을 사진에서 터치</div>
+            <svg class="check-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="step-card blue" id="step2">
+            <div class="step-num">2</div>
+            <div class="step-title">줄자 읽기 위치를 사진에서 터치</div>
+            <svg class="check-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 3단계: 시작점 가시성 라디오 -->
+        <div class="radio-card" id="step3">
+          <div class="radio-head">
+            <div class="step-num">3</div>
+            <div class="radio-question">줄자 시작점이 보이나요?</div>
+          </div>
+          <div class="radio-options">
+            <label class="radio-option">
+              <input type="radio" name="visibility" value="visible"/>
+              <span class="radio-mark"></span>
+              <span class="radio-label">시작점이 면에 노출됨 (보임)</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="visibility" value="hidden"/>
+              <span class="radio-mark"></span>
+              <span class="radio-label">내부에 가려져 보이지 않음</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 4단계: 줄자 끝 접촉 여부 라디오 -->
+        <div class="radio-card" id="step4">
+          <div class="radio-head">
+            <div class="step-num">4</div>
+            <div class="radio-question">줄자 끝이 홀 바닥에 닿았나요?</div>
+          </div>
+          <div class="radio-options">
+            <label class="radio-option">
+              <input type="radio" name="contact" value="yes"/>
+              <span class="radio-mark"></span>
+              <span class="radio-label">닿음 (바닥에 접촉)</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="contact" value="no"/>
+              <span class="radio-mark"></span>
+              <span class="radio-label">닿지 않음 (떠 있음)</span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 하단 버튼 -->
+      <div class="bottom-bar">
+        <div class="btn secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+          </svg>
+          다시 촬영
+        </div>
+        <div class="btn primary disabled" id="nextBtn">
+          다음 · 수치 입력
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== Spec Section ========== -->
+  <div class="spec-section">
+    <div class="spec-grid">
+
+      <!-- 화면 정보 -->
+      <div class="spec-card">
+        <h2>화면 정보</h2>
+        <div class="kv">
+          <b>화면 ID</b><div><code>S-007</code></div>
+          <b>라우트</b><div><code>/annotate</code></div>
+          <b>인자</b><div><code>{photoPath, subtype: hole_depth, imageWidth, imageHeight}</code> (사전 좌표 없음)</div>
+          <b>페이지</b><div><code>AnnotatePage</code> (S-004와 공유, subtype 분기)</div>
+          <b>컨트롤러</b><div><code>AnnotateController</code></div>
+          <b>모드</b><div><b>처음 찍기 모드</b> · 마커 2개(홀 입구·줄자 읽기) + 라디오 2개로 4단계 수집</div>
+          <b>다음 화면</b><div><code>/dimension-input</code> (S-008)</div>
+        </div>
+      </div>
+
+      <!-- 인터랙션 시나리오 -->
+      <div class="spec-card">
+        <h2>인터랙션 시나리오</h2>
+        <table>
+          <thead><tr><th>요소</th><th>동작</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>← 뒤로가기</td><td>탭</td><td>S-006으로 복귀 (사진/입력값 유지)</td></tr>
+            <tr><td><b>사진 첫 탭</b></td><td>탭</td><td>홀 입구 마커가 그 위치로 표시 → 1단계 카드 ✓ 활성</td></tr>
+            <tr><td><b>사진 두 번째 탭</b></td><td>탭</td><td>읽기 위치 마커가 그 위치로 표시 → 2단계 카드 ✓ 활성</td></tr>
+            <tr><td>사진 추가 탭 (둘 다 표시 후)</td><td>탭</td><td>가장 가까운 마커가 그 위치로 이동</td></tr>
+            <tr><td>홀 입구 <b>측정 지점(●)</b></td><td>드래그</td><td><code>hole_lip_pixel</code> 좌표 변경 (라벨도 오프셋 유지하며 동반 이동)</td></tr>
+            <tr><td>홀 입구 <b>라벨(pill)</b></td><td>드래그</td><td>라벨만 자유 이동, 측정 지점은 그대로 — 사진의 줄자/측정 영역 가림 회피</td></tr>
+            <tr><td>읽기 위치 <b>측정 지점(●)</b></td><td>드래그</td><td><code>tape_reading_pixel</code> 좌표 변경 (라벨 동반)</td></tr>
+            <tr><td>읽기 위치 <b>라벨(pill)</b></td><td>드래그</td><td>라벨만 자유 이동</td></tr>
+            <tr><td>3단계 라디오 (가시성)</td><td>탭</td><td><code>start_visibility</code> 값 설정 (visible / hidden)</td></tr>
+            <tr><td>4단계 라디오 (접촉)</td><td>탭</td><td><code>contact_confirmation</code> 값 설정 (yes / no)</td></tr>
+            <tr><td>확대 보기 (돋보기)</td><td>탭</td><td>핀치 줌 (P6 photo_view)</td></tr>
+            <tr><td>다시 촬영</td><td>탭</td><td>사진 삭제 → S-006으로 복귀</td></tr>
+            <tr><td>다음 · 수치 입력</td><td>탭 (4단계 모두 완료 시 활성)</td><td>두 좌표 원본 픽셀 환산 + 라디오 값 → S-008로 전달</td></tr>
+            <tr><td>다음 (비활성)</td><td>탭</td><td>반응 없음 (마커 2개 + 라디오 2개 중 하나라도 미완료)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 4단계 진행 -->
+      <div class="spec-card">
+        <h2>4단계 진행 모델 (처음 찍기)</h2>
+        <ul class="flow">
+          <li><b>진입 시</b> · 두 마커 모두 <b>hidden</b> 상태로 시작 · 단계 카드 모두 미완료(✓ 없음) · 다음 버튼 비활성</li>
+          <li><b><span class="chip amber">1</span>홀 입구 기준점</b> · 사진 <b>첫 탭</b>으로 홀 입구 amber 마커 표시 → 1단계 ✓ 활성 · 좌표 <code>hole_lip_pixel</code></li>
+          <li><b><span class="chip new">2</span>읽기 위치</b> · 사진 <b>두 번째 탭</b>으로 파랑 마커 표시 → 2단계 ✓ 활성. 줄자상 측정값(<code>visible_reading_value</code>)이 표시된 정확한 눈금 위치 · 좌표 <code>tape_reading_pixel</code></li>
+          <li><b>이후 사진 탭</b> · 두 마커 모두 표시된 상태에서는 가장 가까운 마커가 그 위치로 이동 (정밀 보정)</li>
+          <li><b><span class="chip">3</span>시작점 가시성</b> · 라디오 — <code>visible</code> (면에 노출) / <code>hidden</code> (가려짐). 줄자 0점 위치 추정에 사용</li>
+          <li><b><span class="chip">4</span>줄자 끝 접촉 여부</b> · 라디오 — <code>yes</code> (바닥 접촉) / <code>no</code> (떠 있음). 깊이값 신뢰도 메타데이터</li>
+          <li><b>완료 시그널</b> · 카드 초록 톤(<code>#bbf7d0</code> + <code>#f0fdf4</code>) + ✓. 1단계는 amber, 2단계는 blue 톤 유지 후 초록 ✓만</li>
+          <li><b>다음 버튼</b> · 4단계 모두 완료 시에만 활성 (검증)</li>
+        </ul>
+      </div>
+
+      <!-- 저장 데이터 -->
+      <div class="spec-card">
+        <h2>저장 데이터 (S-008로 전달)</h2>
+        <table>
+          <tbody>
+            <tr><td><code>holeLipPixel</code></td><td>[x, y] · 홀 입구 마커 좌표 → 원본 픽셀 환산</td></tr>
+            <tr><td><code>tapeReadingPixel</code></td><td>[x, y] · 줄자 읽기 마커 좌표 → 원본 픽셀 환산 <span class="chip new">v0.2 필수</span> (v0.1 §9에선 선택이었으나 학습데이터 가치 위해 승격)</td></tr>
+            <tr><td><code>startVisibility</code></td><td>"visible" | "hidden"</td></tr>
+            <tr><td><code>contactConfirmation</code></td><td>"yes" | "no"</td></tr>
+            <tr><td><code>tapeDirection</code></td><td><code>"vertical"</code> 고정 (홀 깊이는 수직)</td></tr>
+            <tr><td><code>imageWidth/Height</code></td><td>원본 이미지 크기 (좌표 환산 메타)</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:10px; font-size:12px; color:#64748b;">
+          <code>startPointPixel</code>/<code>endPointPixel</code>은 사용하지 않음 — 홀 깊이는 2점이지만 의미가 다름(시작/끝 측정점이 아니라 홀 입구 기준 + 줄자 읽기 위치).
+        </p>
+      </div>
+
+      <!-- 디자인 스펙 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>디자인 스펙</h2>
+        <table>
+          <tbody>
+            <tr><td>AppBar</td><td>← 40×40 · 제목 18 w800 · subtype 칩 <code>#FEF3C7</code>/<code>#92400e</code> "홀 깊이"</td></tr>
+            <tr><td>사진 프레임</td><td>높이 240 · margin 10t/16h · radius 12 · 1px <code>#cbd5e1</code></td></tr>
+            <tr><td>사진 placeholder</td><td>콘크리트 그라데이션 + 중앙 홀(타원 60×56 black radial) + 그림자 + 입구 하이라이트</td></tr>
+            <tr><td>마커 분리 구조 <span class="chip new">v0.2 변경</span></td><td>측정 지점(point) · 라벨(pill) · stem(SVG line) <b>세 요소가 독립 배치</b>. point/label은 각각 absolute 위치, stem은 SVG line으로 두 점을 자동 연결. 초기 <code>.hidden</code></td></tr>
+            <tr><td>측정 지점 (point)</td><td>16×16 원 · 2.5px solid 외곽 · bg <code>#fff</code> · shadow <code>0 2px 6px rgba(0,0,0,0.4)</code> · 홀 입구 <code>#f59e0b</code> / 읽기 위치 <code>#2563EB</code> · cursor grab · 드래그 시 scale 1.18</td></tr>
+            <tr><td>라벨 (label)</td><td>"홀 입구" / "읽기 위치" pill · padding 4v/12h · radius 999 · 11 w800 흰 · 색상 분기 · 별도 cursor grab · 드래그 시 brightness/scale 변화</td></tr>
+            <tr><td>stem (SVG line)</td><td>두 점을 잇는 점선 · stroke-width 1.6 · stroke-dasharray 4 3 · 색상 분기 · pointer-events none</td></tr>
+            <tr><td>라벨 초기 위치</td><td>측정 지점 표시 시 자동 배치 — point가 사진 상단(vy &lt; 54)이면 아래 44px, 그 외엔 위 44px. 이후 사용자 자유 드래그로 조정</td></tr>
+            <tr><td>1단계 카드 (amber)</td><td>bg <code>#fffbeb</code> · 1.5px <code>#fcd34d</code> · 번호 <code>#f59e0b</code> · 홀 입구 마커와 색상 연결</td></tr>
+            <tr><td>2단계 카드 (blue)</td><td>bg <code>#f8fbff</code> · 1.5px <code>#bfdbfe</code> · 번호 <code>#2563EB</code> · 읽기 위치 마커와 색상 연결</td></tr>
+            <tr><td>3·4단계 라디오 카드</td><td>bg <code>#fff</code> · 1.5px <code>#E5E7EB</code> · 헤더: 번호(<code>#94a3b8</code> 회색) + 질문 13 w800 · 옵션 사이 4 gap</td></tr>
+            <tr><td>완료 (done) 상태</td><td>border <code>#bbf7d0</code> + bg <code>#f0fdf4</code> + 번호 <code>#22c55e</code> + 우측 ✓ <code>#22c55e</code> (1단계 amber·2단계 blue 톤 유지 후 초록 ✓만)</td></tr>
+            <tr><td>라디오 옵션</td><td>padding 8v/10h · radius 8 · hover bg <code>#f8fafc</code> · 라벨 12.5 w600</td></tr>
+            <tr><td>라디오 마크</td><td>18×18 원 · 1.8px <code>#cbd5e1</code> · 체크 시 border <code>#2563EB</code> + 내부 8×8 dot <code>#2563EB</code></td></tr>
+            <tr><td>하단 버튼바</td><td>S-004와 동일 — 1fr : 1.5fr grid · "다시 촬영" / "다음 · 수치 입력". 다음은 3단계 미완료 시 disabled</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function(){
+  /* viewBox 좌표계 360x240. 마커 2개(홀 입구·읽기 위치) 각각 point + label 분리. */
+  const VBW = 360, VBH = 240;
+  const photoFrame = document.getElementById('photoFrame');
+  const points = {
+    hole: document.getElementById('pointHole'),
+    tape: document.getElementById('pointTape'),
+  };
+  const labels = {
+    hole: document.getElementById('labelHole'),
+    tape: document.getElementById('labelTape'),
+  };
+  const stems = {
+    hole: document.getElementById('stemHole'),
+    tape: document.getElementById('stemTape'),
+  };
+  const step1Card = document.getElementById('step1');
+  const step2Card = document.getElementById('step2');
+  const step3Card = document.getElementById('step3');
+  const step4Card = document.getElementById('step4');
+  const nextBtn = document.getElementById('nextBtn');
+
+  /* 각 마커는 point(측정 지점)와 label(텍스트박스) 좌표를 분리 관리.
+     stem은 두 좌표를 잇는 점선으로 자동 갱신. */
+  const pos = {
+    hole: { point:{vx:0, vy:0}, label:{vx:0, vy:0} },
+    tape: { point:{vx:0, vy:0}, label:{vx:0, vy:0} },
+  };
+  const EDGE_PAD = 14;
+  const EDGE_PAD_TOP = 28;
+  const LABEL_OFFSET = 44; // 첫 표시 시 label과 point 거리(viewBox px)
+
+  const state = { step1:false, step2:false, step3:null, step4:null };
+
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+  function setMarker(which){
+    const rect = photoFrame.getBoundingClientRect();
+    const sx = rect.width / VBW;
+    const sy = rect.height / VBH;
+    // point
+    points[which].style.left = (pos[which].point.vx * sx) + 'px';
+    points[which].style.top  = (pos[which].point.vy * sy) + 'px';
+    // label
+    labels[which].style.left = (pos[which].label.vx * sx) + 'px';
+    labels[which].style.top  = (pos[which].label.vy * sy) + 'px';
+    // stem (point ↔ label)
+    stems[which].setAttribute('x1', pos[which].point.vx);
+    stems[which].setAttribute('y1', pos[which].point.vy);
+    stems[which].setAttribute('x2', pos[which].label.vx);
+    stems[which].setAttribute('y2', pos[which].label.vy);
+  }
+  function refresh(){
+    if(state.step1) setMarker('hole');
+    if(state.step2) setMarker('tape');
+  }
+  function toViewBox(clientX, clientY, padTop = EDGE_PAD){
+    const rect = photoFrame.getBoundingClientRect();
+    return {
+      vx: clamp(((clientX - rect.left) / rect.width)  * VBW, EDGE_PAD, VBW - EDGE_PAD),
+      vy: clamp(((clientY - rect.top)  / rect.height) * VBH, padTop, VBH - EDGE_PAD),
+    };
+  }
+  function updateVisibility(which){
+    points[which].classList.toggle('hidden', !state[which === 'hole' ? 'step1' : 'step2']);
+    labels[which].classList.toggle('hidden', !state[which === 'hole' ? 'step1' : 'step2']);
+    stems[which].classList.toggle('hidden', !state[which === 'hole' ? 'step1' : 'step2']);
+  }
+  function updateState(){
+    updateVisibility('hole');
+    updateVisibility('tape');
+    step1Card.classList.toggle('done', state.step1);
+    step2Card.classList.toggle('done', state.step2);
+    step3Card.classList.toggle('done', state.step3 !== null);
+    step4Card.classList.toggle('done', state.step4 !== null);
+    const ready = state.step1 && state.step2 && state.step3 !== null && state.step4 !== null;
+    nextBtn.classList.toggle('disabled', !ready);
+  }
+
+  /* 측정 지점(point) 드래그 — 라벨도 오프셋 유지하며 동반 이동 */
+  function attachPointDrag(which){
+    const el = points[which];
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      el.setPointerCapture(e.pointerId);
+      el.classList.add('dragging');
+      const offset = {
+        x: pos[which].label.vx - pos[which].point.vx,
+        y: pos[which].label.vy - pos[which].point.vy,
+      };
+      const onMove = ev => {
+        const v = toViewBox(ev.clientX, ev.clientY);
+        pos[which].point.vx = v.vx;
+        pos[which].point.vy = v.vy;
+        pos[which].label.vx = clamp(v.vx + offset.x, EDGE_PAD, VBW - EDGE_PAD);
+        pos[which].label.vy = clamp(v.vy + offset.y, EDGE_PAD, VBH - EDGE_PAD);
+        setMarker(which);
+      };
+      const onUp = () => {
+        el.classList.remove('dragging');
+        el.removeEventListener('pointermove', onMove);
+        el.removeEventListener('pointerup', onUp);
+        el.removeEventListener('pointercancel', onUp);
+      };
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+      el.addEventListener('pointercancel', onUp);
+    });
+  }
+  attachPointDrag('hole');
+  attachPointDrag('tape');
+
+  /* 라벨(label) 자유 드래그 — point는 그대로, label만 이동 */
+  function attachLabelDrag(which){
+    const el = labels[which];
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      el.setPointerCapture(e.pointerId);
+      el.classList.add('dragging');
+      const onMove = ev => {
+        const v = toViewBox(ev.clientX, ev.clientY);
+        pos[which].label.vx = v.vx;
+        pos[which].label.vy = v.vy;
+        setMarker(which);
+      };
+      const onUp = () => {
+        el.classList.remove('dragging');
+        el.removeEventListener('pointermove', onMove);
+        el.removeEventListener('pointerup', onUp);
+        el.removeEventListener('pointercancel', onUp);
+      };
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp);
+      el.addEventListener('pointercancel', onUp);
+    });
+  }
+  attachLabelDrag('hole');
+  attachLabelDrag('tape');
+
+  /* 사진 빈 곳 탭 — 순차 채움 / 둘 다 있으면 가까운 측정 지점 이동
+     label 초기 위치: point가 사진 상단이면 아래쪽, 그 외엔 위쪽 */
+  function initialLabelOffset(vy){
+    return vy < (LABEL_OFFSET + 10) ? LABEL_OFFSET : -LABEL_OFFSET;
+  }
+
+  photoFrame.addEventListener('pointerdown', e => {
+    if(e.target.closest('.marker-point')) return;
+    if(e.target.closest('.marker-label')) return;
+    if(e.target.closest('.magnify-btn')) return;
+    const v = toViewBox(e.clientX, e.clientY);
+    if(!state.step1){
+      pos.hole.point = { vx: v.vx, vy: v.vy };
+      const dy = initialLabelOffset(v.vy);
+      pos.hole.label = {
+        vx: clamp(v.vx, EDGE_PAD, VBW - EDGE_PAD),
+        vy: clamp(v.vy + dy, EDGE_PAD, VBH - EDGE_PAD),
+      };
+      state.step1 = true;
+      updateState();
+      setMarker('hole');
+    } else if(!state.step2){
+      pos.tape.point = { vx: v.vx, vy: v.vy };
+      const dy = initialLabelOffset(v.vy);
+      pos.tape.label = {
+        vx: clamp(v.vx, EDGE_PAD, VBW - EDGE_PAD),
+        vy: clamp(v.vy + dy, EDGE_PAD, VBH - EDGE_PAD),
+      };
+      state.step2 = true;
+      updateState();
+      setMarker('tape');
+    } else {
+      // 둘 다 있는 상태: 가까운 측정 지점 이동 (라벨도 오프셋 유지)
+      const dHole = Math.hypot(v.vx - pos.hole.point.vx, v.vy - pos.hole.point.vy);
+      const dTape = Math.hypot(v.vx - pos.tape.point.vx, v.vy - pos.tape.point.vy);
+      const which = dHole <= dTape ? 'hole' : 'tape';
+      const offset = {
+        x: pos[which].label.vx - pos[which].point.vx,
+        y: pos[which].label.vy - pos[which].point.vy,
+      };
+      pos[which].point = { vx: v.vx, vy: v.vy };
+      pos[which].label = {
+        vx: clamp(v.vx + offset.x, EDGE_PAD, VBW - EDGE_PAD),
+        vy: clamp(v.vy + offset.y, EDGE_PAD, VBH - EDGE_PAD),
+      };
+      setMarker(which);
+    }
+  });
+
+  // 라디오 변경 감지
+  document.querySelectorAll('input[name="visibility"]').forEach(r => {
+    r.addEventListener('change', () => { state.step3 = r.value; updateState(); });
+  });
+  document.querySelectorAll('input[name="contact"]').forEach(r => {
+    r.addEventListener('change', () => { state.step4 = r.value; updateState(); });
+  });
+
+  // 다음 버튼 클릭 피드백
+  nextBtn.addEventListener('click', () => {
+    if(nextBtn.classList.contains('disabled')) return;
+    nextBtn.style.background = '#1E3A8A';
+    setTimeout(() => nextBtn.style.background = '', 150);
+  });
+
+  window.addEventListener('resize', refresh);
+  refresh();
+  updateState();
+})();
+</script>
+
+<script src="_embed.js"></script>
+</body>
+</html>

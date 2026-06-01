@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>S-008 수치 입력 — 홀 깊이 (v0.2)</title>
+<style>
+/* ============================================================
+   S-008 수치 입력 — 홀 깊이 (hole_depth)
+   진입: S-007 "다음" 탭 (사진 + 두 좌표 + 라디오 2개 전달)
+   라우트: /dimension-input · {photoPath, subtype, imageWidth, imageHeight,
+                                holeLipPixel, tapeReadingPixel,
+                                startVisibility, contactConfirmation}
+
+   S-005(폭)와의 차이:
+     - 입력 1개만 — visible_reading_value (보이는 줄자 숫자, mm)
+     - 측정값 계산식: measured_value = visible_reading_value (그대로)
+     - subtype chip 색상 amber (홀 깊이 톤)
+     - 저장 시 S-007에서 받은 좌표·라디오 값을 그대로 포함
+
+   인터랙션 (단일 폰 + JS):
+     - 입력값 변경 시 자동 계산 + 검증 실시간
+     - 검증: visible_reading_value 숫자 + > 0 → 저장 활성
+     - 클리어 버튼(×) 빠른 삭제
+   ============================================================ */
+:root{
+  --ink:#111827; --muted:#6B7280; --line:#E5E7EB;
+  --blue:#2563EB; --blue-deep:#1E40AF; --blue-weak:#EFF6FF;
+  --green:#16A34A; --red:#DC2626;
+  --amber:#f59e0b; --amber-weak:#FEF3C7;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#f1f5f9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#0f172a;
+  padding:40px 24px 60px;
+  line-height:1.55;
+}
+
+/* ====== 페이지 헤더 ====== */
+.page-head{
+  max-width:1280px; margin:0 auto 28px;
+  text-align:center;
+}
+.page-head .eyebrow{
+  display:inline-block;
+  font-size:11.5px; letter-spacing:0.14em; font-weight:800;
+  color:#2563EB; background:#DBEAFE;
+  padding:5px 12px; border-radius:999px;
+  margin-bottom:10px;
+}
+.page-head h1{
+  margin:0; font-size:24px; font-weight:800; letter-spacing:-0.025em; color:#0f172a;
+}
+.page-head p{margin:6px 0 0; color:#64748b; font-size:13.5px;}
+.page-head .hint{
+  display:inline-block; margin-top:10px;
+  font-size:12px; color:#0f172a; background:#fef3c7; border:1px solid #fcd34d;
+  border-radius:8px; padding:6px 12px;
+}
+.page-head .hint kbd{
+  display:inline-block; background:#fff; border:1px solid #f59e0b; border-radius:4px;
+  padding:1px 6px; font-size:11px; color:#92400e; font-weight:700;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+
+/* ====== 폰 목업 ====== */
+.mockup-row{
+  display:flex; justify-content:center; align-items:flex-start;
+  margin-bottom:48px;
+}
+
+/* ====== 스크린 ====== */
+.screen{
+  width:360px; height:720px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(15,23,42,.10);
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+}
+
+/* ---- 상단 헤더 ---- */
+.appbar{
+  display:flex; align-items:center;
+  padding:14px 12px 6px 8px;
+  gap:4px;
+  flex-shrink:0;
+  border-bottom:1px solid #f1f5f9;
+}
+.back-btn{
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  color:#111827;
+  cursor:pointer; border-radius:8px;
+  transition:background-color .12s;
+}
+.back-btn:hover{background:rgba(0,0,0,0.05);}
+.back-btn:active{background:rgba(0,0,0,0.10);}
+.back-btn svg{width:22px; height:22px;}
+.appbar h1{
+  margin:0;
+  font-size:18px; font-weight:800;
+  letter-spacing:-0.2px; color:var(--ink);
+  line-height:1.2;
+}
+.appbar .subtype-chip{
+  margin-left:auto;
+  background:var(--amber-weak); color:#92400e;
+  padding:4px 10px; border-radius:999px;
+  font-size:10.5px; font-weight:800;
+  letter-spacing:0.02em;
+}
+
+/* ---- 스크롤 영역 ----
+   하단에 키보드 buffer(120px) 확보 — S-005와 동일 정책.
+   Flutter resizeToAvoidBottomInset:true가 레이아웃 축소 + 포커스 input 자동
+   스크롤을 처리하지만, 사용자가 비고 textarea를 키패드 위로 끌어올릴 수 있게
+   여유 공간 부여. (Android 숫자 키패드 ~280-330px 기준 안전 버퍼) */
+.scroll-area{
+  flex:1; overflow-y:auto;
+  padding:14px 16px 120px;
+}
+.scroll-area::-webkit-scrollbar{width:6px;}
+.scroll-area::-webkit-scrollbar-thumb{background:#e2e8f0; border-radius:3px;}
+
+/* 입력 필드 */
+.input-group{margin-bottom:14px;}
+.input-group .label{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:6px;
+}
+.input-group .label .step{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:13px; font-weight:700; color:#0f172a;
+}
+.input-group .label .step .num{
+  width:18px; height:18px;
+  background:var(--amber); color:#fff;
+  border-radius:50%;
+  font-size:10.5px; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+}
+.input-group .label .unit{
+  font-size:11px; color:#6B7280; font-weight:600;
+}
+.input-field{
+  position:relative;
+}
+.input-field input{
+  width:100%;
+  height:56px;
+  padding:0 86px 0 16px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  background:#fff;
+  font-size:20px; font-weight:700; color:#111827;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  outline:none;
+  transition:border-color .12s, box-shadow .12s;
+  -moz-appearance:textfield;
+  appearance:textfield;
+}
+.input-field input::-webkit-outer-spin-button,
+.input-field input::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  appearance:none;
+  margin:0;
+}
+.input-field input::placeholder{
+  color:#9CA3AF; font-weight:500; font-size:15px;
+}
+.input-field input:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+.input-field input.error{
+  border-color:var(--red);
+}
+.input-field input.error:focus{box-shadow:0 0 0 3px rgba(220,38,38,.15);}
+.input-field .suffix{
+  position:absolute; right:16px; top:50%;
+  transform:translateY(-50%);
+  font-size:14px; color:#6B7280; font-weight:600;
+  pointer-events:none;
+}
+.input-field .clear-btn{
+  position:absolute;
+  right:50px; top:50%;
+  transform:translateY(-50%);
+  width:24px; height:24px;
+  background:#e5e7eb;
+  border:none; border-radius:50%;
+  display:none;
+  align-items:center; justify-content:center;
+  cursor:pointer;
+  color:#6b7280;
+  transition:background-color .12s, color .12s;
+  padding:0;
+}
+.input-field .clear-btn.show{display:flex;}
+.input-field .clear-btn:hover{background:#d1d5db; color:#374151;}
+.input-field .clear-btn:active{background:#9ca3af; color:#fff;}
+.input-field .clear-btn svg{width:12px; height:12px;}
+.input-error-msg{
+  margin-top:5px;
+  font-size:11.5px; color:var(--red); font-weight:600;
+  display:none;
+  align-items:center; gap:4px;
+}
+.input-error-msg.show{display:flex;}
+
+/* 자동 계산 결과 카드 */
+.result-card{
+  background:var(--blue-weak);
+  border:1.5px solid var(--blue);
+  border-radius:12px;
+  padding:14px 16px;
+  margin-bottom:16px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.result-card.invalid{
+  background:#FEF2F2;
+  border-color:#FECACA;
+}
+.result-card .left{
+  display:flex; align-items:center; gap:8px;
+}
+.result-card .left .ic{
+  width:24px; height:24px;
+  background:var(--blue); color:#fff;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+}
+.result-card .left .ic svg{width:14px; height:14px;}
+.result-card.invalid .left .ic{background:#9CA3AF;}
+.result-card .left .text{
+  font-size:11.5px; color:#1E40AF; font-weight:700; letter-spacing:0.02em;
+}
+.result-card.invalid .left .text{color:#991B1B;}
+.result-card .value{
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:22px; font-weight:800; color:var(--blue-deep);
+}
+.result-card.invalid .value{color:#9CA3AF; font-size:14px;}
+.result-card .value .unit{
+  font-size:13px; opacity:.6; margin-left:2px; font-weight:600;
+}
+
+/* 비고 */
+.memo-group{margin-bottom:8px;}
+.memo-group .label{
+  font-size:13px; font-weight:700; color:#0f172a;
+  margin-bottom:6px;
+  display:flex; align-items:center; gap:6px;
+}
+.memo-group .label .optional{
+  font-size:10.5px; color:#9CA3AF; font-weight:600;
+}
+.memo-group textarea{
+  width:100%; min-height:140px;
+  padding:13px 14px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  font-family:inherit;
+  font-size:13px; color:#111827; line-height:1.55;
+  resize:none;
+  outline:none;
+  transition:border-color .12s, box-shadow .12s;
+}
+.memo-group textarea::placeholder{color:#9CA3AF;}
+.memo-group textarea:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+
+/* ---- 하단 버튼 ---- */
+.bottom-bar{
+  flex-shrink:0;
+  padding:14px 16px;
+  display:grid;
+  grid-template-columns:1fr 1.5fr;
+  gap:10px;
+  border-top:1px solid #e5e7eb;
+  background:#fff;
+}
+.btn{
+  height:48px;
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14.5px; font-weight:700;
+  cursor:pointer;
+  transition:transform .08s, background-color .12s, color .12s;
+  user-select:none;
+}
+.btn.secondary{
+  background:#fff; color:#374151;
+  border:1px solid #d1d5db;
+}
+.btn.secondary:hover{background:#f9fafb;}
+.btn.secondary:active{transform:scale(0.98); background:#f3f4f6;}
+.btn.secondary svg{width:16px; height:16px; margin-right:6px;}
+.btn.primary{
+  background:var(--blue); color:#fff;
+  border:1.5px solid var(--blue);
+  box-shadow:0 2px 8px rgba(37,99,235,.18);
+}
+.btn.primary:hover{background:#1D4ED8;}
+.btn.primary:active{transform:scale(0.98); background:var(--blue-deep);}
+.btn.primary.disabled{
+  background:#D1D5DB; color:#9CA3AF;
+  border-color:#D1D5DB;
+  box-shadow:none; cursor:not-allowed;
+}
+.btn.primary.disabled:hover{background:#D1D5DB;}
+.btn.primary.disabled:active{transform:none;}
+
+/* ====== 기획 명세 패널 ====== */
+.spec-section{
+  max-width:1280px; margin:0 auto;
+}
+.spec-grid{
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:18px;
+}
+.spec-card{
+  background:#fff; border:1px solid #e2e8f0;
+  border-radius:16px; padding:22px 24px;
+  box-shadow:0 4px 12px rgba(15,23,42,.04);
+}
+.spec-card h2{
+  margin:0 0 14px;
+  font-size:15px; font-weight:800; letter-spacing:-0.01em;
+  color:#0f172a;
+  display:flex; align-items:center; gap:8px;
+}
+.spec-card h2::before{
+  content:""; width:4px; height:16px; background:var(--blue);
+  border-radius:2px;
+}
+.spec-card .kv{
+  display:grid; grid-template-columns:96px 1fr; gap:8px 16px;
+  font-size:13px;
+}
+.spec-card .kv b{font-weight:700; color:#475569;}
+.spec-card .kv code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:5px; padding:1px 6px; font-size:11.5px;
+  color:#1e293b; font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.spec-card ul.flow{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:8px;
+  font-size:13px; color:#334155;
+}
+.spec-card ul.flow li{
+  position:relative; padding-left:22px;
+}
+.spec-card ul.flow li::before{
+  content:""; position:absolute; left:6px; top:6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--blue); opacity:.6;
+}
+.spec-card ul.flow li b{color:#0f172a; font-weight:700;}
+.spec-card table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.spec-card table th,.spec-card table td{
+  border:1px solid #e5e7eb; padding:7px 10px; text-align:left;
+  vertical-align:top;
+}
+.spec-card table th{background:#f8fafc; color:#475569; font-weight:700;}
+.spec-card table td code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:4px; padding:1px 5px; font-size:11px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.chip{
+  display:inline-block; padding:2px 9px; border-radius:999px;
+  font-size:11px; font-weight:700; margin-right:3px;
+}
+.chip.new{background:#DBEAFE; color:#1E40AF;}
+.chip.amber{background:#FEF3C7; color:#92400e;}
+
+@media (max-width:980px){
+  .spec-grid{grid-template-columns:1fr;}
+}
+@media print{
+  body{background:#fff; padding:0;}
+  .screen{box-shadow:none;}
+  .spec-card{box-shadow:none;}
+  .page-head .hint{display:none;}
+}
+</style>
+</head>
+<body>
+
+  <!-- ========== Header ========== -->
+  <div class="page-head">
+    <span class="eyebrow">SCREEN MOCKUP & SPEC · S-008</span>
+    <h1>수치 입력 — 홀 깊이</h1>
+    <p>홀 입구에서 보이는 줄자 숫자(<code>visible_reading_value</code>) 단일 입력 → 깊이값으로 그대로 사용. 폭/간격과 달리 시작값-끝값 차이 계산이 아님.</p>
+    <div class="hint">💡 <kbd>줄자 숫자</kbd> 입력 = 깊이값 그대로 · 우측 <kbd>×</kbd> 빠른 삭제 · 0 이하면 에러 + 저장 비활성.</div>
+  </div>
+
+  <!-- ========== Interactive Mockup ========== -->
+  <div class="mockup-row">
+    <div class="screen">
+
+      <div class="appbar">
+        <span class="back-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/>
+            <polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </span>
+        <h1>수치 입력</h1>
+        <span class="subtype-chip">홀 깊이</span>
+      </div>
+
+      <div class="scroll-area">
+
+        <!-- 보이는 줄자 숫자 입력 -->
+        <div class="input-group">
+          <div class="label">
+            <span class="step"><span class="num">1</span>보이는 줄자 숫자</span>
+            <span class="unit">mm</span>
+          </div>
+          <div class="input-field">
+            <input id="depthInput" type="text" inputmode="decimal" placeholder="홀 입구에서 보이는 눈금" value="150"/>
+            <button type="button" class="clear-btn show" data-target="depthInput" aria-label="값 지우기">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+            <span class="suffix">mm</span>
+          </div>
+          <div class="input-error-msg" id="errorMsg">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            깊이값은 0보다 커야 합니다
+          </div>
+        </div>
+
+        <!-- 자동 계산 결과 (= 입력값 그대로) -->
+        <div class="result-card" id="resultCard">
+          <div class="left">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
+              </svg>
+            </div>
+            <div class="text">깊이 측정값</div>
+          </div>
+          <div class="value"><span id="resultValue">150</span><span class="unit">mm</span></div>
+        </div>
+
+        <!-- 비고 -->
+        <div class="memo-group">
+          <div class="label">비고 <span class="optional">(선택)</span></div>
+          <textarea placeholder="특이사항이 있으면 입력하세요&#10;예) 위치, 환경, 줄자 흐림, 가림, 입구 손상, 내부 이물 등"></textarea>
+        </div>
+
+      </div>
+
+      <!-- 하단 버튼 -->
+      <div class="bottom-bar">
+        <div class="btn secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+          </svg>
+          다시 촬영
+        </div>
+        <div class="btn primary" id="saveBtn">저장</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== Spec Section ========== -->
+  <div class="spec-section">
+    <div class="spec-grid">
+
+      <!-- 화면 정보 -->
+      <div class="spec-card">
+        <h2>화면 정보</h2>
+        <div class="kv">
+          <b>화면 ID</b><div><code>S-008</code></div>
+          <b>라우트</b><div><code>/dimension-input</code></div>
+          <b>인자</b><div><code>{photoPath, subtype: hole_depth, imageWidth, imageHeight, holeLipPixel, tapeReadingPixel, startVisibility, contactConfirmation}</code></div>
+          <b>페이지</b><div><code>DimensionInputPage</code> (S-005와 공유, subtype 분기)</div>
+          <b>컨트롤러</b><div><code>DimensionInputController</code></div>
+          <b>저장 모델</b><div><code>SurveyRecord</code> + <code>DimensionAnnotation</code></div>
+          <b>다음 화면</b><div>저장 후 메인(<code>/</code>) 복귀</div>
+        </div>
+      </div>
+
+      <!-- 인터랙션 시나리오 -->
+      <div class="spec-card">
+        <h2>인터랙션 시나리오</h2>
+        <table>
+          <thead><tr><th>요소</th><th>동작</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>← 뒤로가기</td><td>탭</td><td>S-007로 복귀 (입력 값 보존)</td></tr>
+            <tr><td>줄자 숫자 입력</td><td>입력</td><td>자동 계산 실시간 갱신 + 검증</td></tr>
+            <tr><td>× 클리어 버튼</td><td>탭</td><td>입력값 비우고 포커스 유지</td></tr>
+            <tr><td>비고</td><td>입력</td><td>note 텍스트 저장 준비 (선택, 특이사항 자유 기입)</td></tr>
+            <tr><td>다시 촬영</td><td>탭</td><td>사진/좌표 초기화 → S-006 카메라로 복귀</td></tr>
+            <tr><td>저장 (활성)</td><td>탭</td><td>SurveyRecord 생성 → StorageService 저장 → 메인 복귀</td></tr>
+            <tr><td>저장 (비활성)</td><td>탭</td><td>반응 없음 (검증 실패 시)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 검증 규칙 -->
+      <div class="spec-card">
+        <h2>입력 검증 (실시간)</h2>
+        <ul class="flow">
+          <li><b>visible_reading_value</b> · 숫자(소수 허용)여야 함. 빈 값이면 결과 카드 회색 + "—"</li>
+          <li><b>0보다 커야 함</b> · 0 이하면 입력란 빨간 외곽선 + 에러 메시지 + 결과 카드 회색 + 저장 비활성</li>
+          <li><b>깊이값 = 입력값 그대로</b> · 폭/간격(<code>end - start</code>)과 달리 단순 대입</li>
+          <li><b>저장 버튼 활성 조건</b> · visible_reading_value 유효 + 0 초과. 그 외엔 회색 disabled</li>
+          <li><b>비고</b>는 선택 입력 — 저장 활성 조건에 영향 없음</li>
+        </ul>
+      </div>
+
+      <!-- 폭/간격과의 계산식 차이 -->
+      <div class="spec-card">
+        <h2>측정값 계산식 — 폭/간격 vs 홀 깊이</h2>
+        <table>
+          <thead><tr><th>subtype</th><th>입력</th><th>계산식</th></tr></thead>
+          <tbody>
+            <tr><td><code>wall_or_member_width</code></td><td>start_value, end_value</td><td><code>end - start</code></td></tr>
+            <tr><td><code>member_gap</code></td><td>start_value, end_value</td><td><code>end - start</code></td></tr>
+            <tr><td><code>hole_depth</code> <span class="chip amber">S-008</span></td><td><code>visible_reading_value</code></td><td><code>= visible_reading_value</code> (그대로)</td></tr>
+          </tbody>
+        </table>
+        <ul class="flow" style="margin-top:14px;">
+          <li><b>홀 깊이는 두 점 차이가 아님</b> · 줄자 끝이 바닥에 닿고, 홀 입구에서 보이는 숫자가 곧 깊이</li>
+          <li><b>학습 데이터 가치</b> · 홀 입구 위치(<code>hole_lip_pixel</code>) + 줄자 읽기 위치(<code>tape_reading_pixel</code>) + 숫자(<code>visible_reading_value</code>) 세 요소가 함께 저장되어 AI가 "어디서 무엇을 읽었는지" 학습 가능</li>
+        </ul>
+      </div>
+
+      <!-- 저장 동작 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>저장 동작 — <code>SurveyRecord</code> + <code>DimensionAnnotation</code></h2>
+        <p style="margin:0 0 10px; font-size:13px; color:#334155;">
+          "저장" 탭 시 다음 데이터 모델로 변환되어 <code>StorageService.I.addRecord()</code> 호출 후 메인 화면(<code>/</code>)으로 복귀.
+        </p>
+        <table>
+          <tbody>
+            <tr><td><code>SurveyRecord.surveyType</code></td><td><code>SurveyType.dimension</code></td></tr>
+            <tr><td><code>SurveyRecord.measurementSubtype</code></td><td><code>MeasurementSubtype.holeDepth</code></td></tr>
+            <tr><td><code>SurveyRecord.value</code></td><td><code>measured_value</code> = visible_reading_value (호환 필드)</td></tr>
+            <tr><td><code>SurveyRecord.photoPath</code></td><td>S-006에서 저장된 jpg 경로</td></tr>
+            <tr><td><code>SurveyRecord.note</code></td><td>비고 textarea 값</td></tr>
+            <tr><td><code>SurveyRecord.timestamp</code></td><td><code>DateTime.now()</code></td></tr>
+            <tr><td><code>SurveyRecord.uploadStatus</code></td><td><code>UploadStatus.pending</code></td></tr>
+            <tr><td><code>DimensionAnnotation.holeLipPixel</code></td><td>S-007에서 전달받은 [x, y] (원본 px)</td></tr>
+            <tr><td><code>DimensionAnnotation.tapeReadingPixel</code></td><td>S-007에서 전달받은 [x, y] (원본 px)</td></tr>
+            <tr><td><code>DimensionAnnotation.visibleReadingValue</code></td><td>입력 (mm)</td></tr>
+            <tr><td><code>DimensionAnnotation.measuredValue</code></td><td>= visibleReadingValue (mm)</td></tr>
+            <tr><td><code>DimensionAnnotation.tapeDirection</code></td><td><code>"vertical"</code></td></tr>
+            <tr><td><code>DimensionAnnotation.startVisibility</code></td><td>S-007 라디오 값 ("visible" | "hidden")</td></tr>
+            <tr><td><code>DimensionAnnotation.contactConfirmation</code></td><td>S-007 라디오 값 ("yes" | "no")</td></tr>
+            <tr><td><code>DimensionAnnotation.qualityFlags</code></td><td>UI 입력 없음 — 후처리 단계에서 채움 (S-005와 동일 정책)</td></tr>
+            <tr><td><code>DimensionAnnotation.startPointPixel</code> / <code>endPointPixel</code></td><td>null (홀 깊이 모델에선 사용 안 함)</td></tr>
+            <tr><td><code>DimensionAnnotation.startValue</code> / <code>endValue</code></td><td>null</td></tr>
+            <tr><td><code>DimensionAnnotation.imageWidth/Height</code></td><td>원본 이미지 크기 (좌표 환산 메타)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 디자인 스펙 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>디자인 스펙 (S-005와 공통, 차이점만 강조)</h2>
+        <table>
+          <tbody>
+            <tr><td>AppBar</td><td>S-005와 동일 · subtype chip 색상 변경: <b>amber</b> (<code>#FEF3C7</code> / <code>#92400e</code>)</td></tr>
+            <tr><td>스크롤 영역</td><td>S-005와 동일 (flex 1 · overflow-y auto · padding <b>14t/16h/120b</b> — 키보드 buffer 공통 정책)</td></tr>
+            <tr><td>입력 그룹 라벨</td><td>step 번호 18×18 · <b>amber bg</b> <code>#f59e0b</code> (S-005는 파랑) · 13 w700 텍스트 · 단위 11 w600 grey-500</td></tr>
+            <tr><td>입력 필드</td><td>S-005와 동일 (type text inputmode decimal · height 56 · 20 w700 monospace · 클리어 버튼)</td></tr>
+            <tr><td>입력 placeholder</td><td>"홀 입구에서 보이는 눈금" (구체 숫자 예시 안 함 — 학습 다양성)</td></tr>
+            <tr><td>자동 계산 카드 (정상)</td><td>S-005와 동일 · <b>아이콘 변경</b>: 화살표 좌→우(<code>→</code>)에서 <b>아래 방향(<code>↓</code>)</b>으로 (깊이 컨셉)</td></tr>
+            <tr><td>자동 계산 카드 라벨</td><td>"자동 계산 측정값" → <b>"깊이 측정값"</b></td></tr>
+            <tr><td>자동 계산 카드 (에러)</td><td>S-005와 동일 (회색 ic + "—")</td></tr>
+            <tr><td>입력 에러 메시지</td><td>"끝값은 시작값보다 커야 합니다" → <b>"깊이값은 0보다 커야 합니다"</b></td></tr>
+            <tr><td>비고 textarea</td><td>S-005와 동일 (min-height 140) · placeholder 예시 변경: "줄자 흐림, 가림, 입구 손상, 내부 이물 등"</td></tr>
+            <tr><td>하단 버튼바</td><td>S-005와 동일 (다시 촬영 / 저장 · 1fr : 1.5fr)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function(){
+  const depthInput = document.getElementById('depthInput');
+  const resultCard = document.getElementById('resultCard');
+  const resultValue = document.getElementById('resultValue');
+  const errorMsg = document.getElementById('errorMsg');
+  const saveBtn = document.getElementById('saveBtn');
+
+  function parse(v){
+    const n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+  function updateClearBtn(input){
+    const btn = input.parentElement.querySelector('.clear-btn');
+    if(!btn) return;
+    if(input.value && input.value.length > 0) btn.classList.add('show');
+    else btn.classList.remove('show');
+  }
+  function update(){
+    const v = parse(depthInput.value);
+    const valid = v !== null && v > 0;
+    if(valid){
+      resultValue.textContent = +v.toFixed(2);
+      resultCard.classList.remove('invalid');
+      depthInput.classList.remove('error');
+      errorMsg.classList.remove('show');
+      saveBtn.classList.remove('disabled');
+    } else {
+      if(v !== null && v <= 0){
+        depthInput.classList.add('error');
+        errorMsg.classList.add('show');
+      } else {
+        depthInput.classList.remove('error');
+        errorMsg.classList.remove('show');
+      }
+      resultValue.textContent = '—';
+      resultCard.classList.add('invalid');
+      saveBtn.classList.add('disabled');
+    }
+    updateClearBtn(depthInput);
+  }
+  depthInput.addEventListener('input', update);
+
+  // 클리어 버튼
+  document.querySelectorAll('.clear-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const input = document.getElementById(targetId);
+      if(!input) return;
+      input.value = '';
+      input.focus();
+      update();
+    });
+  });
+
+  // 저장 클릭 피드백
+  saveBtn.addEventListener('click', () => {
+    if(saveBtn.classList.contains('disabled')) return;
+    const flash = saveBtn.style.background;
+    saveBtn.style.background = '#1E3A8A';
+    setTimeout(() => saveBtn.style.background = flash, 150);
+  });
+
+  update();
+})();
+</script>
+
+<script src="_embed.js"></script>
+</body>
+</html>

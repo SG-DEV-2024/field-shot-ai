@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>현장촬영AI · 규격조사 v0.2 — 인터랙티브 플로우 프로토타입</title>
+<style>
+/* ============================================================
+   인터랙티브 플로우 프로토타입 (v0.2)
+   목업 화면을 실제 앱처럼 버튼 탭으로 연결한 단일 시뮬레이션.
+   - 가운데 폰: 9개 목업 중 현재 화면을 iframe으로 표시
+   - 좌측: 플로우 트리 (각 화면 클릭 = 점프)
+   - 우측: 현재 화면 정보 + 가능한 액션 + 이동 히스토리
+   - 원본 목업 디자인 그대로 유지 + 탭 시 압축/dim 피드백
+   ============================================================ */
+:root{
+  --ink:#0f172a;
+  --muted:#64748b;
+  --line:#e2e8f0;
+  --line-soft:#f1f5f9;
+  --bg:#f8fafc;
+  --panel:#ffffff;
+  --accent:#2563eb;
+  --accent-weak:#eff6ff;
+  --accent-deep:#1e40af;
+  --ok:#16a34a;
+  --warn:#f59e0b;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:0 4px 14px rgba(15,23,42,.07);
+  --shadow-lg:0 18px 38px rgba(15,23,42,.10);
+  --radius:14px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  color:var(--ink);
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+  display:flex; flex-direction:column;
+}
+
+/* ============================================================
+   헤더
+   ============================================================ */
+.proto-header{
+  display:flex; align-items:center; gap:24px;
+  padding:18px 32px;
+  background:#ffffff;
+  border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:50;
+  box-shadow:0 1px 0 rgba(15,23,42,.02);
+}
+.proto-header .brand{
+  display:flex; flex-direction:column; gap:2px;
+  flex-shrink:0;
+}
+.proto-header .brand strong{
+  font-size:14px; font-weight:800; letter-spacing:-0.01em; color:var(--ink);
+}
+.proto-header .brand .sub{
+  font-size:11px; color:var(--muted); letter-spacing:0.04em;
+}
+.proto-header .title{
+  flex:1;
+  text-align:left;
+  margin-left:8px;
+}
+.proto-header .title h1{
+  margin:0; font-size:17px; font-weight:700; letter-spacing:-0.01em;
+}
+.proto-header .title .lead{
+  margin:2px 0 0; font-size:12px; color:var(--muted);
+}
+.proto-header .actions{
+  display:flex; gap:8px;
+}
+.proto-header button{
+  font-family:inherit;
+  font-size:12.5px; font-weight:600;
+  padding:8px 14px; border-radius:8px;
+  background:#fff; color:#334155;
+  border:1px solid #cbd5e1; cursor:pointer;
+  display:inline-flex; align-items:center; gap:6px;
+  transition:all .12s ease;
+}
+.proto-header button:hover{
+  background:#f1f5f9; border-color:#94a3b8;
+}
+.proto-header button.primary{
+  background:var(--accent); color:#fff; border-color:var(--accent);
+}
+.proto-header button.primary:hover{
+  background:var(--accent-deep); border-color:var(--accent-deep);
+}
+.proto-header button:disabled{
+  opacity:.4; cursor:not-allowed;
+}
+
+/* ============================================================
+   메인 3분할 레이아웃
+   ============================================================ */
+.proto-main{
+  flex:1;
+  display:grid;
+  grid-template-columns:260px 1fr 320px;
+  gap:24px;
+  padding:24px 32px 40px;
+  max-width:1480px; width:100%;
+  margin:0 auto;
+}
+@media (max-width:1200px){
+  .proto-main{ grid-template-columns:220px 1fr 280px; gap:18px; padding:20px;}
+}
+
+/* ============================================================
+   좌측: 플로우 트리
+   ============================================================ */
+.flow-map{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:18px 16px;
+  box-shadow:var(--shadow-sm);
+  height:fit-content;
+  position:sticky; top:88px;
+}
+.flow-map h3{
+  margin:0 0 14px;
+  font-size:12px; font-weight:800;
+  letter-spacing:0.12em;
+  color:#475569;
+  text-transform:uppercase;
+}
+.flow-map .group-label{
+  font-size:10.5px; font-weight:700;
+  color:#94a3b8;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  margin:14px 0 6px;
+  padding-left:8px;
+}
+.flow-map .group-label:first-of-type{margin-top:4px;}
+.screen-link{
+  display:flex; align-items:center; gap:10px;
+  padding:9px 10px;
+  font-size:12.5px; font-weight:500;
+  color:#475569;
+  border-radius:8px;
+  cursor:pointer;
+  text-decoration:none;
+  user-select:none;
+  transition:background .12s ease, color .12s ease;
+  position:relative;
+}
+.screen-link .id{
+  font-size:10px; font-weight:700;
+  color:#94a3b8;
+  background:#f1f5f9;
+  padding:2px 6px; border-radius:4px;
+  flex-shrink:0;
+  letter-spacing:0.02em;
+}
+.screen-link .label{
+  flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.screen-link.sub{
+  margin-left:18px;
+  font-size:11.5px;
+}
+.screen-link.sub::before{
+  content:"↳";
+  color:#cbd5e1;
+  font-weight:700;
+  margin-right:2px;
+}
+.screen-link:hover{
+  background:var(--accent-weak);
+  color:var(--accent-deep);
+}
+.screen-link:hover .id{ background:#dbeafe; color:var(--accent-deep);}
+.screen-link.active{
+  background:var(--accent);
+  color:#fff;
+  font-weight:700;
+}
+.screen-link.active .id{ background:rgba(255,255,255,.22); color:#fff;}
+.screen-link.visited::after{
+  content:"";
+  position:absolute; right:10px; top:50%;
+  width:5px; height:5px; border-radius:50%;
+  background:var(--ok);
+  transform:translateY(-50%);
+}
+.screen-link.active.visited::after{ background:rgba(255,255,255,.9);}
+
+/* ============================================================
+   가운데: 폰 스테이지
+   ============================================================ */
+.phone-stage{
+  display:flex; flex-direction:column; align-items:center;
+  gap:18px;
+  min-width:0;
+}
+.phone-bezel{
+  width:380px;
+  background:#0f172a;
+  border-radius:38px;
+  padding:14px 10px 14px;
+  box-shadow:var(--shadow-lg), 0 0 0 1px rgba(15,23,42,.06);
+  position:relative;
+}
+.phone-bezel::before{
+  content:"";
+  position:absolute;
+  top:8px; left:50%;
+  width:78px; height:5px;
+  background:#1e293b;
+  border-radius:3px;
+  transform:translateX(-50%);
+}
+.phone-screen{
+  width:360px; height:720px;
+  background:#fff;
+  border-radius:24px;
+  overflow:hidden;
+  position:relative;
+}
+#proto-frame{
+  width:360px; height:720px;
+  border:0;
+  display:block;
+  background:#fff;
+  opacity:1;
+  transition:opacity .14s ease;
+  overflow:hidden;
+}
+#proto-frame.loading{ opacity:0.2;}
+
+.phone-stage .hint-bar{
+  display:inline-flex; align-items:center; gap:10px;
+  padding:9px 18px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:999px;
+  font-size:12.5px;
+  color:#334155;
+  box-shadow:var(--shadow-sm);
+  max-width:520px;
+  text-align:left;
+}
+.phone-stage .hint-bar .pulse{
+  width:8px; height:8px; border-radius:50%;
+  background:var(--accent);
+  position:relative; flex-shrink:0;
+  box-shadow:0 0 0 0 rgba(37,99,235,.45);
+  animation:pulse 1.8s ease-out infinite;
+}
+@keyframes pulse{
+  0%   {box-shadow:0 0 0 0 rgba(37,99,235,.45);}
+  70%  {box-shadow:0 0 0 10px rgba(37,99,235,0);}
+  100% {box-shadow:0 0 0 0 rgba(37,99,235,0);}
+}
+.phone-stage .hint-bar strong{color:var(--accent-deep); font-weight:700;}
+.phone-stage .hint-bar code{
+  font-family:"Roboto Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11.5px;
+  background:#f1f5f9; color:#1e293b;
+  padding:2px 6px; border-radius:4px;
+}
+
+/* ============================================================
+   우측: 현재 화면 정보 + 액션 + 히스토리
+   ============================================================ */
+.screen-info{
+  display:flex; flex-direction:column; gap:16px;
+  height:fit-content;
+  position:sticky; top:88px;
+}
+.info-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px 18px;
+  box-shadow:var(--shadow-sm);
+}
+.info-card h3{
+  margin:0 0 12px;
+  font-size:11px; font-weight:800;
+  letter-spacing:0.14em;
+  color:#475569;
+  text-transform:uppercase;
+}
+.info-card .screen-name{
+  font-size:16.5px; font-weight:800;
+  letter-spacing:-0.01em;
+  color:var(--ink);
+  margin-bottom:6px;
+}
+.info-card .screen-id{
+  display:inline-block;
+  font-size:10.5px; font-weight:700;
+  color:var(--accent-deep);
+  background:var(--accent-weak);
+  border:1px solid #bfdbfe;
+  padding:2px 8px; border-radius:4px;
+  letter-spacing:0.04em;
+  margin-bottom:8px;
+}
+.info-card .screen-desc{
+  font-size:12.5px; color:#475569;
+  line-height:1.55;
+}
+.info-card .screen-meta{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px dashed var(--line);
+  display:grid; grid-template-columns:60px 1fr; gap:6px 10px;
+  font-size:11.5px;
+}
+.info-card .screen-meta dt{
+  color:#94a3b8; font-weight:600;
+}
+.info-card .screen-meta dd{
+  margin:0; color:#334155;
+}
+.info-card .screen-meta dd code{
+  font-family:"Roboto Mono",ui-monospace,monospace;
+  font-size:10.5px;
+  background:#f1f5f9; padding:1px 5px; border-radius:3px;
+  color:var(--accent-deep);
+}
+
+/* 액션 리스트 */
+.actions-list{
+  list-style:none; padding:0; margin:0;
+  display:flex; flex-direction:column; gap:7px;
+}
+.actions-list li{
+  display:flex; align-items:flex-start; gap:9px;
+  padding:9px 11px;
+  background:#fafbfc;
+  border:1px solid var(--line);
+  border-radius:8px;
+  font-size:11.5px;
+  cursor:pointer;
+  transition:all .12s ease;
+}
+.actions-list li:hover{
+  background:var(--accent-weak);
+  border-color:#bfdbfe;
+  transform:translateX(2px);
+}
+.actions-list li .num{
+  width:18px; height:18px; flex-shrink:0;
+  background:var(--accent);
+  color:#fff; font-weight:700;
+  font-size:10px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  margin-top:1px;
+}
+.actions-list li .body{
+  flex:1; line-height:1.4;
+}
+.actions-list li .body .title{
+  font-weight:700; color:#1e293b; margin-bottom:2px;
+}
+.actions-list li .body .arrow{
+  font-size:10.5px; color:var(--accent-deep);
+}
+.actions-list li .body .arrow code{
+  font-family:"Roboto Mono",ui-monospace,monospace;
+  background:rgba(37,99,235,.08);
+  padding:1px 4px; border-radius:3px;
+}
+.actions-list .empty{
+  padding:14px;
+  text-align:center;
+  color:#94a3b8;
+  font-size:12px; font-style:italic;
+  background:transparent;
+  border:1px dashed var(--line);
+}
+
+/* 히스토리 */
+.history-list{
+  list-style:none; padding:0; margin:0;
+  display:flex; flex-direction:column; gap:0;
+}
+.history-list li{
+  display:flex; align-items:center; gap:8px;
+  padding:7px 9px;
+  font-size:11.5px;
+  color:#475569;
+  position:relative;
+}
+.history-list li:not(:last-child)::before{
+  content:"";
+  position:absolute;
+  left:14px; top:24px; bottom:-6px;
+  width:1px; background:#e2e8f0;
+}
+.history-list li .step{
+  width:11px; height:11px; border-radius:50%;
+  background:#cbd5e1; border:2px solid #fff;
+  box-shadow:0 0 0 1px #cbd5e1;
+  flex-shrink:0;
+  position:relative; z-index:1;
+}
+.history-list li:last-child .step{
+  background:var(--accent); box-shadow:0 0 0 1px var(--accent);
+}
+.history-list li.start .step{
+  background:#94a3b8; box-shadow:0 0 0 1px #94a3b8;
+}
+.history-list li .text{
+  flex:1; line-height:1.3;
+}
+.history-list li .text .name{
+  font-weight:700; color:#1e293b; font-size:12px;
+}
+.history-list li .text .via{
+  font-size:10.5px; color:#94a3b8;
+}
+
+/* ============================================================
+   로딩 인디케이터
+   ============================================================ */
+.loader{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,.7);
+  z-index:5;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .12s ease;
+}
+.loader.show{ opacity:1;}
+.loader .spinner{
+  width:32px; height:32px;
+  border:3px solid #e2e8f0;
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .9s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg);}}
+
+/* ============================================================
+   하단 — 가이드/범례
+   ============================================================ */
+.legend-strip{
+  background:#0f172a;
+  color:#e2e8f0;
+  padding:18px 32px;
+  margin-top:auto;
+}
+.legend-strip .inner{
+  max-width:1480px; margin:0 auto;
+  display:flex; flex-wrap:wrap;
+  align-items:center; gap:24px;
+  font-size:12px;
+}
+.legend-strip strong{ color:#f8fafc; font-weight:700;}
+.legend-strip .item{
+  display:inline-flex; align-items:center; gap:8px;
+}
+.legend-strip .swatch{
+  display:inline-block;
+  width:22px; height:14px;
+  border-radius:3px;
+  border:1.5px dashed #60a5fa;
+  background:rgba(96,165,250,.15);
+}
+.legend-strip .swatch.solid{
+  border:0; background:#60a5fa;
+}
+.legend-strip .swatch.dot{
+  width:10px; height:10px; border-radius:50%; border:0;
+  background:var(--ok);
+}
+.legend-strip code{
+  font-family:"Roboto Mono",ui-monospace,monospace;
+  font-size:11px;
+  background:rgba(255,255,255,.08);
+  padding:2px 6px; border-radius:3px;
+}
+.legend-strip .sep{
+  width:1px; height:18px; background:rgba(255,255,255,.15);
+}
+
+/* ============================================================
+   토스트 (이동 알림)
+   ============================================================ */
+.toast{
+  position:fixed;
+  bottom:32px; left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:#0f172a;
+  color:#fff;
+  padding:11px 18px;
+  border-radius:999px;
+  font-size:12.5px; font-weight:600;
+  box-shadow:0 12px 32px rgba(15,23,42,.25);
+  opacity:0;
+  pointer-events:none;
+  z-index:100;
+  transition:opacity .2s ease, transform .25s ease;
+  display:inline-flex; align-items:center; gap:8px;
+}
+.toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+.toast .arrow{
+  display:inline-block;
+  color:#60a5fa; font-weight:700;
+}
+.toast .target{
+  background:rgba(37,99,235,.25);
+  padding:2px 8px; border-radius:999px;
+  font-size:11px;
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     헤더
+     ============================================================ -->
+<header class="proto-header">
+  <div class="brand">
+    <strong>현장촬영AI · 규격조사 v0.2</strong>
+    <span class="sub">INTERACTIVE FLOW PROTOTYPE</span>
+  </div>
+  <div class="title">
+    <h1>인터랙티브 플로우 시뮬레이션</h1>
+    <p class="lead">실제 앱과 동일한 화면 전이를 체험 — 카드·셔터·다음·저장 등 주요 요소를 탭하면 탭 피드백 후 다음 화면으로 이동합니다.</p>
+  </div>
+  <div class="actions">
+    <button id="btn-back">← 이전 화면</button>
+    <button id="btn-restart" class="primary">↻ 처음으로</button>
+  </div>
+</header>
+
+<!-- ============================================================
+     메인 3분할
+     ============================================================ -->
+<main class="proto-main">
+
+  <!-- 좌측: 플로우 트리 -->
+  <aside class="flow-map">
+    <h3>플로우 맵</h3>
+    <nav>
+      <div class="group-label">진입</div>
+      <a class="screen-link active" data-screen="S-001"><span class="id">S-001</span><span class="label">메인</span></a>
+      <a class="screen-link" data-screen="S-002"><span class="id">S-002</span><span class="label">측정 종류</span></a>
+
+      <div class="group-label">폭 · 간격</div>
+      <a class="screen-link" data-screen="S-003"><span class="id">S-003</span><span class="label">촬영</span></a>
+      <a class="screen-link" data-screen="S-004"><span class="id">S-004</span><span class="label">보정</span></a>
+      <a class="screen-link" data-screen="S-005"><span class="id">S-005</span><span class="label">입력</span></a>
+
+      <div class="group-label">홀 깊이</div>
+      <a class="screen-link" data-screen="S-006"><span class="id">S-006</span><span class="label">촬영</span></a>
+      <a class="screen-link" data-screen="S-007"><span class="id">S-007</span><span class="label">보정</span></a>
+      <a class="screen-link" data-screen="S-008"><span class="id">S-008</span><span class="label">입력</span></a>
+
+      <div class="group-label">보관</div>
+      <a class="screen-link" data-screen="S-009"><span class="id">S-009</span><span class="label">보관함</span></a>
+      <a class="screen-link sub" data-screen="S-009E"><span class="id">S-009E</span><span class="label">수정 — 탄산화</span></a>
+      <a class="screen-link sub" data-screen="S-009Ed"><span class="id">S-009Ed</span><span class="label">수정 — 폭/간격</span></a>
+      <a class="screen-link sub" data-screen="S-009Eh"><span class="id">S-009Eh</span><span class="label">수정 — 홀 깊이</span></a>
+    </nav>
+  </aside>
+
+  <!-- 가운데: 폰 -->
+  <section class="phone-stage">
+    <div class="phone-bezel">
+      <div class="phone-screen">
+        <iframe id="proto-frame" src="mockups/S-001_main.html#embed" title="현재 화면" scrolling="no"></iframe>
+        <div class="loader" id="loader"><div class="spinner"></div></div>
+      </div>
+    </div>
+    <div class="hint-bar">
+      <span class="pulse"></span>
+      <span id="hint-text">현재 <strong>S-001 메인</strong> · 카드를 탭하여 다음 화면으로 이동합니다.</span>
+    </div>
+  </section>
+
+  <!-- 우측: 현재 화면 정보 -->
+  <aside class="screen-info">
+    <div class="info-card">
+      <h3>현재 화면</h3>
+      <div class="screen-id" id="info-id">S-001</div>
+      <div class="screen-name" id="info-name">메인</div>
+      <div class="screen-desc" id="info-desc">앱 첫 진입 화면. 조사 항목을 선택하거나 보관함으로 이동.</div>
+      <dl class="screen-meta">
+        <dt>경로</dt><dd><code id="info-route">/</code></dd>
+        <dt>다음</dt><dd id="info-next">규격조사 또는 보관함</dd>
+      </dl>
+    </div>
+
+    <div class="info-card">
+      <h3>가능한 액션</h3>
+      <ul class="actions-list" id="actions-list">
+        <!-- 동적 -->
+      </ul>
+    </div>
+
+    <div class="info-card">
+      <h3>이동 히스토리</h3>
+      <ol class="history-list" id="history-list">
+        <li class="start"><span class="step"></span><span class="text"><span class="name">S-001 메인</span><span class="via">진입</span></span></li>
+      </ol>
+    </div>
+  </aside>
+
+</main>
+
+<!-- ============================================================
+     범례
+     ============================================================ -->
+<div class="legend-strip">
+  <div class="inner">
+    <strong>가이드</strong>
+    <span class="item">원본 목업 디자인 그대로 — 탭 시 압축/dim 피드백</span>
+    <span class="sep"></span>
+    <span class="item"><span class="swatch dot"></span>방문한 화면</span>
+    <span class="sep"></span>
+    <span class="item">우측 패널 = 현재 화면에서 탭 가능한 요소 목록</span>
+    <span class="sep"></span>
+    <span class="item">좌측 플로우맵 = 임의 화면 점프</span>
+    <span class="sep"></span>
+    <span class="item">목업 출처 <code>spec/규격조사/v0.2_design/mockups/</code></span>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"><span id="toast-text"></span></div>
+
+<!-- ============================================================
+     스크립트
+     ============================================================ -->
+<script>
+// ==================== 화면 메타데이터 ====================
+const SCREENS = {
+  'S-001': {
+    file: 'mockups/S-001_main.html',
+    name: '메인',
+    route: '/',
+    desc: '앱 첫 진입. 규격 조사 카드를 탭하여 측정을 시작하거나 보관함을 열 수 있다.',
+    next: '규격조사 또는 보관함',
+    stage: 2 /* 미전송 있음 상태 = 가장 현실적 */
+  },
+  'S-002': {
+    file: 'mockups/S-002_subtype_select.html',
+    name: '측정 종류 선택',
+    route: '/dimension-select',
+    desc: '폭 / 간격 / 깊이 3종 중 선택. subtype에 따라 카메라 가이드가 분기된다.',
+    next: 'S-003 또는 S-006'
+  },
+  'S-003': {
+    file: 'mockups/S-003_camera_width_or_gap.html',
+    name: '폭 · 간격 촬영',
+    route: '/camera',
+    desc: '줄자가 가이드 박스 안에 들어오도록 비추고 셔터 탭. 캡처 후 S-004 보정 모드로 진입.',
+    next: 'S-004'
+  },
+  'S-004': {
+    file: 'mockups/S-004_annotate_width_or_gap.html',
+    name: '폭 · 간격 보정',
+    route: '/annotate',
+    desc: '시작점·끝점 마커를 사진 위에서 정밀 보정. 다음 탭 시 원본 좌표로 환산.',
+    next: 'S-005'
+  },
+  'S-005': {
+    file: 'mockups/S-005_input_width_or_gap.html',
+    name: '폭 · 간격 입력',
+    route: '/dimension-input',
+    desc: '시작값/끝값 두 숫자 입력. 끝값 > 시작값 검증 통과 시 저장 활성.',
+    next: '저장 → 메인 복귀'
+  },
+  'S-006': {
+    file: 'mockups/S-006_camera_hole.html',
+    name: '홀 깊이 촬영',
+    route: '/camera',
+    desc: '원형 가이드 안에 홀 입구가 들어오도록 비추고 셔터 탭. 캡처 후 S-007로 이동.',
+    next: 'S-007'
+  },
+  'S-007': {
+    file: 'mockups/S-007_annotate_hole.html',
+    name: '홀 깊이 보정',
+    route: '/annotate',
+    desc: '홀 입구·읽기 위치 2개 좌표 보정 + 라디오 2개 응답. 4단계 모두 완료 시 다음 활성.',
+    next: 'S-008'
+  },
+  'S-008': {
+    file: 'mockups/S-008_input_hole.html',
+    name: '홀 깊이 입력',
+    route: '/dimension-input',
+    desc: '줄자에서 읽은 깊이값 1개 입력. 0 초과 검증 통과 시 저장 활성.',
+    next: '저장 → 메인 복귀'
+  },
+  'S-009': {
+    file: 'mockups/S-009_archive.html',
+    name: '보관함',
+    route: '/archive',
+    desc: '저장된 모든 조사 기록 카드 리스트. 카드 탭 = 사진 전체보기, 비고 편집 등.',
+    next: '수정 모달 또는 메인 복귀',
+    stage: 2 /* 데이터 있음 상태 (3건) */
+  },
+  /* S-009E* = 보관함 수정 모달 (subtype별 별도 sub-screen).
+     실제 라우트는 /archive 동일, 다이얼로그 오버레이일 뿐.
+     - S-009E (탄산화) : 단일 수치 입력 (v1 패턴)
+     - S-009Ed (폭/간격): 시작값+끝값+자동계산 (S-005 입력 구조)
+     - S-009Eh (홀 깊이): 줄자에서 읽은 깊이 단일 (S-008 입력 구조) */
+  'S-009E': {
+    file: 'mockups/S-009_archive.html',
+    name: '보관함 · 수정 모달 (탄산화)',
+    route: '/archive (dialog)',
+    desc: '탄산화 카드 "수정" 탭 시 모달. 액정에 표시된 단일 측정값 + 비고 보정.',
+    next: 'S-009 복귀',
+    stage: 3
+  },
+  'S-009Ed': {
+    file: 'mockups/S-009_archive.html',
+    name: '보관함 · 수정 모달 (폭/간격)',
+    route: '/archive (dialog)',
+    desc: '폭 또는 간격 카드 "수정" 탭 시 모달. 줄자 시작값+끝값 보정 + 자동 계산 + 비고. S-005 입력 구조 일치.',
+    next: 'S-009 복귀',
+    stage: 4
+  },
+  'S-009Eh': {
+    file: 'mockups/S-009_archive.html',
+    name: '보관함 · 수정 모달 (홀 깊이)',
+    route: '/archive (dialog)',
+    desc: '홀 깊이 카드 "수정" 탭 시 모달. 줄자에서 읽은 단일 깊이값 보정 + 비고. S-008 입력 구조 일치.',
+    next: 'S-009 복귀',
+    stage: 5
+  }
+};
+
+// ==================== 전이 맵 ====================
+const TRANSITIONS = {
+  'S-001': {
+    triggers: [
+      { type:'card-text', text:'규격', target:'S-002', label:'규격 조사 카드 탭', sub:'줄자 기반 측정 시작' },
+      { type:'link-text', text:'보관함', target:'S-009', label:'보관함 보기 pill', sub:'저장 기록 열람' }
+    ],
+    back: null
+  },
+  'S-002': {
+    triggers: [
+      { type:'attr', attr:'data-subtype', value:'wall_or_member_width', target:'S-003', label:'벽/기둥/부재 폭 카드', sub:'줄자 0 시작' },
+      { type:'attr', attr:'data-subtype', value:'member_gap', target:'S-003', label:'부재 간 간격 카드', sub:'줄자 중간점 시작' },
+      { type:'attr', attr:'data-subtype', value:'hole_depth', target:'S-006', label:'홀 깊이 카드', sub:'두 좌표 + 줄자 수치' }
+    ],
+    back: 'S-001'
+  },
+  'S-003': {
+    triggers: [
+      { type:'class', cls:'shutter', target:'S-004', label:'셔터 (촬영)', sub:'사진 캡처 + 사전 좌표 저장' }
+    ],
+    back: 'S-002'
+  },
+  'S-004': {
+    triggers: [
+      { type:'text-button', text:'다음', target:'S-005', label:'다음 · 수치 입력', sub:'원본 좌표 환산' },
+      { type:'text-button', text:'다시 촬영', target:'S-003', label:'다시 촬영', sub:'카메라로 복귀' }
+    ],
+    back: 'S-003'
+  },
+  'S-005': {
+    triggers: [
+      { type:'id', id:'saveBtn', target:'S-001', label:'저장', sub:'SurveyRecord 생성 → 메인 복귀' }
+    ],
+    back: 'S-004'
+  },
+  'S-006': {
+    triggers: [
+      { type:'class', cls:'shutter', target:'S-007', label:'셔터 (촬영)', sub:'사진 캡처' }
+    ],
+    back: 'S-002'
+  },
+  'S-007': {
+    triggers: [
+      { type:'text-button', text:'다음', target:'S-008', label:'다음 · 수치 입력', sub:'두 좌표 + 라디오 전달' },
+      { type:'text-button', text:'다시 촬영', target:'S-006', label:'다시 촬영', sub:'카메라로 복귀' }
+    ],
+    back: 'S-006'
+  },
+  'S-008': {
+    triggers: [
+      { type:'id', id:'saveBtn', target:'S-001', label:'저장', sub:'SurveyRecord 생성 → 메인 복귀' }
+    ],
+    back: 'S-007'
+  },
+  'S-009': {
+    triggers: [
+      { type:'attr', attr:'data-survey-type', value:'carbonation', target:'S-009E',
+        label:'탄산화 카드 수정', sub:'탄산화 모달' },
+      { type:'attr', attr:'data-survey-type', value:'dimension-width', target:'S-009Ed',
+        label:'폭 측정 카드 수정', sub:'폭/간격 모달 (S-005 구조)' },
+      { type:'attr', attr:'data-survey-type', value:'dimension-gap', target:'S-009Ed',
+        label:'간격 측정 카드 수정', sub:'폭/간격 모달 (S-005 구조)' },
+      { type:'attr', attr:'data-survey-type', value:'dimension-hole', target:'S-009Eh',
+        label:'홀 깊이 카드 수정', sub:'홀 깊이 모달 (S-008 구조)' }
+    ],
+    back: 'S-001'
+  },
+  'S-009E': {
+    triggers: [
+      { type:'class', cls:'modal-cancel', target:'S-009', label:'취소 (모달 닫기)', sub:'변경 폐기' },
+      { type:'class', cls:'modal-save',   target:'S-009', label:'저장 (모달 닫기)', sub:'updateRecord(carbonation)' }
+    ],
+    back: 'S-009'
+  },
+  'S-009Ed': {
+    triggers: [
+      { type:'class', cls:'modal-cancel', target:'S-009', label:'취소 (모달 닫기)', sub:'변경 폐기' },
+      { type:'class', cls:'modal-save',   target:'S-009', label:'저장 (모달 닫기)', sub:'updateRecord(dimension)' }
+    ],
+    back: 'S-009'
+  },
+  'S-009Eh': {
+    triggers: [
+      { type:'class', cls:'modal-cancel', target:'S-009', label:'취소 (모달 닫기)', sub:'변경 폐기' },
+      { type:'class', cls:'modal-save',   target:'S-009', label:'저장 (모달 닫기)', sub:'updateRecord(hole_depth)' }
+    ],
+    back: 'S-009'
+  }
+};
+
+// ==================== 상태 ====================
+let currentScreen = 'S-001';
+let history = [{ id:'S-001', via:'진입' }];
+const visited = new Set(['S-001']);
+// 화면 전이 시 이전 화면이 캡쳐해 보낸 상태 (예: S-003 셔터 → {startX, endX})
+// → 다음 iframe load 시 URL 쿼리로 전달돼 새 mockup이 초기값으로 사용
+let pendingState = null;
+
+const $frame    = document.getElementById('proto-frame');
+const $loader   = document.getElementById('loader');
+const $hint     = document.getElementById('hint-text');
+const $infoId   = document.getElementById('info-id');
+const $infoName = document.getElementById('info-name');
+const $infoDesc = document.getElementById('info-desc');
+const $infoRoute= document.getElementById('info-route');
+const $infoNext = document.getElementById('info-next');
+const $actions  = document.getElementById('actions-list');
+const $histList = document.getElementById('history-list');
+const $toast    = document.getElementById('toast');
+const $toastTxt = document.getElementById('toast-text');
+const $btnBack  = document.getElementById('btn-back');
+const $btnRestart = document.getElementById('btn-restart');
+
+// ==================== postMessage 리스너 ====================
+// _embed.js가 iframe 내부에서 보내는 메시지를 받는다.
+// - flow:ready  → 화면 준비 완료, 로더 해제
+// - flow:navigate → 사용자가 트리거 탭 → 다음 화면으로 전이
+window.addEventListener('message', e => {
+  const msg = e.data;
+  if (!msg || typeof msg !== 'object') return;
+
+  if (msg.type === 'flow:ready') {
+    $frame.classList.remove('loading');
+    $loader.classList.remove('show');
+    return;
+  }
+
+  if (msg.type === 'flow:navigate') {
+    if (msg.target && SCREENS[msg.target]) {
+      navigate(msg.target, msg.label || '이동', msg.state || null);
+    }
+    return;
+  }
+});
+
+// iframe load 이벤트 — fallback 로더 해제용 (postMessage가 안 올 경우 대비)
+$frame.addEventListener('load', () => {
+  // 1초 후에도 ready 메시지 없으면 로더 강제 해제
+  setTimeout(() => {
+    $frame.classList.remove('loading');
+    $loader.classList.remove('show');
+  }, 1000);
+});
+
+// ==================== 화면 전이 ====================
+function navigate(target, viaLabel, state){
+  if (!SCREENS[target]) return;
+  history.push({ id: target, via: viaLabel || '이동' });
+  visited.add(target);
+  currentScreen = target;
+  pendingState = state || null;
+  loadCurrent();
+  showToast(viaLabel, target);
+}
+
+function goBack(){
+  if (history.length <= 1) return;
+  history.pop();
+  const prev = history[history.length - 1];
+  currentScreen = prev.id;
+  loadCurrent();
+}
+
+function goRestart(){
+  history = [{ id:'S-001', via:'진입' }];
+  currentScreen = 'S-001';
+  loadCurrent();
+}
+
+function jumpTo(screenId){
+  if (!SCREENS[screenId] || screenId === currentScreen) return;
+  history.push({ id: screenId, via: '플로우맵 점프' });
+  visited.add(screenId);
+  currentScreen = screenId;
+  loadCurrent();
+}
+
+function loadCurrent(){
+  const meta = SCREENS[currentScreen];
+  if (!meta) return;
+  $frame.classList.add('loading');
+  $loader.classList.add('show');
+  // 해시: stage가 SCREENS에 정의돼 있으면 #embed-N로 강제
+  const hash = meta.stage ? '#embed-' + meta.stage : '#embed';
+  // S-009 ↔ S-009E는 동일 파일이라 hash만 바꿔서는 iframe이 reload 안 됨 → cache-bust
+  let query = '?t=' + Date.now();
+  // 이전 화면이 보낸 상태(예: S-003 → {startX, endX})를 URL 쿼리로 전달
+  if (pendingState && typeof pendingState === 'object') {
+    Object.keys(pendingState).forEach(function (k) {
+      const v = pendingState[k];
+      if (v !== null && v !== undefined) {
+        query += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(v);
+      }
+    });
+  }
+  $frame.src = meta.file + query + hash;
+  // 상태는 한 번만 적용 — 다음 navigation에는 영향 없음
+  pendingState = null;
+  updatePanel();
+}
+
+// ==================== 우측 패널 갱신 ====================
+function updatePanel(){
+  const meta = SCREENS[currentScreen];
+  const trans = TRANSITIONS[currentScreen];
+
+  $infoId.textContent   = currentScreen;
+  $infoName.textContent = meta.name;
+  $infoDesc.textContent = meta.desc;
+  $infoRoute.textContent = meta.route;
+  $infoNext.textContent  = meta.next;
+
+  $hint.innerHTML = '현재 <strong>' + currentScreen + ' ' + escapeHtml(meta.name) + '</strong> · '
+    + (trans.triggers.length > 0
+        ? '우측 액션 목록 또는 화면 안의 카드·버튼을 탭해 다음 화면으로 이동합니다.'
+        : '뒤로가기로만 이동 가능합니다.');
+
+  if (trans.triggers.length === 0) {
+    $actions.innerHTML = '<li class="empty">이 화면에서는 뒤로가기만 가능합니다.</li>';
+  } else {
+    $actions.innerHTML = trans.triggers.map((t, i) =>
+      '<li data-action-idx="' + i + '">'
+      + '<span class="num">' + (i + 1) + '</span>'
+      + '<div class="body">'
+      +   '<div class="title">' + escapeHtml(t.label) + '</div>'
+      +   '<div class="arrow">→ <strong>' + t.target + '</strong> ' + escapeHtml(SCREENS[t.target].name) + ' <code>' + escapeHtml(t.sub || '') + '</code></div>'
+      + '</div>'
+      + '</li>'
+    ).join('');
+    $actions.querySelectorAll('li').forEach((li, i) => {
+      li.addEventListener('click', () => {
+        const t = trans.triggers[i];
+        navigate(t.target, t.label);
+      });
+    });
+  }
+
+  $histList.innerHTML = history.map((h, i) =>
+    '<li ' + (i === 0 ? 'class="start"' : '') + '>'
+    + '<span class="step"></span>'
+    + '<span class="text">'
+    +   '<span class="name">' + h.id + ' ' + escapeHtml(SCREENS[h.id].name) + '</span>'
+    +   '<span class="via">' + escapeHtml(h.via) + '</span>'
+    + '</span>'
+    + '</li>'
+  ).join('');
+
+  document.querySelectorAll('.screen-link').forEach(a => {
+    const id = a.dataset.screen;
+    a.classList.toggle('active', id === currentScreen);
+    a.classList.toggle('visited', visited.has(id) && id !== currentScreen);
+  });
+
+  $btnBack.disabled = history.length <= 1;
+}
+
+// ==================== 토스트 ====================
+let toastTimer;
+function showToast(label, target){
+  clearTimeout(toastTimer);
+  $toastTxt.innerHTML = escapeHtml(label) + ' <span class="arrow">→</span> <span class="target">' + target + ' ' + escapeHtml(SCREENS[target].name) + '</span>';
+  $toast.classList.add('show');
+  toastTimer = setTimeout(() => $toast.classList.remove('show'), 1800);
+}
+
+// ==================== 유틸 ====================
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// ==================== 이벤트 바인딩 ====================
+$btnBack.addEventListener('click', goBack);
+$btnRestart.addEventListener('click', goRestart);
+
+document.querySelectorAll('.screen-link').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    jumpTo(a.dataset.screen);
+  });
+});
+
+updatePanel();
+</script>
+</body>
+</html>

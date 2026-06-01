@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>S-003 촬영 가이드 — 벽/기둥/부재 폭 (v0.2)</title>
+<style>
+/* ============================================================
+   S-003 촬영 가이드 — 벽/기둥/부재 폭 (wall_or_member_width)
+   진입: S-002 첫 번째 카드(폭) 탭
+   라우트: /camera · {surveyType: dimension, subtype: wall_or_member_width}
+
+   v0.2 변경: 가이드박스 좌/우 끝에 드래그 가능한 핸들 추가.
+     - 핸들 위치 = 시작/끝점 사전 좌표
+     - 촬영 시 핸들 좌표 함께 저장 → S-004는 "정밀 보정 모드"로 진입
+
+   데이터 상태 2종 (폰 자세):
+     ① 수평 (level)        — 가이드박스 노랑 + 셔터 활성
+     ② 기울어짐 (locked)   — 가이드박스 빨강 + 셔터 잠금 (핸들 조정은 여전히 가능)
+
+   인터랙션 (각 폰 내 JS):
+     - 핸들 드래그 (가로): 시작/끝점 위치 조정 + 가이드박스 폭 자동 조정
+     - 줌 1x/2x/3x 토글
+     - 플래시 Auto/On/Off 순환
+     - 셔터 hover/active (잠금 시 비활성)
+   ============================================================ */
+:root{
+  --ink:#111827; --muted:#6B7280; --line:#E5E7EB;
+  --blue:#2563EB; --blue-deep:#1E40AF;
+  --yellow:#facc15; --red:#ef4444; --red-deep:#dc2626;
+  --green-bright:#22c55e;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#f1f5f9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#0f172a;
+  padding:40px 24px 60px;
+  line-height:1.55;
+}
+
+/* ====== 페이지 헤더 ====== */
+.page-head{
+  max-width:1280px; margin:0 auto 28px;
+  text-align:center;
+}
+.page-head .eyebrow{
+  display:inline-block;
+  font-size:11.5px; letter-spacing:0.14em; font-weight:800;
+  color:#2563EB; background:#DBEAFE;
+  padding:5px 12px; border-radius:999px;
+  margin-bottom:10px;
+}
+.page-head h1{
+  margin:0; font-size:24px; font-weight:800; letter-spacing:-0.025em; color:#0f172a;
+}
+.page-head p{margin:6px 0 0; color:#64748b; font-size:13.5px;}
+.page-head .hint{
+  display:inline-block; margin-top:10px;
+  font-size:12px; color:#0f172a; background:#fef3c7; border:1px solid #fcd34d;
+  border-radius:8px; padding:6px 12px;
+}
+.page-head .hint kbd{
+  display:inline-block; background:#fff; border:1px solid #f59e0b; border-radius:4px;
+  padding:1px 6px; font-size:11px; color:#92400e; font-weight:700;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+
+/* ====== 폰 목업 그리드 ====== */
+.mockup-row{
+  display:flex; justify-content:center; align-items:flex-start;
+  gap:36px; flex-wrap:wrap;
+  margin-bottom:48px;
+}
+.stage{display:flex; flex-direction:column; align-items:center;}
+
+/* ====== 스크린 (Android 논리 360dp) ====== */
+.screen{
+  width:360px; height:720px;
+  background:#1f2937;
+  border:1px solid #e2e8f0;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(15,23,42,.10);
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+  color:#fff;
+  --start-x:60px;
+  --end-x:300px;
+}
+.screen::before{
+  content:"";
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(255,255,255,0.08), transparent 60%),
+    linear-gradient(180deg, #2a323d 0%, #1f2937 55%, #161c25 100%);
+  z-index:0;
+}
+
+/* ---- 상단 헤더 ---- */
+.cam-topbar{
+  position:relative; z-index:2;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px 0;
+}
+.cam-back{
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff;
+  cursor:pointer; border-radius:50%;
+  transition:background-color .12s;
+}
+.cam-back:hover{background:rgba(255,255,255,0.10);}
+.cam-back:active{background:rgba(255,255,255,0.20);}
+.cam-back svg{width:22px; height:22px;}
+
+.flash-pill{
+  display:inline-flex; align-items:center; gap:5px;
+  background:rgba(0,0,0,0.55);
+  color:#facc15;
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:12.5px; font-weight:700;
+  cursor:pointer; user-select:none;
+  transition:background-color .12s;
+}
+.flash-pill:hover{background:rgba(0,0,0,0.75);}
+.flash-pill:active{background:rgba(0,0,0,0.90);}
+.flash-pill svg{width:14px; height:14px;}
+.flash-pill.off{color:#9ca3af;}
+.flash-pill.on{color:#fbbf24;}
+
+/* ---- 안내 버블 ---- */
+.hint-bubble{
+  position:absolute; z-index:2;
+  top:108px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,0.78);
+  color:#fff;
+  padding:9px 16px;
+  border-radius:20px;
+  font-size:12px; font-weight:600;
+  white-space:nowrap;
+  letter-spacing:-0.1px;
+}
+
+/* ---- 가이드박스 영역 (핸들 드래그 가능) ---- */
+.guide-area{
+  position:absolute; z-index:2;
+  top:50%; left:0; right:0;
+  transform:translateY(-50%);
+  height:130px;
+  pointer-events:none; /* 자식만 활성 */
+}
+.guide-box{
+  position:absolute;
+  top:6px; bottom:6px;
+  left:var(--start-x);
+  right:calc(100% - var(--end-x));
+  border:2.5px dashed var(--yellow);
+  border-radius:4px;
+  pointer-events:none;
+}
+
+/* 측정점 표시 — 얇은 세로선이 박스 좌/우 끝에서 정확한 측정점 위치를 가리킴.
+   핸들 = 컨트롤 그립, 세로선 = 측정점 시각화. */
+.measure-line{
+  position:absolute; z-index:3;
+  top:0; bottom:0;
+  width:2px;
+  pointer-events:none;
+}
+.measure-line.start{
+  left:calc(var(--start-x) - 1px);
+  background:var(--blue);
+}
+.measure-line.end{
+  left:calc(var(--end-x) - 1px);
+  background:var(--red);
+}
+
+/* 핸들 */
+.handle{
+  position:absolute; z-index:4;
+  top:50%; transform:translate(-50%, -50%);
+  width:32px; height:32px;
+  border-radius:50%;
+  border:3px solid #fff;
+  box-shadow:0 4px 12px rgba(0,0,0,0.45);
+  cursor:ew-resize;
+  pointer-events:auto;
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .12s, box-shadow .12s;
+  touch-action:none;
+}
+.handle:hover{
+  transform:translate(-50%, -50%) scale(1.08);
+  box-shadow:0 6px 18px rgba(0,0,0,0.6);
+}
+.handle:active,
+.handle.dragging{
+  transform:translate(-50%, -50%) scale(1.12);
+  box-shadow:0 0 0 6px rgba(255,255,255,0.18), 0 6px 20px rgba(0,0,0,0.6);
+}
+/* 핸들은 가이드박스 외곽에 위치하여 측정 영역(박스 안쪽)을 가리지 않음. */
+.handle.start{
+  background:var(--blue);
+  left:calc(var(--start-x) - 18px);
+}
+.handle.end{
+  background:var(--red);
+  left:calc(var(--end-x) + 18px);
+}
+.handle::after{
+  content:"";
+  width:8px; height:8px;
+  border-radius:50%;
+  background:#fff;
+  opacity:0.8;
+}
+.handle .label{
+  position:absolute; bottom:100%; left:50%;
+  transform:translateX(-50%);
+  margin-bottom:7px;
+  background:rgba(0,0,0,0.70);
+  color:#fff;
+  padding:2px 8px;
+  border-radius:6px;
+  font-size:10.5px; font-weight:700;
+  white-space:nowrap;
+  letter-spacing:-0.1px;
+}
+.handle.start .label{color:#bfdbfe;}
+.handle.end .label{color:#fecaca;}
+
+
+/* ---- 하단 컨트롤바 ---- */
+.cam-controls{
+  position:relative; z-index:2;
+  margin-top:auto;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(8px);
+  padding:14px 20px 22px;
+}
+
+.zoom-pill-wrap{display:flex; justify-content:center;}
+.zoom-pill{
+  background:rgba(0,0,0,0.55);
+  border-radius:999px;
+  padding:4px;
+  display:inline-flex; align-items:center; justify-content:center;
+  margin:0 auto 12px;
+}
+.zoom-pill button{
+  width:42px; height:28px;
+  border-radius:999px;
+  border:none; background:transparent;
+  color:#fff; font-size:13px; font-weight:700;
+  cursor:pointer;
+  transition:background-color .12s, color .12s;
+}
+.zoom-pill button:hover:not(.active){background:rgba(255,255,255,0.10);}
+.zoom-pill button.active{background:var(--yellow); color:#111827;}
+
+.cam-bottom{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+}
+
+.thumb{
+  width:54px; height:54px;
+  border-radius:10px;
+  border:1.5px solid rgba(255,255,255,0.5);
+  background:linear-gradient(135deg, #525b69, #2a323d);
+  cursor:pointer;
+  position:relative; overflow:hidden;
+  transition:transform .12s, border-color .12s;
+}
+.thumb:hover{border-color:rgba(255,255,255,0.85); transform:scale(1.02);}
+.thumb:active{transform:scale(0.97);}
+.thumb::after{
+  content:"";
+  position:absolute; inset:0;
+  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.20), transparent 50%);
+}
+
+.shutter{
+  width:66px; height:66px;
+  border-radius:50%;
+  background:#fff;
+  border:4px solid rgba(255,255,255,0.35);
+  cursor:pointer;
+  position:relative;
+  transition:transform .08s, background-color .12s;
+}
+.shutter:hover{transform:scale(1.04);}
+.shutter:active{transform:scale(0.94); background:#e5e7eb;}
+.cam-right-space{visibility:hidden;}
+
+/* ====== 기획 명세 패널 ====== */
+.spec-section{
+  max-width:1280px; margin:0 auto;
+}
+.spec-grid{
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:18px;
+}
+.spec-card{
+  background:#fff; border:1px solid #e2e8f0;
+  border-radius:16px; padding:22px 24px;
+  box-shadow:0 4px 12px rgba(15,23,42,.04);
+}
+.spec-card h2{
+  margin:0 0 14px;
+  font-size:15px; font-weight:800; letter-spacing:-0.01em;
+  color:#0f172a;
+  display:flex; align-items:center; gap:8px;
+}
+.spec-card h2::before{
+  content:""; width:4px; height:16px; background:var(--blue);
+  border-radius:2px;
+}
+.spec-card .kv{
+  display:grid; grid-template-columns:96px 1fr; gap:8px 16px;
+  font-size:13px;
+}
+.spec-card .kv b{font-weight:700; color:#475569;}
+.spec-card .kv code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:5px; padding:1px 6px; font-size:11.5px;
+  color:#1e293b; font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.spec-card ul.flow{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:8px;
+  font-size:13px; color:#334155;
+}
+.spec-card ul.flow li{
+  position:relative; padding-left:22px;
+}
+.spec-card ul.flow li::before{
+  content:""; position:absolute; left:6px; top:6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--blue); opacity:.6;
+}
+.spec-card ul.flow li b{color:#0f172a; font-weight:700;}
+.spec-card table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.spec-card table th,.spec-card table td{
+  border:1px solid #e5e7eb; padding:7px 10px; text-align:left;
+  vertical-align:top;
+}
+.spec-card table th{background:#f8fafc; color:#475569; font-weight:700;}
+.spec-card table td code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:4px; padding:1px 5px; font-size:11px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.chip{
+  display:inline-block; padding:2px 9px; border-radius:999px;
+  font-size:11px; font-weight:700; margin-right:3px;
+}
+.chip.new{background:#DBEAFE; color:#1E40AF;}
+
+@media (max-width:980px){
+  .mockup-row{flex-direction:column; align-items:center;}
+  .spec-grid{grid-template-columns:1fr;}
+}
+@media print{
+  body{background:#fff; padding:0;}
+  .screen{box-shadow:none;}
+  .spec-card{box-shadow:none;}
+  .page-head .hint{display:none;}
+}
+</style>
+</head>
+<body>
+
+  <!-- ========== Header ========== -->
+  <div class="page-head">
+    <span class="eyebrow">SCREEN MOCKUP & SPEC · S-003 (폭/간격 공통)</span>
+    <h1>촬영 가이드 — 폭 / 간격 측정</h1>
+    <p>S-002에서 "폭" 또는 "간격" 선택 시 진입. 두 subtype 모두 같은 화면을 사용 (코드 공유 · 가이드박스/핸들/셔터 시각 100% 동일). 차이는 안내 문구(줄자 시작 위치 가정)뿐.</p>
+    <div class="hint">💡 핸들 <kbd>드래그</kbd>로 시작/끝점 사전 조정 · <kbd>줌</kbd>·<kbd>플래시</kbd>·<kbd>셔터</kbd>는 실제 동작.</div>
+  </div>
+
+  <!-- ========== Mockup Row ========== -->
+  <div class="mockup-row">
+    <div class="stage">
+      <div class="screen">
+        <div class="cam-topbar">
+          <div class="cam-back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </div>
+          <div class="flash-pill">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            <span class="flash-label">Auto</span>
+          </div>
+        </div>
+
+        <div class="hint-bubble">줄자 0을 측정 시작면에 맞추고 촬영하세요</div>
+
+        <div class="guide-area">
+          <div class="guide-box"></div>
+          <div class="measure-line start"></div>
+          <div class="measure-line end"></div>
+          <div class="handle start" data-type="start"><span class="label">시작</span></div>
+          <div class="handle end" data-type="end"><span class="label">끝</span></div>
+        </div>
+
+        <div class="cam-controls">
+          <div class="zoom-pill-wrap">
+            <div class="zoom-pill">
+              <button>1x</button>
+              <button class="active">2x</button>
+              <button>3x</button>
+            </div>
+          </div>
+          <div class="cam-bottom">
+            <div class="thumb"></div>
+            <div class="shutter"></div>
+            <div class="cam-right-space"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Spec Section ========== -->
+  <div class="spec-section">
+    <div class="spec-grid">
+
+      <!-- 화면 정보 -->
+      <div class="spec-card">
+        <h2>화면 정보</h2>
+        <div class="kv">
+          <b>화면 ID</b><div><code>S-003</code></div>
+          <b>라우트</b><div><code>/camera</code></div>
+          <b>인자</b><div><code>{surveyType: dimension, subtype: wall_or_member_width | member_gap}</code></div>
+          <b>페이지</b><div><code>CameraPage</code> (기존, 핸들 위젯 추가)</div>
+          <b>컨트롤러</b><div><code>CameraController2</code><br><span style="color:#6B7280; font-size:11.5px;">lib/pages/camera/camera_controller.dart</span></div>
+          <b>가이드 모드</b><div><code>GuideBoxMode.rectHorizontalWide</code> + <b>핸들 드래그 가능</b> <span class="chip new">v0.2 신규</span></div>
+          <b>다음 화면</b><div>촬영 후 <code>/annotate</code> (S-004 측정점 지정 — 폭/간격 공통)</div>
+        </div>
+      </div>
+
+      <!-- 인터랙션 시나리오 -->
+      <div class="spec-card">
+        <h2>인터랙션 시나리오</h2>
+        <table>
+          <thead><tr><th>요소</th><th>동작</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>← 뒤로가기</td><td>탭</td><td>S-002로 복귀</td></tr>
+            <tr><td>플래시 pill</td><td>탭</td><td>Auto → On → Off → Auto 순환</td></tr>
+            <tr><td>줌 1x/2x/3x</td><td>탭</td><td>선택 줌 적용</td></tr>
+            <tr><td><b>시작 핸들 (파랑)</b></td><td>드래그</td><td>박스 좌측 끝 이동 = 측정 시작점 좌표 사전 지정 (핸들 자체는 박스 외곽에 위치, 박스 안쪽 측정 영역을 가리지 않음)</td></tr>
+            <tr><td><b>끝 핸들 (빨강)</b></td><td>드래그</td><td>박스 우측 끝 이동, 끝점 좌표 갱신 <span class="chip new">신규</span></td></tr>
+            <tr><td>셔터</td><td>탭</td><td>이미지 캡처 + <b>핸들 좌표를 원본 픽셀로 환산하여 함께 저장</b> → S-004 정밀 보정 화면 진입</td></tr>
+            <tr><td>썸네일</td><td>탭</td><td>보관함(S-012)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 자세 잠금 정책 -->
+      <div class="spec-card">
+        <h2>자세(기울기) 잠금 정책 <span class="chip new" style="vertical-align:middle; margin-left:6px;">v0.2 변경</span></h2>
+        <ul class="flow">
+          <li><b>규격 조사 카메라에서는 자세 잠금 미적용</b> · 천장/구조물 다양한 각도 촬영이 필요하므로 셔터는 항상 활성</li>
+          <li><b>가이드박스 색상 단일화</b> · 노랑 한 가지만 사용 (기울어짐 빨강 상태 제거)</li>
+          <li><b>핸들 조정·줌·플래시·셔터</b> 모두 항상 활성</li>
+          <li><b>코드 변경</b> · <code>CameraController2._initTiltSensor()</code> 진입 시 <code>surveyType == SurveyType.dimension</code> 이면 조기 return (탄산화는 기존 동작 유지)</li>
+          <li><b>촬영 시점</b> · 셔터 탭 → 핸들 좌표(preview px) → 원본 이미지 좌표로 환산 → <code>S-004</code>로 전달</li>
+        </ul>
+      </div>
+
+      <!-- 폭 vs 간격 차이 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>폭 (<code>wall_or_member_width</code>) vs 간격 (<code>member_gap</code>) — 줄자 시작 위치 차이</h2>
+        <p style="margin:0 0 10px; font-size:13px; color:#334155;">
+          두 subtype의 핵심 차이는 <b>줄자의 어느 눈금을 측정 시작점에 맞추는지</b>다. 측정 대상의 실제 사이즈 계산 결과는 같지만, 줄자 사용 케이스가 다르므로 학습 데이터로서 각각 의미가 있다. <b>UI/UX는 동일하므로 같은 화면을 공유</b>하되, S-002에서 선택된 subtype에 따라 안내 문구만 분기.
+        </p>
+        <table>
+          <thead><tr><th>구분</th><th>폭 (<code>wall_or_member_width</code>)</th><th>간격 (<code>member_gap</code>)</th></tr></thead>
+          <tbody>
+            <tr><td><b>줄자 시작</b></td><td>줄자 <code>0</code> = 측정 시작면</td><td>줄자 <b>임의 눈금</b> (예: 120) = 측정 시작점</td></tr>
+            <tr><td>안내 문구</td><td>"줄자 0을 측정 시작면에 맞추고 촬영하세요"</td><td>"줄자 양 끝의 눈금이 모두 보이게 촬영하세요"</td></tr>
+            <tr><td>시작값 입력 (S-005)</td><td>일반적으로 <code>0</code></td><td>임의 값 (예: 120)</td></tr>
+            <tr><td>측정값 계산</td><td><code>= end - 0 = end</code></td><td><code>= end - start</code></td></tr>
+            <tr><td>현장 시나리오</td><td>부재 끝에 줄자 0을 정확히 맞출 수 있을 때</td><td>부재 모서리 손상·접근 어려움 등으로 줄자 0이 아닌 임의 눈금에서 시작해야 할 때</td></tr>
+            <tr><td>가이드박스/핸들/줌/플래시/셔터/썸네일</td><td colspan="2" style="text-align:center;">완전 동일 (단일 mockup 공유)</td></tr>
+          </tbody>
+        </table>
+        <ul class="flow" style="margin-top:14px;">
+          <li><b>학습 데이터 가치</b> · 폭은 "줄자 0이 항상 측정 시작" 케이스, 간격은 "줄자 임의 위치에서 시작" 케이스를 분리 수집 → 모델이 줄자 0 의존 없이 학습 가능</li>
+          <li><b>본 mockup 표시 상태</b> · 안내 버블에는 폭 케이스 문구("줄자 0을 측정 시작면에 맞추고 촬영하세요") 표시. 실제 앱에선 <code>subtype</code> 인자에 따라 두 문구 중 하나가 노출</li>
+        </ul>
+      </div>
+
+      <!-- 학습데이터 품질 수집 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>학습데이터 품질 수집 정책</h2>
+        <p style="margin:0 0 12px; font-size:13px; color:#334155;">
+          본 앱의 본질은 <b>AI 학습용 정확한 데이터 수집</b>이다. 단, 측정 영역 픽셀 폭은 줌·거리·대상 크기에 따라 의미가 달라지는
+          <b>간접 지표</b>라 작업자 판단 근거로 부적합. 또한 수치 입력 단계의 quality_flags 자가 체크(6개 항목)도 작업자 입력 부담 대비 일관성이 낮다고 판단해 제거.
+          품질 신호는 다음 방식으로 수집한다.
+        </p>
+        <ul class="flow">
+          <li><b>현장 입력</b> · 비고(자유 텍스트)로 이상사항 자유 기입 (S-005)</li>
+          <li><b>후처리 라벨링</b> · 학습 큐레이터/검수자가 비고+이미지를 기반으로 quality_flags 채움</li>
+          <li><b>자동 분석</b> · 가능 시 이미지 분석 모델로 quality_flags 자동 추출 (향후)</li>
+          <li><b>카메라 셔터 잠금</b> · 자세(기울기 &gt; 16°)에만 적용. 픽셀 폭/edge 인접 등은 잠그지 않음</li>
+          <li><b>annotation 모델 구조 유지</b> · <code>DimensionAnnotation.qualityFlags</code> 필드는 그대로 두어 후처리 단계에서 채울 수 있게 함</li>
+        </ul>
+      </div>
+
+      <!-- 핸들 좌표 ↔ 데이터 모델 -->
+      <div class="spec-card">
+        <h2>핸들 좌표 처리</h2>
+        <ul class="flow">
+          <li><b>preview 좌표 (드래그 중)</b> · 폰 화면(360dp) 기준 px 좌표를 실시간 관리</li>
+          <li><b>원본 이미지 좌표로 환산</b> · BoxFit.contain 기준 — <code>screen_spec_v0.2.md §6 S-004 좌표 변환식</code> 동일 적용 (셔터 누를 때 1회)</li>
+          <li><b>저장 위치</b> · <code>DimensionAnnotation.startPointPixel</code>, <code>endPointPixel</code>에 사전 채움</li>
+          <li><b>S-004로 전달</b> · <code>partial</code> 인자에 startPointPixel/endPointPixel 포함 → S-004는 마커 정밀 보정 모드로 진입 (처음부터 찍지 않음)</li>
+          <li><b>최소 폭 제약</b> · 좌측 핸들과 우측 핸들 간 최소 거리 80px (너무 좁아지면 측정 의미 없음)</li>
+          <li><b>화면 경계 제약</b> · 핸들은 좌측 20px / 우측 20px 안쪽까지만 이동 가능</li>
+        </ul>
+      </div>
+
+      <!-- 디자인 스펙 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>디자인 스펙</h2>
+        <table>
+          <tbody>
+            <tr><td>배경</td><td>실제 카메라 영상 (mockup은 dark gradient)</td></tr>
+            <tr><td>← 아이콘</td><td>22px 흰색 · padding 40×40 ripple</td></tr>
+            <tr><td>플래시 pill</td><td>bg <code>rgba(0,0,0,0.55)</code> · 12.5 w700 · padding 7v/12h · radius 999</td></tr>
+            <tr><td>안내 버블</td><td>bg <code>rgba(0,0,0,0.78)</code> · 12 w600 · padding 9v/16h · radius 20 · top 108</td></tr>
+            <tr><td>가이드박스</td><td>좌/우 핸들 위치에 따라 가변 폭 · 높이 118 · 2.5px dashed <code>#facc15</code> · radius 4 · 세로 위치 화면 중앙 고정</td></tr>
+            <tr><td><b>측정점 표시선 (measure-line)</b> <span class="chip new">v0.2 추가</span></td><td>얇은 세로선 · width 2px · 가이드박스 좌/우 끝 정확히 위치 (<code>left: calc(var(--start-x) - 1px)</code> / <code>left: calc(var(--end-x) - 1px)</code>) · 시작 <code>#2563EB</code> / 끝 <code>#ef4444</code> · z-index 3 · pointer-events none · 박스 안 사진/줄자를 가리지 않음 (얇음)</td></tr>
+            <tr><td><b>핸들 (시작/끝)</b></td><td>32×32 원형 · 3px 흰 외곽 · shadow <code>0 4px 12px rgba(0,0,0,0.45)</code> · 중앙 8px 흰 점 · cursor ew-resize · 시작 <code>#2563EB</code> / 끝 <code>#ef4444</code></td></tr>
+            <tr><td><b>핸들 위치</b> <span class="chip new">v0.2 변경</span></td><td>가이드박스 외곽에 배치 — 좌측 <code>left: calc(var(--start-x) - 18px)</code> / 우측 <code>left: calc(var(--end-x) + 18px)</code>. 측정 영역(박스 안쪽)을 가리지 않음. 박스 좌/우 끝 = 측정 시작/끝점의 실제 좌표 / 핸들 = 컨트롤 그립</td></tr>
+            <tr><td>핸들 호버</td><td>scale 1.08 + shadow 강화</td></tr>
+            <tr><td>핸들 드래그 중</td><td>scale 1.12 + 흰 ring 6px <code>rgba(255,255,255,0.18)</code></td></tr>
+            <tr><td>핸들 라벨</td><td>"시작" / "끝" · 핸들 위쪽 7px gap · bg <code>rgba(0,0,0,0.70)</code> · 10.5 w700 · padding 2v/8h · radius 6</td></tr>
+            <tr><td>EDGE_PAD</td><td>36 (이전 20) — 핸들이 화면 좌/우 가장자리에 닿지 않도록</td></tr>
+            <tr><td>줌 pill</td><td>bg <code>rgba(0,0,0,0.55)</code> · 버튼 42×28 · active <code>#facc15</code> + <code>#111827</code></td></tr>
+            <tr><td>썸네일</td><td>54×54 · radius 10 · 1.5px <code>rgba(255,255,255,0.5)</code></td></tr>
+            <tr><td>셔터</td><td>66×66 흰 원 · 4px <code>rgba(255,255,255,0.35)</code> 외곽 · hover scale 1.04 / active 0.94 · 항상 활성 (자세 잠금 미적용)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function(){
+  // ===== 핸들 드래그 (각 폰별 독립) =====
+  document.querySelectorAll('.screen').forEach(screen => {
+    const handles = screen.querySelectorAll('.handle');
+    const MIN_GAP = 80;
+    const EDGE_PAD = 36; // 핸들이 가이드박스 바깥쪽 18px에 있고 핸들 자체 반지름 16 → 최소 34 + 여유
+
+    function getCss(name){
+      return parseFloat(getComputedStyle(screen).getPropertyValue(name));
+    }
+
+    handles.forEach(handle => {
+      const type = handle.dataset.type;
+
+      handle.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        handle.setPointerCapture(e.pointerId);
+        handle.classList.add('dragging');
+
+        const onMove = (ev) => {
+          const rect = screen.getBoundingClientRect();
+          const x = ev.clientX - rect.left;
+          if(type === 'start'){
+            const ex = getCss('--end-x');
+            const next = Math.max(EDGE_PAD, Math.min(ex - MIN_GAP, x));
+            screen.style.setProperty('--start-x', next + 'px');
+          } else {
+            const sx = getCss('--start-x');
+            const next = Math.max(sx + MIN_GAP, Math.min(rect.width - EDGE_PAD, x));
+            screen.style.setProperty('--end-x', next + 'px');
+          }
+        };
+        const onUp = () => {
+          handle.classList.remove('dragging');
+          handle.removeEventListener('pointermove', onMove);
+          handle.removeEventListener('pointerup', onUp);
+          handle.removeEventListener('pointercancel', onUp);
+        };
+        handle.addEventListener('pointermove', onMove);
+        handle.addEventListener('pointerup', onUp);
+        handle.addEventListener('pointercancel', onUp);
+      });
+    });
+  });
+
+  // ===== 줌 토글 =====
+  document.querySelectorAll('.zoom-pill').forEach(pill => {
+    const buttons = pill.querySelectorAll('button');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  });
+
+  // ===== 플래시 토글 =====
+  document.querySelectorAll('.flash-pill').forEach(pill => {
+    const states = [
+      { label:'Auto', cls:'' },
+      { label:'On',   cls:'on' },
+      { label:'Off',  cls:'off' },
+    ];
+    let idx = 0;
+    pill.addEventListener('click', () => {
+      idx = (idx + 1) % states.length;
+      pill.classList.remove('on','off');
+      if(states[idx].cls) pill.classList.add(states[idx].cls);
+      const labelEl = pill.querySelector('.flash-label');
+      if(labelEl) labelEl.textContent = states[idx].label;
+    });
+  });
+
+  // ===== 셔터 클릭 피드백 =====
+  document.querySelectorAll('.shutter').forEach(sh => {
+    sh.addEventListener('click', () => {
+      if(sh.classList.contains('locked')) return;
+      sh.style.background = '#fbbf24';
+      setTimeout(() => sh.style.background = '', 120);
+    });
+  });
+})();
+</script>
+
+<script src="_embed.js"></script>
+</body>
+</html>

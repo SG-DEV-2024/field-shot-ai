@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>S-009 보관함 (v0.2)</title>
+<style>
+/* ============================================================
+   S-009 사진 보관함 (이전 ID S-012)
+   진입: S-001 "보관함 보기" pill 탭
+   라우트: /archive · ArchivePage (기존 v1 파일 수정)
+
+   v1.0 → v0.2 변경:
+     - 카드에 dimension 레코드의 subtype 배지 표시
+     - dimension 측정값은 "300 mm" 같은 형식 (subtype별 단위는 모두 mm 동일)
+     - 보관함 내 "미전송 데이터 (N건) 업로드" 버튼은 v1과 동일 유지
+     - v1 수정 다이얼로그 패턴 유지 (단일 측정값 + 비고 수정)
+
+   데이터 상태 (여러 폰 케이스):
+     ① 빈 보관함 (empty) — 수집 0건
+     ② 데이터 있음 (filled) — 대기/완료 혼합 카드 리스트
+     ③ 수정 모달 열림 (editing) — 카드 수정 버튼 탭 시 다이얼로그
+   ============================================================ */
+:root{
+  --ink:#111827; --muted:#6B7280; --line:#E5E7EB;
+  --blue:#2563EB; --blue-deep:#1E40AF; --blue-weak:#EFF6FF;
+  --red:#DC2626; --green:#16A34A;
+  --amber:#f59e0b;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#f1f5f9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#0f172a;
+  padding:40px 24px 60px;
+  line-height:1.55;
+}
+
+/* ====== 페이지 헤더 ====== */
+.page-head{
+  max-width:1280px; margin:0 auto 28px;
+  text-align:center;
+}
+.page-head .eyebrow{
+  display:inline-block;
+  font-size:11.5px; letter-spacing:0.14em; font-weight:800;
+  color:#2563EB; background:#DBEAFE;
+  padding:5px 12px; border-radius:999px;
+  margin-bottom:10px;
+}
+.page-head h1{
+  margin:0; font-size:24px; font-weight:800; letter-spacing:-0.025em; color:#0f172a;
+}
+.page-head p{margin:6px 0 0; color:#64748b; font-size:13.5px;}
+.page-head .hint{
+  display:inline-block; margin-top:10px;
+  font-size:12px; color:#0f172a; background:#fef3c7; border:1px solid #fcd34d;
+  border-radius:8px; padding:6px 12px;
+}
+
+/* ====== 폰 목업 그리드 ====== */
+.mockup-row{
+  display:flex; justify-content:center; align-items:flex-start;
+  gap:36px; flex-wrap:wrap;
+  margin-bottom:48px;
+}
+.stage{display:flex; flex-direction:column; align-items:center; gap:14px;}
+.stage .tag{
+  font-size:12px; font-weight:700; color:#475569;
+  background:#fff; border:1px solid #cbd5e1;
+  border-radius:999px; padding:6px 14px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.stage .tag .dot{width:6px; height:6px; border-radius:50%; background:#94a3b8;}
+.stage .tag.empty .dot{background:#6B7280;}
+.stage .tag.filled .dot{background:#2563EB;}
+.stage .tag.modal .dot{background:#f59e0b;}
+.stage .desc{
+  text-align:center; font-size:11.5px; color:#64748b;
+  max-width:300px; line-height:1.4;
+}
+
+/* ====== 스크린 ====== */
+.screen{
+  width:360px; height:720px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(15,23,42,.10);
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+}
+
+/* ---- 상단 헤더 ---- */
+.appbar{
+  display:flex; align-items:center;
+  padding:14px 12px 12px 8px;
+  gap:6px;
+  flex-shrink:0;
+}
+.back-btn{
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  color:#111827;
+  cursor:pointer; border-radius:8px;
+  transition:background-color .12s;
+}
+.back-btn:hover{background:rgba(0,0,0,0.05);}
+.back-btn:active{background:rgba(0,0,0,0.10);}
+.back-btn svg{width:22px; height:22px;}
+.appbar h1{
+  margin:0;
+  font-size:20px; font-weight:800;
+  letter-spacing:-0.2px; color:var(--ink);
+  line-height:1.2;
+}
+
+/* ---- 본문 영역 ---- */
+.scroll-area{flex:1; overflow-y:auto;}
+.scroll-area::-webkit-scrollbar{width:6px;}
+.scroll-area::-webkit-scrollbar-thumb{background:#e2e8f0; border-radius:3px;}
+
+/* 헤더 (오늘 수집한 데이터 N개) */
+.list-head{
+  padding:6px 20px 14px;
+  font-size:14px; font-weight:700; color:#0f172a;
+}
+
+/* 카드 리스트 */
+.records{padding:0 16px; display:flex; flex-direction:column; gap:10px;}
+
+/* 데이터 카드 */
+.record-card{
+  display:flex; gap:12px;
+  padding:12px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  align-items:center;
+  transition:background-color .12s, border-color .12s;
+}
+.record-card:hover{background:#f8fafc; border-color:#cbd5e1;}
+.record-card .thumb{
+  position:relative;
+  width:60px; height:60px;
+  border-radius:8px;
+  overflow:hidden;
+  flex-shrink:0;
+  background:#1f2937;
+}
+.record-card .thumb svg{position:absolute; inset:0; width:100%; height:100%;}
+.record-card .record-info{flex:1; min-width:0;}
+.record-card .record-meta{
+  display:flex; align-items:center; gap:6px;
+  font-size:11px; color:#6B7280; font-weight:500;
+  margin-bottom:3px;
+  flex-wrap:wrap;
+}
+.record-card .record-meta .sep{color:#cbd5e1; font-weight:400;}
+
+.subtype-badge{
+  padding:2px 7px; border-radius:5px;
+  font-size:10px; font-weight:800;
+  letter-spacing:0.01em;
+  line-height:1.3;
+}
+.subtype-badge.width{background:#DBEAFE; color:#1E40AF;}
+.subtype-badge.gap{background:#DBEAFE; color:#1E40AF;}
+.subtype-badge.depth{background:#FEF3C7; color:#92400e;}
+
+.record-card .record-value{
+  font-size:19px; font-weight:800; color:#111827;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  margin-bottom:4px;
+  letter-spacing:-0.3px;
+}
+.record-card .record-value .unit{
+  font-size:13px; font-weight:600; color:#6B7280; margin-left:2px;
+  font-family:inherit;
+}
+
+.record-card .record-status{
+  font-size:11.5px; font-weight:700;
+  display:inline-flex; align-items:center; gap:5px;
+}
+.record-card .record-status.pending{color:#DC2626;}
+.record-card .record-status.uploaded{color:#16A34A;}
+.record-card .record-status .dot{
+  width:6px; height:6px; border-radius:50%;
+  background:currentColor;
+}
+
+.edit-btn{
+  flex-shrink:0;
+  background:#fff; color:#374151;
+  border:1px solid #d1d5db;
+  border-radius:8px;
+  padding:6px 14px;
+  font-size:12px; font-weight:600;
+  cursor:pointer;
+  transition:background-color .12s, border-color .12s, transform .08s;
+  user-select:none;
+}
+.edit-btn:hover{background:#f9fafb; border-color:#9ca3af;}
+.edit-btn:active{transform:scale(0.97); background:#f3f4f6;}
+
+/* ---- 빈 상태 ---- */
+.empty-state{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:60px 24px;
+  text-align:center;
+}
+.empty-state .ic{
+  width:64px; height:64px;
+  border-radius:18px;
+  background:#f1f5f9;
+  display:flex; align-items:center; justify-content:center;
+  color:#94a3b8;
+  margin-bottom:14px;
+}
+.empty-state .ic svg{width:32px; height:32px;}
+.empty-state .title{
+  font-size:14.5px; font-weight:700; color:#475569;
+  margin-bottom:5px;
+}
+.empty-state .desc{
+  font-size:12px; color:#94a3b8; line-height:1.5;
+}
+
+/* ---- 하단 버튼 ---- */
+.bottom-bar{
+  flex-shrink:0;
+  padding:14px 16px 18px;
+  background:#fff;
+  border-top:1px solid #e5e7eb;
+}
+.upload-btn{
+  width:100%; height:52px;
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; font-weight:700;
+  cursor:pointer;
+  transition:background-color .12s, transform .08s;
+  user-select:none;
+}
+.upload-btn.active{
+  background:var(--blue-deep);
+  color:#fff;
+  box-shadow:0 4px 12px rgba(30,64,175,.25);
+}
+.upload-btn.active:hover{background:#1e3a8a;}
+.upload-btn.active:active{transform:scale(0.98);}
+.upload-btn.disabled{
+  background:#e5e7eb; color:#9CA3AF;
+  cursor:not-allowed;
+}
+
+/* ---- 수정 모달 ---- */
+.modal-backdrop{
+  position:absolute; inset:0;
+  background:rgba(15,23,42,0.55);
+  display:flex; align-items:center; justify-content:center;
+  padding:20px;
+  z-index:10;
+  backdrop-filter:blur(2px);
+}
+.modal{
+  width:100%;
+  background:#f3f3f7;
+  border-radius:18px;
+  padding:18px;
+  box-shadow:0 20px 50px rgba(15,23,42,.25);
+}
+.modal-title{
+  font-size:14.5px; font-weight:800; color:#0f172a;
+  margin-bottom:4px;
+  display:flex; align-items:center;
+}
+.modal-instruction{
+  font-size:11.5px; color:#475569;
+  margin:0 0 12px;
+  line-height:1.4;
+}
+.modal-input{
+  width:100%; height:54px;
+  padding:0 16px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  background:#fff;
+  font-size:20px; font-weight:700; color:#111827;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  outline:none;
+  margin-bottom:14px;
+  position:relative;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.modal-input .val{flex:1;}
+.modal-input .unit{font-size:14px; color:#6B7280; font-weight:600; font-family:-apple-system,Arial,sans-serif;}
+.modal-label{
+  font-size:13px; font-weight:700; color:#0f172a;
+  margin-bottom:6px;
+}
+.modal-memo{
+  width:100%; min-height:80px;
+  padding:10px 14px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  background:#fff;
+  font-family:inherit;
+  font-size:12px; color:#9ca3af;
+  resize:none; outline:none;
+  margin-bottom:14px;
+}
+.modal-actions{
+  display:flex; align-items:center; justify-content:flex-end;
+  gap:14px;
+}
+.modal-cancel{
+  background:transparent; color:#374151;
+  border:none;
+  font-size:13px; font-weight:600;
+  cursor:pointer;
+  padding:8px 4px;
+}
+.modal-cancel:hover{color:#0f172a;}
+.modal-save{
+  background:var(--blue-deep);
+  color:#fff;
+  border:none;
+  border-radius:999px;
+  padding:9px 22px;
+  font-size:13px; font-weight:800;
+  cursor:pointer;
+  transition:background-color .12s, transform .08s;
+}
+.modal-save:hover{background:#1e3a8a;}
+.modal-save:active{transform:scale(0.97);}
+
+/* ---- v0.2 추가: subtype별 모달 폼 요소 ---- */
+.modal-field-label{
+  font-size:12.5px; font-weight:700; color:#0f172a;
+  margin-bottom:5px;
+  display:flex; align-items:center; gap:6px;
+}
+.modal-field-label .step-num{
+  width:16px; height:16px;
+  background:var(--blue); color:#fff;
+  border-radius:50%;
+  font-size:9.5px; font-weight:800;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.modal-field-label .unit-hint{
+  margin-left:auto;
+  font-size:10.5px; color:#6B7280; font-weight:600;
+}
+.modal-input.compact{
+  height:46px;
+  margin-bottom:10px;
+  font-size:18px;
+  padding:0 14px;
+}
+.modal-calc{
+  background:#EFF6FF;
+  border:1px solid #BFDBFE;
+  border-radius:10px;
+  padding:9px 14px;
+  margin:4px 0 12px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.modal-calc.depth{
+  background:#FEF3C7;
+  border-color:#FDE68A;
+}
+.modal-calc .calc-label{
+  font-size:11px; color:#1E40AF; font-weight:700;
+  letter-spacing:0.02em;
+}
+.modal-calc.depth .calc-label{ color:#92400E; }
+.modal-calc .calc-value{
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:18px; font-weight:800; color:#1E40AF;
+}
+.modal-calc.depth .calc-value{ color:#92400E; }
+.modal-subtype-chip{
+  display:inline-block;
+  font-size:10.5px; font-weight:800;
+  padding:3px 9px;
+  border-radius:999px;
+  letter-spacing:0.02em;
+  margin-left:8px;
+  vertical-align:1px;
+}
+.modal-subtype-chip.width,
+.modal-subtype-chip.gap{ background:#DBEAFE; color:#1E40AF; }
+.modal-subtype-chip.depth{ background:#FEF3C7; color:#92400E; }
+
+/* ====== 기획 명세 패널 ====== */
+.spec-section{max-width:1280px; margin:0 auto;}
+.spec-grid{
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:18px;
+}
+.spec-card{
+  background:#fff; border:1px solid #e2e8f0;
+  border-radius:16px; padding:22px 24px;
+  box-shadow:0 4px 12px rgba(15,23,42,.04);
+}
+.spec-card h2{
+  margin:0 0 14px;
+  font-size:15px; font-weight:800; letter-spacing:-0.01em;
+  color:#0f172a;
+  display:flex; align-items:center; gap:8px;
+}
+.spec-card h2::before{
+  content:""; width:4px; height:16px; background:var(--blue);
+  border-radius:2px;
+}
+.spec-card .kv{
+  display:grid; grid-template-columns:96px 1fr; gap:8px 16px;
+  font-size:13px;
+}
+.spec-card .kv b{font-weight:700; color:#475569;}
+.spec-card .kv code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:5px; padding:1px 6px; font-size:11.5px;
+  color:#1e293b; font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.spec-card ul.flow{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:8px;
+  font-size:13px; color:#334155;
+}
+.spec-card ul.flow li{
+  position:relative; padding-left:22px;
+}
+.spec-card ul.flow li::before{
+  content:""; position:absolute; left:6px; top:6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--blue); opacity:.6;
+}
+.spec-card ul.flow li b{color:#0f172a; font-weight:700;}
+.spec-card table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.spec-card table th,.spec-card table td{
+  border:1px solid #e5e7eb; padding:7px 10px; text-align:left;
+  vertical-align:top;
+}
+.spec-card table th{background:#f8fafc; color:#475569; font-weight:700;}
+.spec-card table td code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:4px; padding:1px 5px; font-size:11px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.chip{
+  display:inline-block; padding:2px 9px; border-radius:999px;
+  font-size:11px; font-weight:700; margin-right:3px;
+}
+.chip.new{background:#DBEAFE; color:#1E40AF;}
+
+@media (max-width:980px){
+  .mockup-row{flex-direction:column; align-items:center;}
+  .spec-grid{grid-template-columns:1fr;}
+}
+@media print{
+  body{background:#fff; padding:0;}
+  .screen{box-shadow:none;}
+  .spec-card{box-shadow:none;}
+}
+</style>
+</head>
+<body>
+
+  <div class="page-head">
+    <span class="eyebrow">SCREEN MOCKUP & SPEC · S-009</span>
+    <h1>사진 보관함</h1>
+    <p>v1.0 보관함 디자인 베이스 + v2 변경(dimension 레코드의 subtype 배지). 데이터 상태 3종(빈/데이터 있음/수정 모달) · <b>탄산화 + 규격조사 3종(폭·간격·홀깊이) 모두 포함</b>.</p>
+  </div>
+
+  <!-- ========== Mockup Row (3 상태) ========== -->
+  <div class="mockup-row">
+
+    <!-- ① 빈 보관함 -->
+    <div class="stage">
+      <div class="screen">
+        <div class="appbar">
+          <span class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </span>
+          <h1>사진 보관함</h1>
+        </div>
+
+        <div class="scroll-area">
+          <div class="list-head">오늘 수집한 데이터 (0)</div>
+          <div class="empty-state">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </div>
+            <div class="title">수집된 데이터가 없습니다</div>
+            <div class="desc">메인 화면에서 조사를 시작하세요</div>
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="upload-btn disabled">전송할 데이터가 없습니다</div>
+        </div>
+      </div>
+      <div class="tag empty"><span class="dot"></span>① 빈 보관함 (수집 0건)</div>
+      <div class="desc">신규 설치 직후 또는 모든 데이터가 전송 완료되어 오늘 추가된 미전송 0건일 때.</div>
+    </div>
+
+    <!-- ② 데이터 있음 -->
+    <div class="stage">
+      <div class="screen">
+        <div class="appbar">
+          <span class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </span>
+          <h1>사진 보관함</h1>
+        </div>
+
+        <div class="scroll-area">
+          <div class="list-head">오늘 수집한 데이터 (4)</div>
+          <div class="records">
+
+            <!-- 카드 1: 탄산화 조사 (v1 동일 패턴) -->
+            <div class="record-card" data-survey-type="carbonation">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="t1" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#9b9991"/>
+                      <stop offset="1" stop-color="#65635c"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="60" height="60" fill="url(#t1)"/>
+                  <path d="M 8 28 L 35 38 L 52 24" stroke="#1a1814" stroke-width="2.5" fill="none"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta">
+                  <span>11:25</span>
+                  <span class="sep">|</span>
+                  <span>탄산화 조사</span>
+                </div>
+                <div class="record-value">0.2<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <!-- 카드 2: 규격 조사 폭 측정 (v0.2 신규 - subtype 배지) -->
+            <div class="record-card" data-survey-type="dimension-width">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="t2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#9b9991"/>
+                      <stop offset="1" stop-color="#65635c"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="60" height="60" fill="url(#t2)"/>
+                  <rect x="0" y="22" width="60" height="22" fill="#3f3d39"/>
+                  <line x1="0" y1="22" x2="60" y2="22" stroke="#15130f" stroke-width="1.2"/>
+                  <line x1="0" y1="44" x2="60" y2="44" stroke="#15130f" stroke-width="1.2"/>
+                  <!-- 줄자 가로 띠 (좌측 0부터 시작) -->
+                  <rect x="2" y="46" width="56" height="6" fill="#fbbf24" stroke="#92400e" stroke-width="0.5"/>
+                  <line x1="6" y1="46" x2="6" y2="49" stroke="#1f1300" stroke-width="0.5"/>
+                  <line x1="18" y1="46" x2="18" y2="49" stroke="#1f1300" stroke-width="0.5"/>
+                  <line x1="30" y1="46" x2="30" y2="49" stroke="#1f1300" stroke-width="0.5"/>
+                  <line x1="42" y1="46" x2="42" y2="49" stroke="#1f1300" stroke-width="0.5"/>
+                  <line x1="54" y1="46" x2="54" y2="49" stroke="#1f1300" stroke-width="0.5"/>
+                  <!-- 측정점 표시선 (박스 좌/우 끝) -->
+                  <line x1="6" y1="22" x2="6" y2="44" stroke="#2563EB" stroke-width="2"/>
+                  <line x1="54" y1="22" x2="54" y2="44" stroke="#ef4444" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta">
+                  <span>11:32</span>
+                  <span class="sep">|</span>
+                  <span>규격 조사</span>
+                  <span class="subtype-badge width">폭 측정</span>
+                </div>
+                <div class="record-value">300<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <!-- 카드 3: 규격 조사 간격 측정 (v0.2 신규 - subtype 배지) -->
+            <div class="record-card" data-survey-type="dimension-gap">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="t3" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#9b9991"/>
+                      <stop offset="1" stop-color="#65635c"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="60" height="60" fill="url(#t3)"/>
+                  <!-- 좌측 부재 -->
+                  <rect x="2" y="14" width="14" height="34" fill="#3f3d39"/>
+                  <line x1="16" y1="14" x2="16" y2="48" stroke="#15130f" stroke-width="1.2"/>
+                  <!-- 우측 부재 -->
+                  <rect x="44" y="14" width="14" height="34" fill="#3f3d39"/>
+                  <line x1="44" y1="14" x2="44" y2="48" stroke="#15130f" stroke-width="1.2"/>
+                  <!-- 줄자 (가운데 가로, 좌측 0이 아닌 임의 눈금 시작) -->
+                  <rect x="16" y="50" width="28" height="6" fill="#fbbf24" stroke="#92400e" stroke-width="0.5"/>
+                  <line x1="20" y1="50" x2="20" y2="53" stroke="#1f1300" stroke-width="0.5"/>
+                  <line x1="28" y1="50" x2="28" y2="53" stroke="#1f1300" stroke-width="0.5"/>
+                  <line x1="36" y1="50" x2="36" y2="53" stroke="#1f1300" stroke-width="0.5"/>
+                  <!-- 측정점 표시선 -->
+                  <line x1="16" y1="14" x2="16" y2="48" stroke="#2563EB" stroke-width="2"/>
+                  <line x1="44" y1="14" x2="44" y2="48" stroke="#ef4444" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta">
+                  <span>11:40</span>
+                  <span class="sep">|</span>
+                  <span>규격 조사</span>
+                  <span class="subtype-badge gap">간격 측정</span>
+                </div>
+                <div class="record-value">250<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <!-- 카드 4: 규격 조사 홀 깊이 (v0.2 신규 - subtype 배지) -->
+            <div class="record-card" data-survey-type="dimension-hole">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="t4" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#9b9991"/>
+                      <stop offset="1" stop-color="#65635c"/>
+                    </linearGradient>
+                    <radialGradient id="th4">
+                      <stop offset="0" stop-color="#000"/>
+                      <stop offset="1" stop-color="#2a2722"/>
+                    </radialGradient>
+                  </defs>
+                  <rect width="60" height="60" fill="url(#t4)"/>
+                  <ellipse cx="30" cy="30" rx="16" ry="14" fill="url(#th4)" stroke="#0a0907" stroke-width="1.5"/>
+                  <!-- 홀 입구 (amber) + 읽기 위치 (파랑) 마커 -->
+                  <circle cx="18" cy="22" r="2.5" fill="#f59e0b" stroke="#fff" stroke-width="1"/>
+                  <circle cx="42" cy="22" r="2.5" fill="#2563EB" stroke="#fff" stroke-width="1"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta">
+                  <span>11:48</span>
+                  <span class="sep">|</span>
+                  <span>규격 조사</span>
+                  <span class="subtype-badge depth">홀 깊이</span>
+                </div>
+                <div class="record-value">150<span class="unit">mm</span></div>
+                <div class="record-status uploaded"><span class="dot"></span>완료</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="upload-btn active">미전송 데이터 (3건) 업로드</div>
+        </div>
+      </div>
+      <div class="tag filled"><span class="dot"></span>② 데이터 있음 (대기 3 / 완료 1)</div>
+      <div class="desc">탄산화 1개 + 규격 조사 3종(폭/간격/홀깊이) 모두 포함. subtype 배지 색상으로 측정 유형 즉시 구분.</div>
+    </div>
+
+    <!-- ③ 수정 모달 열림 -->
+    <div class="stage">
+      <div class="screen">
+        <div class="appbar">
+          <span class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </span>
+          <h1>사진 보관함</h1>
+        </div>
+
+        <!-- stage 2와 동일한 4-카드 리스트 (모달 backdrop이 오버레이) -->
+        <div class="scroll-area">
+          <div class="list-head">오늘 수집한 데이터 (4)</div>
+          <div class="records">
+
+            <div class="record-card" data-survey-type="carbonation">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t1m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t1m)"/>
+                  <path d="M 8 28 L 35 38 L 52 24" stroke="#1a1814" stroke-width="2.5" fill="none"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:25</span><span class="sep">|</span><span>탄산화 조사</span></div>
+                <div class="record-value">0.2<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card" data-survey-type="dimension-width">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t2m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t2m)"/>
+                  <rect x="0" y="22" width="60" height="22" fill="#3f3d39"/>
+                  <line x1="0" y1="22" x2="60" y2="22" stroke="#15130f" stroke-width="1.2"/>
+                  <line x1="0" y1="44" x2="60" y2="44" stroke="#15130f" stroke-width="1.2"/>
+                  <rect x="2" y="46" width="56" height="6" fill="#fbbf24" stroke="#92400e" stroke-width="0.5"/>
+                  <line x1="6" y1="22" x2="6" y2="44" stroke="#2563EB" stroke-width="2"/>
+                  <line x1="54" y1="22" x2="54" y2="44" stroke="#ef4444" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:32</span><span class="sep">|</span><span>규격 조사</span><span class="subtype-badge width">폭 측정</span></div>
+                <div class="record-value">300<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card" data-survey-type="dimension-gap">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t3m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t3m)"/>
+                  <rect x="2" y="14" width="14" height="34" fill="#3f3d39"/>
+                  <line x1="16" y1="14" x2="16" y2="48" stroke="#15130f" stroke-width="1.2"/>
+                  <rect x="44" y="14" width="14" height="34" fill="#3f3d39"/>
+                  <line x1="44" y1="14" x2="44" y2="48" stroke="#15130f" stroke-width="1.2"/>
+                  <rect x="16" y="50" width="28" height="6" fill="#fbbf24" stroke="#92400e" stroke-width="0.5"/>
+                  <line x1="16" y1="14" x2="16" y2="48" stroke="#2563EB" stroke-width="2"/>
+                  <line x1="44" y1="14" x2="44" y2="48" stroke="#ef4444" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:40</span><span class="sep">|</span><span>규격 조사</span><span class="subtype-badge gap">간격 측정</span></div>
+                <div class="record-value">250<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card" data-survey-type="dimension-hole">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="t4m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient>
+                    <radialGradient id="th4m"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#2a2722"/></radialGradient>
+                  </defs>
+                  <rect width="60" height="60" fill="url(#t4m)"/>
+                  <ellipse cx="30" cy="30" rx="16" ry="14" fill="url(#th4m)" stroke="#0a0907" stroke-width="1.5"/>
+                  <circle cx="18" cy="22" r="2.5" fill="#f59e0b" stroke="#fff" stroke-width="1"/>
+                  <circle cx="42" cy="22" r="2.5" fill="#2563EB" stroke="#fff" stroke-width="1"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:48</span><span class="sep">|</span><span>규격 조사</span><span class="subtype-badge depth">홀 깊이</span></div>
+                <div class="record-value">150<span class="unit">mm</span></div>
+                <div class="record-status uploaded"><span class="dot"></span>완료</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="upload-btn active">미전송 데이터 (3건) 업로드</div>
+        </div>
+
+        <!-- 수정 모달 오버레이 — 탄산화 (카드 1 수정 예시, 0.2mm) -->
+        <div class="modal-backdrop">
+          <div class="modal">
+            <div class="modal-title">측정값 수정 <span class="modal-subtype-chip">탄산화</span></div>
+            <div class="modal-instruction">액정에 표시된 수치를 입력해주세요</div>
+            <div class="modal-input">
+              <span class="val">0.2</span>
+              <span class="unit">mm</span>
+            </div>
+            <div class="modal-label">비고 (선택)</div>
+            <div class="modal-memo">특이사항이나 메모를 입력하세요...</div>
+            <div class="modal-actions">
+              <button class="modal-cancel">취소</button>
+              <button class="modal-save">저장</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tag modal"><span class="dot"></span>③ 수정 모달 — 탄산화</div>
+      <div class="desc">탄산화 카드 "수정" 탭 → 단일 측정값(mm) + 비고 보정 모달. v1 다이얼로그 패턴 유지. 인터랙티브 플로우에서는 S-009E.</div>
+    </div>
+
+    <!-- ④ 수정 모달 — 폭 / 간격 (S-005 입력 구조 일치) -->
+    <div class="stage">
+      <div class="screen">
+        <div class="appbar">
+          <span class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </span>
+          <h1>사진 보관함</h1>
+        </div>
+
+        <div class="scroll-area">
+          <div class="list-head">오늘 수집한 데이터 (4)</div>
+          <div class="records">
+
+            <div class="record-card" data-survey-type="carbonation">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t1d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t1d)"/>
+                  <path d="M 8 28 L 35 38 L 52 24" stroke="#1a1814" stroke-width="2.5" fill="none"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:25</span><span class="sep">|</span><span>탄산화 조사</span></div>
+                <div class="record-value">0.2<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card" data-survey-type="dimension-width">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t2d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t2d)"/>
+                  <rect x="0" y="22" width="60" height="22" fill="#3f3d39"/>
+                  <line x1="0" y1="22" x2="60" y2="22" stroke="#15130f" stroke-width="1.2"/>
+                  <line x1="0" y1="44" x2="60" y2="44" stroke="#15130f" stroke-width="1.2"/>
+                  <rect x="2" y="46" width="56" height="6" fill="#fbbf24" stroke="#92400e" stroke-width="0.5"/>
+                  <line x1="6" y1="22" x2="6" y2="44" stroke="#2563EB" stroke-width="2"/>
+                  <line x1="54" y1="22" x2="54" y2="44" stroke="#ef4444" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:32</span><span class="sep">|</span><span>규격 조사</span><span class="subtype-badge width">폭 측정</span></div>
+                <div class="record-value">300<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card" data-survey-type="dimension-gap">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t3d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t3d)"/>
+                  <rect x="2" y="14" width="14" height="34" fill="#3f3d39"/>
+                  <line x1="16" y1="14" x2="16" y2="48" stroke="#15130f" stroke-width="1.2"/>
+                  <rect x="44" y="14" width="14" height="34" fill="#3f3d39"/>
+                  <line x1="44" y1="14" x2="44" y2="48" stroke="#15130f" stroke-width="1.2"/>
+                  <rect x="16" y="50" width="28" height="6" fill="#fbbf24" stroke="#92400e" stroke-width="0.5"/>
+                  <line x1="16" y1="14" x2="16" y2="48" stroke="#2563EB" stroke-width="2"/>
+                  <line x1="44" y1="14" x2="44" y2="48" stroke="#ef4444" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:40</span><span class="sep">|</span><span>규격 조사</span><span class="subtype-badge gap">간격 측정</span></div>
+                <div class="record-value">250<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card" data-survey-type="dimension-hole">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="t4d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient>
+                    <radialGradient id="th4d"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#2a2722"/></radialGradient>
+                  </defs>
+                  <rect width="60" height="60" fill="url(#t4d)"/>
+                  <ellipse cx="30" cy="30" rx="16" ry="14" fill="url(#th4d)" stroke="#0a0907" stroke-width="1.5"/>
+                  <circle cx="18" cy="22" r="2.5" fill="#f59e0b" stroke="#fff" stroke-width="1"/>
+                  <circle cx="42" cy="22" r="2.5" fill="#2563EB" stroke="#fff" stroke-width="1"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:48</span><span class="sep">|</span><span>규격 조사</span><span class="subtype-badge depth">홀 깊이</span></div>
+                <div class="record-value">150<span class="unit">mm</span></div>
+                <div class="record-status uploaded"><span class="dot"></span>완료</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="upload-btn active">미전송 데이터 (3건) 업로드</div>
+        </div>
+
+        <!-- 수정 모달 오버레이 — 폭 / 간격 (카드 2 폭측정 300mm 수정 예시) -->
+        <div class="modal-backdrop">
+          <div class="modal">
+            <div class="modal-title">측정값 수정 <span class="modal-subtype-chip width">폭 측정</span></div>
+            <div class="modal-instruction">줄자의 시작값과 끝값을 보정하세요. 측정값은 자동 계산됩니다.</div>
+
+            <div class="modal-field-label"><span class="step-num">1</span>줄자 시작값<span class="unit-hint">mm</span></div>
+            <div class="modal-input compact">
+              <span class="val">0</span>
+              <span class="unit">mm</span>
+            </div>
+
+            <div class="modal-field-label"><span class="step-num">2</span>줄자 끝값<span class="unit-hint">mm</span></div>
+            <div class="modal-input compact">
+              <span class="val">300</span>
+              <span class="unit">mm</span>
+            </div>
+
+            <div class="modal-calc">
+              <span class="calc-label">자동 계산 측정값</span>
+              <span class="calc-value">300 mm</span>
+            </div>
+
+            <div class="modal-label">비고 (선택)</div>
+            <div class="modal-memo">특이사항이나 메모를 입력하세요...</div>
+            <div class="modal-actions">
+              <button class="modal-cancel">취소</button>
+              <button class="modal-save">저장</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tag modal"><span class="dot"></span>④ 수정 모달 — 폭 / 간격</div>
+      <div class="desc">폭(0 시작) / 간격(임의 시작) 카드 "수정" 탭 → 시작값·끝값 보정 + 측정값 자동 계산 + 비고. S-005 입력 화면 구조 일치. 인터랙티브 플로우에서는 S-009Ed.</div>
+    </div>
+
+    <!-- ⑤ 수정 모달 — 홀 깊이 (S-008 입력 구조 일치) -->
+    <div class="stage">
+      <div class="screen">
+        <div class="appbar">
+          <span class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </span>
+          <h1>사진 보관함</h1>
+        </div>
+
+        <div class="scroll-area">
+          <div class="list-head">오늘 수집한 데이터 (4)</div>
+          <div class="records">
+
+            <div class="record-card" data-survey-type="carbonation">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t1h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t1h)"/>
+                  <path d="M 8 28 L 35 38 L 52 24" stroke="#1a1814" stroke-width="2.5" fill="none"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:25</span><span class="sep">|</span><span>탄산화 조사</span></div>
+                <div class="record-value">0.2<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card" data-survey-type="dimension-width">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t2h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t2h)"/>
+                  <rect x="0" y="22" width="60" height="22" fill="#3f3d39"/>
+                  <line x1="0" y1="22" x2="60" y2="22" stroke="#15130f" stroke-width="1.2"/>
+                  <line x1="0" y1="44" x2="60" y2="44" stroke="#15130f" stroke-width="1.2"/>
+                  <rect x="2" y="46" width="56" height="6" fill="#fbbf24" stroke="#92400e" stroke-width="0.5"/>
+                  <line x1="6" y1="22" x2="6" y2="44" stroke="#2563EB" stroke-width="2"/>
+                  <line x1="54" y1="22" x2="54" y2="44" stroke="#ef4444" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:32</span><span class="sep">|</span><span>규격 조사</span><span class="subtype-badge width">폭 측정</span></div>
+                <div class="record-value">300<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card" data-survey-type="dimension-gap">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t3h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t3h)"/>
+                  <rect x="2" y="14" width="14" height="34" fill="#3f3d39"/>
+                  <line x1="16" y1="14" x2="16" y2="48" stroke="#15130f" stroke-width="1.2"/>
+                  <rect x="44" y="14" width="14" height="34" fill="#3f3d39"/>
+                  <line x1="44" y1="14" x2="44" y2="48" stroke="#15130f" stroke-width="1.2"/>
+                  <rect x="16" y="50" width="28" height="6" fill="#fbbf24" stroke="#92400e" stroke-width="0.5"/>
+                  <line x1="16" y1="14" x2="16" y2="48" stroke="#2563EB" stroke-width="2"/>
+                  <line x1="44" y1="14" x2="44" y2="48" stroke="#ef4444" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:40</span><span class="sep">|</span><span>규격 조사</span><span class="subtype-badge gap">간격 측정</span></div>
+                <div class="record-value">250<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card" data-survey-type="dimension-hole">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs>
+                    <linearGradient id="t4h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#65635c"/></linearGradient>
+                    <radialGradient id="th4h"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#2a2722"/></radialGradient>
+                  </defs>
+                  <rect width="60" height="60" fill="url(#t4h)"/>
+                  <ellipse cx="30" cy="30" rx="16" ry="14" fill="url(#th4h)" stroke="#0a0907" stroke-width="1.5"/>
+                  <circle cx="18" cy="22" r="2.5" fill="#f59e0b" stroke="#fff" stroke-width="1"/>
+                  <circle cx="42" cy="22" r="2.5" fill="#2563EB" stroke="#fff" stroke-width="1"/>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:48</span><span class="sep">|</span><span>규격 조사</span><span class="subtype-badge depth">홀 깊이</span></div>
+                <div class="record-value">150<span class="unit">mm</span></div>
+                <div class="record-status uploaded"><span class="dot"></span>완료</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="upload-btn active">미전송 데이터 (3건) 업로드</div>
+        </div>
+
+        <!-- 수정 모달 오버레이 — 홀 깊이 (카드 4 홀깊이 150mm 수정 예시) -->
+        <div class="modal-backdrop">
+          <div class="modal">
+            <div class="modal-title">측정값 수정 <span class="modal-subtype-chip depth">홀 깊이</span></div>
+            <div class="modal-instruction">줄자에서 읽은 깊이 수치를 보정하세요. 단일 값입니다.</div>
+
+            <div class="modal-field-label">줄자에서 읽은 깊이<span class="unit-hint">mm</span></div>
+            <div class="modal-input compact">
+              <span class="val">150</span>
+              <span class="unit">mm</span>
+            </div>
+
+            <div class="modal-calc depth">
+              <span class="calc-label">측정값 (홀 깊이)</span>
+              <span class="calc-value">150 mm</span>
+            </div>
+
+            <div class="modal-label">비고 (선택)</div>
+            <div class="modal-memo">특이사항이나 메모를 입력하세요...</div>
+            <div class="modal-actions">
+              <button class="modal-cancel">취소</button>
+              <button class="modal-save">저장</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tag modal"><span class="dot"></span>⑤ 수정 모달 — 홀 깊이</div>
+      <div class="desc">홀 깊이 카드 "수정" 탭 → 줄자에서 읽은 깊이값 단일 보정 + 비고. S-008 입력 화면 구조 일치. 인터랙티브 플로우에서는 S-009Eh.</div>
+    </div>
+
+  </div>
+
+  <!-- ========== Spec Section ========== -->
+  <div class="spec-section">
+    <div class="spec-grid">
+
+      <div class="spec-card">
+        <h2>화면 정보</h2>
+        <div class="kv">
+          <b>화면 ID</b><div><code>S-009</code> (이전 S-012)</div>
+          <b>라우트</b><div><code>/archive</code></div>
+          <b>페이지</b><div><code>ArchivePage</code> · <a href="../../../lib/pages/archive/archive_page.dart">lib/pages/archive/archive_page.dart</a></div>
+          <b>컨트롤러</b><div><code>ArchiveController</code></div>
+          <b>진입</b><div>S-001 "보관함 보기" pill 탭</div>
+          <b>v2 변경</b><div>dimension 레코드 카드에 <b>subtype 배지</b> 추가 <span class="chip new">v0.2 신규</span></div>
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <h2>인터랙션 시나리오</h2>
+        <table>
+          <thead><tr><th>요소</th><th>동작</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>← 뒤로가기</td><td>탭</td><td>S-001 메인으로 복귀</td></tr>
+            <tr><td>카드 (썸네일/본문)</td><td>탭</td><td>사진 뷰어로 이동 (<code>/photo-viewer</code>)</td></tr>
+            <tr><td>수정 버튼</td><td>탭</td><td>수정 모달 다이얼로그 표시</td></tr>
+            <tr><td>모달 입력 박스</td><td>입력</td><td>측정값 보정</td></tr>
+            <tr><td>모달 비고</td><td>입력</td><td>note 텍스트 보정</td></tr>
+            <tr><td>모달 [취소]</td><td>탭</td><td>변경사항 폐기 + 모달 닫음</td></tr>
+            <tr><td>모달 [저장]</td><td>탭</td><td>StorageService.updateRecord() 호출 → 모달 닫음 + 카드 갱신</td></tr>
+            <tr><td>모달 backdrop</td><td>탭 (옵션)</td><td>취소와 동일 처리 (선택 구현)</td></tr>
+            <tr><td>일괄 업로드 (활성)</td><td>탭</td><td>S-001 일괄 업로드 동작과 동일 (MainController.uploadPending)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="spec-card">
+        <h2>카드 표시 규칙 (v2 변경)</h2>
+        <table>
+          <thead><tr><th>레코드 유형</th><th>상단 메타</th><th>값 표시</th></tr></thead>
+          <tbody>
+            <tr><td><code>SurveyType.carbonation</code></td><td>시각 · "탄산화 조사"</td><td>"0.2 mm" (단일 값)</td></tr>
+            <tr><td><code>SurveyType.dimension</code> + <code>wall_or_member_width</code></td><td>시각 · "규격 조사" · <span class="subtype-badge width">폭 측정</span></td><td>"300 mm" (measured_value)</td></tr>
+            <tr><td><code>SurveyType.dimension</code> + <code>member_gap</code></td><td>시각 · "규격 조사" · <span class="subtype-badge gap">간격 측정</span></td><td>"300 mm" (measured_value)</td></tr>
+            <tr><td><code>SurveyType.dimension</code> + <code>hole_depth</code></td><td>시각 · "규격 조사" · <span class="subtype-badge depth">홀 깊이</span></td><td>"150 mm" (measured_value = visible_reading_value)</td></tr>
+          </tbody>
+        </table>
+        <ul class="flow" style="margin-top:14px;">
+          <li><b>subtype 배지 색상</b> · 폭/간격은 파랑 톤(<code>#DBEAFE</code> / <code>#1E40AF</code>), 홀 깊이는 amber 톤(<code>#FEF3C7</code> / <code>#92400e</code>) — S-006/S-008 화면 톤과 일관</li>
+          <li><b>v1 카드 디자인 유지</b> · 썸네일 60×60 + 시각/조사종류 + 큰 측정값 + 상태(대기중 빨강 / 완료 초록) + 수정 pill</li>
+        </ul>
+      </div>
+
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>수정 모달 — subtype별 분기 <span class="chip new">v0.2 변경</span></h2>
+        <p style="margin:0 0 10px; font-size:13px; color:#334155;">
+          v0.2부터 수정 모달은 카드의 <code>data-survey-type</code>에 따라 <b>3가지 변형</b>으로 분기. 각 변형은 원본 입력 화면(S-탄산화 / S-005 / S-008)의 구조와 일치하여 작업자에게 친숙한 입력 패턴 유지.
+        </p>
+        <table>
+          <thead><tr><th>카드 subtype</th><th>모달 (stage)</th><th>입력 구조</th><th>원본 입력 화면</th><th>플로우 ID</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>carbonation</code></td>
+              <td>stage 3 — 탄산화</td>
+              <td>단일 측정값(<code>value</code>, mm) + 비고</td>
+              <td>v1 데이터 입력 화면</td>
+              <td><code>S-009E</code></td>
+            </tr>
+            <tr>
+              <td><code>dimension-width</code> / <code>dimension-gap</code></td>
+              <td>stage 4 — 폭 / 간격</td>
+              <td>줄자 시작값 + 줄자 끝값 + 자동 계산(<code>measured_value = end - start</code>) + 비고</td>
+              <td>S-005 (수치 입력)</td>
+              <td><code>S-009Ed</code></td>
+            </tr>
+            <tr>
+              <td><code>dimension-hole</code></td>
+              <td>stage 5 — 홀 깊이</td>
+              <td>줄자에서 읽은 깊이값(<code>visible_reading_value</code>, mm) + 비고</td>
+              <td>S-008 (수치 입력)</td>
+              <td><code>S-009Eh</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <ul class="flow" style="margin-top:14px;">
+          <li><b>표시 트리거</b> · 카드 우측 "수정" 버튼 탭. <code>.record-card[data-survey-type]</code> 값으로 적절한 모달 분기</li>
+          <li><b>편집 가능 필드</b> · subtype별 입력 모두 + 비고(<code>SurveyRecord.note</code>). 폭/간격은 시작/끝값 분리 편집 가능 (v0.1 → v0.2 정책 변경)</li>
+          <li><b>편집 불가</b> · 사진, 좌표(<code>startPointPixel</code>·<code>endPointPixel</code>·<code>hole_lip_pixel</code>·<code>tape_reading_pixel</code>), subtype, timestamp — 모두 보관함에서 변경 불가 (재촬영 필요)</li>
+          <li><b>저장 동작</b> · <code>StorageService.I.updateRecord(updated)</code> 호출 → records.json 갱신 → 카드 표시 갱신. 폭/간격은 startValue/endValue/measuredValue 셋 다 갱신, 홀 깊이는 visibleReadingValue + measuredValue 갱신</li>
+          <li><b>모달 backdrop</b> · 다크 반투명 + blur · v1 디자인 일관 유지</li>
+          <li><b>플로우 매핑</b> · 인터랙티브 플로우 프로토타입에서 3개 sub-screen으로 분리 노출. mockup stage 3/4/5에 각 변형 시각화. 실제 라우트는 <code>/archive</code> 동일</li>
+        </ul>
+      </div>
+
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>디자인 스펙</h2>
+        <table>
+          <tbody>
+            <tr><td>AppBar</td><td>padding LTRB(8, 14, 12, 12) · ← 40×40 · 제목 20 w800 <code>#111827</code></td></tr>
+            <tr><td>"오늘 수집한 데이터 (N)"</td><td>padding 6t/20h/14b · 14 w700 <code>#0f172a</code></td></tr>
+            <tr><td>카드 리스트</td><td>padding horizontal 16 · gap 10</td></tr>
+            <tr><td>카드</td><td>padding 12 · radius 14 · 1px <code>#e5e7eb</code> · hover bg <code>#f8fafc</code> + border <code>#cbd5e1</code></td></tr>
+            <tr><td>썸네일</td><td>60×60 · radius 8 · overflow hidden · bg <code>#1f2937</code></td></tr>
+            <tr><td>메타 (시각 · 종류 · 배지)</td><td>11 w500 <code>#6B7280</code> · gap 6 · sep "|" <code>#cbd5e1</code></td></tr>
+            <tr><td>subtype 배지</td><td>padding 2v/7h · radius 5 · 10 w800 · 폭/간격 <code>#DBEAFE</code>/<code>#1E40AF</code> / 홀깊이 <code>#FEF3C7</code>/<code>#92400e</code></td></tr>
+            <tr><td>측정값</td><td>19 w800 monospace · letter-spacing -0.3 · 단위 13 w600 <code>#6B7280</code></td></tr>
+            <tr><td>상태 배지</td><td>11.5 w700 · 6×6 dot · 대기 <code>#DC2626</code> / 완료 <code>#16A34A</code></td></tr>
+            <tr><td>수정 버튼</td><td>bg <code>#fff</code> · 1px <code>#d1d5db</code> · radius 8 · padding 6v/14h · 12 w600 <code>#374151</code></td></tr>
+            <tr><td>빈 상태</td><td>중앙 정렬 · 64×64 회색 아이콘 박스 (radius 18, <code>#f1f5f9</code>) + 14.5 w700 제목 + 12 desc</td></tr>
+            <tr><td>일괄 업로드 (활성)</td><td>height 52 · radius 10 · bg <code>#1E40AF</code> (네이비) · 15 w700 흰 · shadow <code>0 4px 12px rgba(30,64,175,.25)</code></td></tr>
+            <tr><td>일괄 업로드 (비활성)</td><td>bg <code>#e5e7eb</code> · <code>#9CA3AF</code> · cursor not-allowed</td></tr>
+            <tr><td>하단 버튼바</td><td>top border 1px · padding 14v/16h/18b · bg <code>#fff</code></td></tr>
+            <tr><td>모달 backdrop</td><td><code>rgba(15,23,42,0.55)</code> + backdrop-filter blur(2px) · z 10</td></tr>
+            <tr><td>모달</td><td>bg <code>#f3f3f7</code> · radius 18 · padding 18 · shadow <code>0 20px 50px rgba(15,23,42,.25)</code></td></tr>
+            <tr><td>모달 입력</td><td>height 54 · padding 16h · 1px <code>#d1d5db</code> · 20 w700 monospace · 단위 14 w600 <code>#6B7280</code></td></tr>
+            <tr><td>모달 비고</td><td>min-height 80 · 1px <code>#d1d5db</code> · 12 placeholder</td></tr>
+            <tr><td>모달 [취소]</td><td>텍스트 링크 · 13 w600 <code>#374151</code></td></tr>
+            <tr><td>모달 [저장]</td><td>radius 999 pill · bg <code>#1E40AF</code> · padding 9v/22h · 13 w800 흰</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script src="_embed.js"></script>
+</body>
+</html>

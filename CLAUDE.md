@@ -56,10 +56,11 @@ Documents/capture/
     └── {timestamp}.jpg # 촬영 사진
 ```
 
-### 기울기 센서 (SMA 방식)
+### 기울기 센서 (SMA 방식) — 탄산화 전용
 - `accelerometerEventStream()` → 중력벡터 정규화 → SMA 윈도우 5샘플
 - 수평 임계값: 15도 (녹색), 잠금 임계값: 16도 (빨간색 + 셔터 잠금)
 - 데드존: 1.5도 이하 → 0으로 처리 (미세 떨림 제거)
+- **v0.2 변경**: `surveyType == SurveyType.dimension`(규격 조사)이면 `_initTiltSensor()`에서 조기 return — 천장 등 다양한 자세 측정이 필요하므로 자세 잠금 미적용. 탄산화는 기존 동작 유지.
 
 ## Development Commands
 
@@ -119,9 +120,35 @@ version: 1.0.0+1
 2. **GetX snackbar**: GetX 5.x에서 `Get.snackbar` 작동 안 함 → `ScaffoldMessenger.of(Get.context!).showSnackBar()` 사용
 3. **Obx 스코프**: observable을 Obx 클로저 내부에서 직접 읽어야 함
 
+## v2 신규 모듈: 규격조사 (줄자 기반 폭/간격/홀 깊이 측정)
+
+> **마스터 화면설계서**: [spec/규격조사/v0.2_design/화면설계서_v0.2.html](spec/규격조사/v0.2_design/화면설계서_v0.2.html) — 9개 mockup + 명세 + §7 개발자 인도 통합
+> **인터랙티브 플로우 프로토타입**: [spec/규격조사/v0.2_design/플로우_v0.2.html](spec/규격조사/v0.2_design/플로우_v0.2.html) — 실제 앱처럼 클릭으로 화면 전이, S-003 핸들 위치도 S-004로 그대로 전달, 보관함 수정 모달 3변형 시연
+> **개발자 코드 명세**: [spec/규격조사/screen_spec_v0.2.md](spec/규격조사/screen_spec_v0.2.md) — Flutter 위젯 트리, 데이터 모델, 좌표 변환, 라우팅, Phase 분할
+
+### 핵심 결정 사항 (v0.2)
+- 메인화면 카드 재편: **탄산화 / 규격 조사 / 균열 폭(준비중)** 3개. 기존 "배근 간격 조사" 카드는 "규격 조사"로 명칭/대상 변경
+- `SurveyType` enum: `rebarSpacing` → `dimension`으로 대체 (보관함 호환 위해 fromJson에서 매핑)
+- `MeasurementSubtype` enum 신설: `wall_or_member_width`, `member_gap`, `hole_depth` (3종) — 정의된 측정 방식의 데이터만 학습 가치를 갖기 때문에 "기타 측정"(자유 입력)은 제외
+- `SurveyRecord`에 `measurementSubtype`(nullable), `annotation`(`DimensionAnnotation?`, nullable) 추가
+- 신규 라우트 3개: `/survey-type-select`, `/annotate`, `/dimension-input`
+- 카메라 가이드박스에 `GuideBoxMode` 도입 (기존 가로 / 가로 long / 세로 타원)
+- **카메라(S-003)에 가이드박스 좌/우 핸들 추가** — 시작/끝점을 사전 확정해 학습데이터 정확도 ↑, S-004는 정밀 보정 모드로 진입. **사용자가 핸들로 박스 폭을 조정한 값이 S-004 마커 초기값으로 그대로 이어짐 (사전 좌표 연속성)**
+- 좌표는 항상 **원본 이미지 픽셀 (좌상단 [0,0])**로 환산 저장
+- **학습 품질 메타데이터(quality_flags)는 현장 입력 단계에서 수집하지 않음** — 작업자에게는 비고 자유 기입만 노출, 구조화된 quality_flags는 후처리 큐레이션/이미지 분석으로 채움 (현장 입력 부담 ↓ 정책)
+- **규격 조사 카메라는 자세(기울기) 잠금 미적용** — 천장 등 다양한 각도 촬영이 필요하므로 셔터 항상 활성. 탄산화는 기존 잠금 동작 유지
+- **보관함 수정 모달 subtype별 3변형** (v0.2 추가) — 탄산화(단일 값), 폭/간격(시작값+끝값+자동계산), 홀 깊이(줄자 읽은 값). 각각 원본 입력 화면 구조와 일치
+- **입력 화면(S-005/S-008) 키보드 buffer 120px** — Flutter `resizeToAvoidBottomInset:true` 위에 안전 여유 공간 부여, 비고 textarea가 키패드 위로 올라올 수 있도록
+- 업로드 API: `image_file` + `annotation_json` (탄산화 레코드는 annotation_json=null)
+
+### 구현 단계 (Phase)
+P1 모델/라우팅 골격 → P2 측정점 지정 (폭/간격) → P3 수치 입력 → P4 홀 깊이 → P5 업로드/보관함 (수정 모달 3변형 포함) → P6 검증 강화
+
+---
+
 ## TODO (PDF 기획서 미구현 항목)
 
-> 기준 문서: `현장촬영앱_ver1.0_260316.pdf`
+> 기준 문서: `현장촬영앱_ver1.0_260316.pdf` + `spec/규격조사/screen_spec_v0.2.md`
 
 ### 촬영 화면
 - [ ] **터치 포커스 링**: 화면 터치 시 노란색 링 표시 (AF + 노출 조정 영역 표시)
@@ -141,7 +168,14 @@ version: 1.0.0+1
 - [ ] **보관함 내 업로드 버튼**: PDF 기준 보관함에도 "미전송 N건 업로드" 버튼 추가
 
 ### 향후 버전 (v2)
-- [ ] **배근 간격 조사**: 줄자 수치 인식 (현재 "서비스 준비 중" 비활성화)
+- [ ] **규격 조사 모듈 (줄자 기반)**: 폭 / 간격 / 홀 깊이 측정 — 와이어프레임 v0.1 + 화면설계서 v0.2 확정. 구현은 P1~P6 단계 분할 (상세는 [spec/규격조사/screen_spec_v0.2.md](spec/규격조사/screen_spec_v0.2.md))
+  - [ ] P1 모델/라우팅: `MeasurementSubtype` enum, `DimensionAnnotation` 모델, 라우트 3개, 메인 카드 재편
+  - [ ] P2 측정점 지정 화면 (`/annotate`) + 터치 좌표 → 원본 픽셀 변환 + S-003→S-004 `prefilledStart`/`prefilledEnd` 인자 전달
+  - [ ] P3 수치 입력 화면 (`/dimension-input`) + 자동 계산 + 키보드 buffer 120px (S-005·S-008 공통)
+  - [ ] P4 홀 깊이 (`hole_depth`) subtype 전용 분기 (visible_reading_value, 세로 타원 가이드)
+  - [ ] P5 업로드 API `annotation_json` 필드 추가, 보관함 subtype 배지, **수정 모달 subtype별 3변형 분기** (`_CarbonationEditDialog` / `_DimensionEditDialog` / `_HoleDepthEditDialog`)
+  - [ ] P6 핀치 줌(photo_view), edge 인접 자동 quality_flags, 후처리 큐레이션 파이프라인
+- [ ] **균열 폭 조사**: 별도 모듈 (v3 후보, 비전 인식 방식 별도 검토 필요)
 
 ---
 

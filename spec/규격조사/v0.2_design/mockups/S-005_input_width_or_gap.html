@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>S-005 수치 입력 — 벽/기둥/부재 폭 (v0.2)</title>
+<style>
+/* ============================================================
+   S-005 수치 입력 — 벽/기둥/부재 폭 (wall_or_member_width)
+   진입: S-004 "다음" 탭 (사진 + 사전 좌표 + 보정 좌표 전달)
+   라우트: /dimension-input · {photoPath, subtype, imageWidth, imageHeight,
+                                startPointPixel, endPointPixel}
+
+   인터랙션 (단일 폰 + JS):
+     - 시작값/끝값 입력 → 자동 계산 (실시간)
+     - 검증: 끝값 > 시작값 → 저장 활성, 아니면 에러
+     - quality_flags 자가 체크 (digits_clear / edge_visible 2종 /
+       tape_straight / perspective_distortion / occlusion)
+     - 저장 버튼 활성화 조건: 두 값 모두 숫자 + 끝값 > 시작값
+   ============================================================ */
+:root{
+  --ink:#111827; --muted:#6B7280; --line:#E5E7EB;
+  --blue:#2563EB; --blue-deep:#1E40AF; --blue-weak:#EFF6FF;
+  --green:#16A34A; --red:#DC2626;
+  --yellow:#facc15;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#f1f5f9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#0f172a;
+  padding:40px 24px 60px;
+  line-height:1.55;
+}
+
+/* ====== 페이지 헤더 ====== */
+.page-head{
+  max-width:1280px; margin:0 auto 28px;
+  text-align:center;
+}
+.page-head .eyebrow{
+  display:inline-block;
+  font-size:11.5px; letter-spacing:0.14em; font-weight:800;
+  color:#2563EB; background:#DBEAFE;
+  padding:5px 12px; border-radius:999px;
+  margin-bottom:10px;
+}
+.page-head h1{
+  margin:0; font-size:24px; font-weight:800; letter-spacing:-0.025em; color:#0f172a;
+}
+.page-head p{margin:6px 0 0; color:#64748b; font-size:13.5px;}
+.page-head .hint{
+  display:inline-block; margin-top:10px;
+  font-size:12px; color:#0f172a; background:#fef3c7; border:1px solid #fcd34d;
+  border-radius:8px; padding:6px 12px;
+}
+.page-head .hint kbd{
+  display:inline-block; background:#fff; border:1px solid #f59e0b; border-radius:4px;
+  padding:1px 6px; font-size:11px; color:#92400e; font-weight:700;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+
+/* ====== 폰 목업 ====== */
+.mockup-row{
+  display:flex; justify-content:center; align-items:flex-start;
+  margin-bottom:48px;
+}
+
+/* ====== 스크린 ====== */
+.screen{
+  width:360px; height:720px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(15,23,42,.10);
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+}
+
+/* ---- 상단 헤더 ---- */
+.appbar{
+  display:flex; align-items:center;
+  padding:14px 12px 6px 8px;
+  gap:4px;
+  flex-shrink:0;
+  border-bottom:1px solid #f1f5f9;
+}
+.back-btn{
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  color:#111827;
+  cursor:pointer; border-radius:8px;
+  transition:background-color .12s;
+}
+.back-btn:hover{background:rgba(0,0,0,0.05);}
+.back-btn:active{background:rgba(0,0,0,0.10);}
+.back-btn svg{width:22px; height:22px;}
+.appbar h1{
+  margin:0;
+  font-size:18px; font-weight:800;
+  letter-spacing:-0.2px; color:var(--ink);
+  line-height:1.2;
+}
+.appbar .subtype-chip{
+  margin-left:auto;
+  background:#DBEAFE; color:#1E40AF;
+  padding:4px 10px; border-radius:999px;
+  font-size:10.5px; font-weight:800;
+  letter-spacing:0.02em;
+}
+
+/* ---- 스크롤 영역 ----
+   하단에 키보드 buffer(120px) 확보. Flutter의 resizeToAvoidBottomInset:true가
+   레이아웃을 축소하면서 포커스 input을 자동 스크롤하지만, 사용자가 비고
+   textarea를 활성화 했을 때 textarea 전체가 키패드 위로 올라올 수 있도록
+   여유 공간 부여. (Android 숫자 키패드 ~280-330px 기준 안전 버퍼) */
+.scroll-area{
+  flex:1; overflow-y:auto;
+  padding:14px 16px 120px;
+}
+.scroll-area::-webkit-scrollbar{width:6px;}
+.scroll-area::-webkit-scrollbar-thumb{background:#e2e8f0; border-radius:3px;}
+
+/* 입력 필드 */
+.input-group{margin-bottom:12px;}
+.input-group .label{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:6px;
+}
+.input-group .label .step{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:13px; font-weight:700; color:#0f172a;
+}
+.input-group .label .step .num{
+  width:18px; height:18px;
+  background:var(--blue); color:#fff;
+  border-radius:50%;
+  font-size:10.5px; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+}
+.input-group .label .unit{
+  font-size:11px; color:#6B7280; font-weight:600;
+}
+.input-field{
+  position:relative;
+}
+.input-field input{
+  width:100%;
+  height:56px;
+  padding:0 86px 0 16px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  background:#fff;
+  font-size:20px; font-weight:700; color:#111827;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  outline:none;
+  transition:border-color .12s, box-shadow .12s;
+  -moz-appearance:textfield;
+  appearance:textfield;
+}
+.input-field input::-webkit-outer-spin-button,
+.input-field input::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  appearance:none;
+  margin:0;
+}
+.input-field input::placeholder{
+  color:#9CA3AF; font-weight:500; font-size:15px;
+}
+.input-field input:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+.input-field input.error{
+  border-color:var(--red);
+}
+.input-field input.error:focus{box-shadow:0 0 0 3px rgba(220,38,38,.15);}
+.input-field .suffix{
+  position:absolute; right:16px; top:50%;
+  transform:translateY(-50%);
+  font-size:14px; color:#6B7280; font-weight:600;
+  pointer-events:none;
+}
+.input-field .clear-btn{
+  position:absolute;
+  right:50px; top:50%;
+  transform:translateY(-50%);
+  width:24px; height:24px;
+  background:#e5e7eb;
+  border:none; border-radius:50%;
+  display:none;
+  align-items:center; justify-content:center;
+  cursor:pointer;
+  color:#6b7280;
+  transition:background-color .12s, color .12s;
+  padding:0;
+}
+.input-field .clear-btn.show{display:flex;}
+.input-field .clear-btn:hover{background:#d1d5db; color:#374151;}
+.input-field .clear-btn:active{background:#9ca3af; color:#fff;}
+.input-field .clear-btn svg{width:12px; height:12px;}
+.input-error-msg{
+  margin-top:5px;
+  font-size:11.5px; color:var(--red); font-weight:600;
+  display:none;
+  align-items:center; gap:4px;
+}
+.input-error-msg.show{display:flex;}
+
+/* 자동 계산 결과 카드 */
+.result-card{
+  background:var(--blue-weak);
+  border:1.5px solid var(--blue);
+  border-radius:12px;
+  padding:14px 16px;
+  margin-bottom:16px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.result-card.invalid{
+  background:#FEF2F2;
+  border-color:#FECACA;
+}
+.result-card .left{
+  display:flex; align-items:center; gap:8px;
+}
+.result-card .left .ic{
+  width:24px; height:24px;
+  background:var(--blue); color:#fff;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+}
+.result-card .left .ic svg{width:14px; height:14px;}
+.result-card.invalid .left .ic{background:#9CA3AF;}
+.result-card .left .text{
+  font-size:11.5px; color:#1E40AF; font-weight:700; letter-spacing:0.02em;
+}
+.result-card.invalid .left .text{color:#991B1B;}
+.result-card .value{
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:22px; font-weight:800; color:var(--blue-deep);
+}
+.result-card.invalid .value{color:#9CA3AF; font-size:14px;}
+.result-card .value .unit{
+  font-size:13px; opacity:.6; margin-left:2px; font-weight:600;
+}
+
+/* 비고 */
+.memo-group{margin-bottom:8px;}
+.memo-group .label{
+  font-size:13px; font-weight:700; color:#0f172a;
+  margin-bottom:6px;
+  display:flex; align-items:center; gap:6px;
+}
+.memo-group .label .optional{
+  font-size:10.5px; color:#9CA3AF; font-weight:600;
+}
+.memo-group textarea{
+  width:100%; min-height:140px;
+  padding:13px 14px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  font-family:inherit;
+  font-size:13px; color:#111827; line-height:1.55;
+  resize:none;
+  outline:none;
+  transition:border-color .12s, box-shadow .12s;
+}
+.memo-group textarea::placeholder{color:#9CA3AF;}
+.memo-group textarea:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+
+/* ---- 하단 버튼 ---- */
+.bottom-bar{
+  flex-shrink:0;
+  padding:14px 16px;
+  display:grid;
+  grid-template-columns:1fr 1.5fr;
+  gap:10px;
+  border-top:1px solid #e5e7eb;
+  background:#fff;
+}
+.btn{
+  height:48px;
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14.5px; font-weight:700;
+  cursor:pointer;
+  transition:transform .08s, background-color .12s, color .12s;
+  user-select:none;
+}
+.btn.secondary{
+  background:#fff; color:#374151;
+  border:1px solid #d1d5db;
+}
+.btn.secondary:hover{background:#f9fafb;}
+.btn.secondary:active{transform:scale(0.98); background:#f3f4f6;}
+.btn.secondary svg{width:16px; height:16px; margin-right:6px;}
+.btn.primary{
+  background:var(--blue); color:#fff;
+  border:1.5px solid var(--blue);
+  box-shadow:0 2px 8px rgba(37,99,235,.18);
+}
+.btn.primary:hover{background:#1D4ED8;}
+.btn.primary:active{transform:scale(0.98); background:var(--blue-deep);}
+.btn.primary.disabled{
+  background:#D1D5DB; color:#9CA3AF;
+  border-color:#D1D5DB;
+  box-shadow:none; cursor:not-allowed;
+}
+.btn.primary.disabled:hover{background:#D1D5DB;}
+.btn.primary.disabled:active{transform:none;}
+
+/* ====== 기획 명세 패널 ====== */
+.spec-section{
+  max-width:1280px; margin:0 auto;
+}
+.spec-grid{
+  display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:18px;
+}
+.spec-card{
+  background:#fff; border:1px solid #e2e8f0;
+  border-radius:16px; padding:22px 24px;
+  box-shadow:0 4px 12px rgba(15,23,42,.04);
+}
+.spec-card h2{
+  margin:0 0 14px;
+  font-size:15px; font-weight:800; letter-spacing:-0.01em;
+  color:#0f172a;
+  display:flex; align-items:center; gap:8px;
+}
+.spec-card h2::before{
+  content:""; width:4px; height:16px; background:var(--blue);
+  border-radius:2px;
+}
+.spec-card .kv{
+  display:grid; grid-template-columns:96px 1fr; gap:8px 16px;
+  font-size:13px;
+}
+.spec-card .kv b{font-weight:700; color:#475569;}
+.spec-card .kv code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:5px; padding:1px 6px; font-size:11.5px;
+  color:#1e293b; font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.spec-card ul.flow{
+  list-style:none; margin:0; padding:0;
+  display:flex; flex-direction:column; gap:8px;
+  font-size:13px; color:#334155;
+}
+.spec-card ul.flow li{
+  position:relative; padding-left:22px;
+}
+.spec-card ul.flow li::before{
+  content:""; position:absolute; left:6px; top:6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--blue); opacity:.6;
+}
+.spec-card ul.flow li b{color:#0f172a; font-weight:700;}
+.spec-card table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.spec-card table th,.spec-card table td{
+  border:1px solid #e5e7eb; padding:7px 10px; text-align:left;
+  vertical-align:top;
+}
+.spec-card table th{background:#f8fafc; color:#475569; font-weight:700;}
+.spec-card table td code{
+  background:#f1f5f9; border:1px solid #e2e8f0;
+  border-radius:4px; padding:1px 5px; font-size:11px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.chip{
+  display:inline-block; padding:2px 9px; border-radius:999px;
+  font-size:11px; font-weight:700; margin-right:3px;
+}
+.chip.new{background:#DBEAFE; color:#1E40AF;}
+
+@media (max-width:980px){
+  .spec-grid{grid-template-columns:1fr;}
+}
+@media print{
+  body{background:#fff; padding:0;}
+  .screen{box-shadow:none;}
+  .spec-card{box-shadow:none;}
+  .page-head .hint{display:none;}
+}
+</style>
+</head>
+<body>
+
+  <!-- ========== Header ========== -->
+  <div class="page-head">
+    <span class="eyebrow">SCREEN MOCKUP & SPEC · S-005 (폭/간격 공통)</span>
+    <h1>수치 입력 — 폭 / 간격</h1>
+    <p>줄자 시작/끝값 입력 → 측정값 자동 계산. 폭(<code>wall_or_member_width</code>)은 시작값 보통 <code>0</code>, 간격(<code>member_gap</code>)은 임의 눈금. 시각은 동일.</p>
+    <div class="hint">💡 입력 시 모바일 숫자 키패드 자동(<code>inputmode="decimal"</code>) · 우측 <kbd>×</kbd> 버튼으로 빠른 삭제 · 끝값 &lt; 시작값이면 에러 + 저장 비활성.</div>
+  </div>
+
+  <!-- ========== Interactive Mockup ========== -->
+  <div class="mockup-row">
+    <div class="screen">
+
+      <div class="appbar">
+        <span class="back-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/>
+            <polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </span>
+        <h1>수치 입력</h1>
+        <span class="subtype-chip">폭 / 간격</span>
+      </div>
+
+      <div class="scroll-area">
+
+        <!-- 시작값 입력 -->
+        <div class="input-group">
+          <div class="label">
+            <span class="step"><span class="num">1</span>줄자 시작값</span>
+            <span class="unit">mm</span>
+          </div>
+          <div class="input-field">
+            <input id="startInput" type="text" inputmode="decimal" placeholder="줄자 시작 눈금" value="120"/>
+            <button type="button" class="clear-btn show" data-target="startInput" aria-label="시작값 지우기">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+            <span class="suffix">mm</span>
+          </div>
+        </div>
+
+        <!-- 끝값 입력 -->
+        <div class="input-group">
+          <div class="label">
+            <span class="step"><span class="num">2</span>줄자 끝값</span>
+            <span class="unit">mm</span>
+          </div>
+          <div class="input-field">
+            <input id="endInput" type="text" inputmode="decimal" placeholder="줄자 끝 눈금" value="420"/>
+            <button type="button" class="clear-btn show" data-target="endInput" aria-label="끝값 지우기">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+            <span class="suffix">mm</span>
+          </div>
+          <div class="input-error-msg" id="errorMsg">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            끝값은 시작값보다 커야 합니다
+          </div>
+        </div>
+
+        <!-- 자동 계산 결과 -->
+        <div class="result-card" id="resultCard">
+          <div class="left">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </div>
+            <div class="text">자동 계산 측정값</div>
+          </div>
+          <div class="value"><span id="resultValue">300</span><span class="unit">mm</span></div>
+        </div>
+
+        <!-- 비고 -->
+        <div class="memo-group">
+          <div class="label">비고 <span class="optional">(선택)</span></div>
+          <textarea placeholder="특이사항이 있으면 입력하세요&#10;예) 위치, 환경, 줄자 흐림, 가림, edge 불명확 등"></textarea>
+        </div>
+
+      </div>
+
+      <!-- 하단 버튼 -->
+      <div class="bottom-bar">
+        <div class="btn secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+          </svg>
+          다시 촬영
+        </div>
+        <div class="btn primary" id="saveBtn">저장</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== Spec Section ========== -->
+  <div class="spec-section">
+    <div class="spec-grid">
+
+      <!-- 화면 정보 -->
+      <div class="spec-card">
+        <h2>화면 정보</h2>
+        <div class="kv">
+          <b>화면 ID</b><div><code>S-005</code></div>
+          <b>라우트</b><div><code>/dimension-input</code> ← <b>신규</b></div>
+          <b>인자</b><div><code>{photoPath, subtype: wall_or_member_width | member_gap, imageWidth, imageHeight, startPointPixel, endPointPixel}</code></div>
+          <b>페이지</b><div><code>DimensionInputPage</code> (신규)</div>
+          <b>컨트롤러</b><div><code>DimensionInputController</code> (신규)</div>
+          <b>저장 모델</b><div><code>SurveyRecord</code> + <code>DimensionAnnotation</code></div>
+          <b>다음 화면</b><div>저장 후 메인(<code>/</code>)으로 복귀</div>
+        </div>
+      </div>
+
+      <!-- 인터랙션 시나리오 -->
+      <div class="spec-card">
+        <h2>인터랙션 시나리오</h2>
+        <table>
+          <thead><tr><th>요소</th><th>동작</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>← 뒤로가기</td><td>탭</td><td>S-004로 복귀 (입력 값 보존)</td></tr>
+            <tr><td>시작값 입력</td><td>입력</td><td>자동 계산 실시간 갱신, 검증</td></tr>
+            <tr><td>끝값 입력</td><td>입력</td><td>자동 계산 실시간 갱신, 검증</td></tr>
+            <tr><td>비고</td><td>입력</td><td>note 텍스트 저장 준비 (선택, 특이사항 자유 기입)</td></tr>
+            <tr><td>다시 촬영</td><td>탭</td><td>사진/좌표 초기화 → S-003 카메라로 복귀</td></tr>
+            <tr><td>저장 (활성)</td><td>탭</td><td>SurveyRecord 생성 → StorageService 저장 → 메인 복귀</td></tr>
+            <tr><td>저장 (비활성)</td><td>탭</td><td>반응 없음 (검증 실패 시)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 검증 규칙 -->
+      <div class="spec-card">
+        <h2>입력 검증 (실시간)</h2>
+        <ul class="flow">
+          <li><b>시작값 / 끝값</b> · 둘 다 숫자(소수 허용)여야 함. 빈 값이면 측정값 미계산.</li>
+          <li><b>끝값 &gt; 시작값</b> · 동일 또는 작으면 끝값 입력란 빨간 외곽선 + "끝값은 시작값보다 커야 합니다" 메시지 + 자동 계산 카드 회색 처리</li>
+          <li><b>측정값 자동 계산</b> · <code>measured_value = end_value - start_value</code> · 단위 mm</li>
+          <li><b>저장 버튼 활성 조건</b> · 두 값 모두 유효 + 끝값 &gt; 시작값. 그 외엔 회색 disabled</li>
+          <li><b>비고</b> 는 선택 입력 — 저장 활성 조건에 영향 없음</li>
+        </ul>
+      </div>
+
+      <!-- 폭 vs 간격 입력 차이 -->
+      <div class="spec-card">
+        <h2>폭 vs 간격 — 시작값 차이</h2>
+        <p style="margin:0 0 10px; font-size:13px; color:#334155;">
+          두 subtype은 같은 화면을 사용하지만, 작업자가 입력하는 <b>시작값의 의미가 다름</b>.
+        </p>
+        <table>
+          <thead><tr><th>subtype</th><th>시작값</th><th>끝값</th><th>의미</th></tr></thead>
+          <tbody>
+            <tr><td><code>wall_or_member_width</code> (폭)</td><td>일반적으로 <code>0</code></td><td>부재 사이즈</td><td>줄자 0이 부재 시작면에 정확히 닿음</td></tr>
+            <tr><td><code>member_gap</code> (간격)</td><td>임의 값 (예: 120)</td><td>임의 끝 눈금 (예: 420)</td><td>줄자 임의 눈금에서 시작 — 부재 모서리 손상·접근 어려움 등의 케이스</td></tr>
+          </tbody>
+        </table>
+        <ul class="flow" style="margin-top:14px;">
+          <li><b>측정값 계산식은 동일</b> · 두 subtype 모두 <code>end - start</code>. 폭은 start=0이라 결국 end만큼이 됨</li>
+          <li><b>placeholder는 동일</b> · "줄자 시작 눈금" / "줄자 끝 눈금"으로 표시 (구체 숫자 예시 안 함 — 학습 다양성)</li>
+          <li><b>학습 데이터 분리</b> · subtype 메타데이터로 저장되어 후처리에서 폭/간격 케이스 분리 가능</li>
+        </ul>
+      </div>
+
+      <!-- 학습 품질 수집 정책 (비고 통합) -->
+      <div class="spec-card">
+        <h2>학습 품질 수집 — 비고 자유 기입</h2>
+        <p style="margin:0 0 10px; font-size:13px; color:#334155;">
+          v0.2 결정 (2026-05-29): 작업자에게 6개 체크박스+칩 자가 체크는 입력 부담만 큰 데 비해 일관성이 낮다고 판단,
+          <b>quality_flags 자가 체크 UI를 제거</b>하고 비고 자유 기입으로 통합.
+        </p>
+        <ul class="flow">
+          <li><b>이상 항목 자유 기입</b> · 비고 placeholder에 예시("줄자 흐림, 가림, edge 불명확 등") 노출해 자유 텍스트로 수집</li>
+          <li><b>구조화 메타데이터</b> · 학습 단계의 별도 큐레이터/검수자가 텍스트 비고를 기반으로 라벨링하거나, 이미지 분석 모델로 자동 추출</li>
+          <li><b>현장 입력 부담 최소화</b> · 정상 데이터는 비고 비워두고 빠르게 통과, 이상이 있을 때만 작성</li>
+          <li><b>annotation 저장 단계의 qualityFlags 필드 유지</b> · 후처리에서 채워질 수 있도록 모델 구조는 그대로. UI 입력만 없앰</li>
+        </ul>
+      </div>
+
+      <!-- 키보드 처리 정책 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>키보드 처리 정책 (S-005 · S-008 공통)</h2>
+        <p style="margin:0 0 10px; font-size:13px; color:#334155;">
+          숫자/텍스트 입력 시 모바일 키패드가 화면 하단을 가리지 않도록 다음 정책을 적용한다.
+        </p>
+        <ul class="flow">
+          <li><b>Scaffold <code>resizeToAvoidBottomInset: true</code></b> · v1 데이터 입력 화면과 동일. 키보드 등장 시 body가 축소되어 하단 저장 버튼이 키보드 위로 자동 이동</li>
+          <li><b>scroll-area 하단 buffer 120px</b> · 비고 textarea를 키보드 위로 끌어올릴 여유 공간 확보. Android 숫자 키패드(~280-330px) 기준 안전치</li>
+          <li><b>포커스 input 자동 스크롤</b> · Flutter <code>TextField</code> 기본 동작(<code>EnsureVisibleWhenFocused</code>). 시작/끝 input 탭 시 자동으로 가시 영역으로 이동</li>
+          <li><b>textarea 활성 시 사용자 스크롤 권장</b> · 비고 textarea(140px)는 키보드 위쪽 영역에 표시될 수 있도록 사용자가 손가락으로 위로 스와이프 가능. buffer 120px이 이를 가능케 함</li>
+          <li><b>iOS 대응</b> · iOS 숫자 키패드도 유사한 높이. 동일 정책으로 충분</li>
+        </ul>
+      </div>
+
+      <!-- 저장 동작 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>저장 동작 — <code>SurveyRecord</code> + <code>DimensionAnnotation</code></h2>
+        <p style="margin:0 0 10px; font-size:13px; color:#334155;">
+          "저장" 탭 시 다음 데이터 모델로 변환되어 <code>StorageService.I.addRecord()</code> 호출 후 메인 화면(<code>/</code>) 으로 복귀한다.
+        </p>
+        <table>
+          <tbody>
+            <tr><td><code>SurveyRecord.surveyType</code></td><td><code>SurveyType.dimension</code></td></tr>
+            <tr><td><code>SurveyRecord.measurementSubtype</code></td><td><code>MeasurementSubtype.wallOrMemberWidth</code></td></tr>
+            <tr><td><code>SurveyRecord.value</code></td><td><code>measured_value</code> (호환 필드)</td></tr>
+            <tr><td><code>SurveyRecord.photoPath</code></td><td>S-003에서 저장된 jpg 경로</td></tr>
+            <tr><td><code>SurveyRecord.note</code></td><td>비고 textarea 값</td></tr>
+            <tr><td><code>SurveyRecord.timestamp</code></td><td><code>DateTime.now()</code></td></tr>
+            <tr><td><code>SurveyRecord.uploadStatus</code></td><td><code>UploadStatus.pending</code></td></tr>
+            <tr><td><code>DimensionAnnotation.startPointPixel</code></td><td>S-004 보정 후 원본 px [x, y]</td></tr>
+            <tr><td><code>DimensionAnnotation.endPointPixel</code></td><td>S-004 보정 후 원본 px [x, y]</td></tr>
+            <tr><td><code>DimensionAnnotation.startValue</code></td><td>시작값 입력 (mm)</td></tr>
+            <tr><td><code>DimensionAnnotation.endValue</code></td><td>끝값 입력 (mm)</td></tr>
+            <tr><td><code>DimensionAnnotation.measuredValue</code></td><td>endValue - startValue (mm)</td></tr>
+            <tr><td><code>DimensionAnnotation.tapeDirection</code></td><td><code>"horizontal"</code></td></tr>
+            <tr><td><code>DimensionAnnotation.qualityFlags</code></td><td>UI 입력 없음 — 후처리 단계에서 비고 텍스트 분석/큐레이터 라벨링으로 채움 (현장 입력 단계에서는 null 또는 empty)</td></tr>
+            <tr><td><code>DimensionAnnotation.imageWidth/Height</code></td><td>원본 이미지 크기 (좌표 환산 메타)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 디자인 스펙 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>디자인 스펙</h2>
+        <table>
+          <tbody>
+            <tr><td>배경 / AppBar</td><td>S-004와 동일 (white bg, AppBar padding LTRB(8, 14, 12, 6), 제목 18 w800, subtype chip <code>#DBEAFE</code>/<code>#1E40AF</code>)</td></tr>
+            <tr><td>스크롤 영역</td><td>flex 1 · overflow-y auto · 내부 padding <b>14t/16h/120b</b> (하단 120px = 키보드 buffer, S-008 공통 정책)</td></tr>
+            <tr><td>입력 그룹 라벨</td><td>step 번호 18×18 파란 원 + 13 w700 텍스트 + 단위 11 w600 grey-500 (우측)</td></tr>
+            <tr><td>입력 필드</td><td><code>type="text" inputmode="decimal"</code> · height 56 · radius 10 · 1px <code>#d1d5db</code> · 20 w700 monospace · placeholder "줄자 시작/끝 눈금" 15 w500 grey · suffix "mm" 우측 16px · spinner 제거 (<code>appearance:textfield</code> + webkit spin-button reset)</td></tr>
+            <tr><td>클리어 버튼 (×)</td><td>24×24 원형 · bg <code>#e5e7eb</code> · 입력값 있을 때만 표시 (<code>.show</code>) · suffix "mm" 좌측 우측 50px · hover <code>#d1d5db</code> · 탭 시 input.value 비우고 focus 유지</td></tr>
+            <tr><td>입력 포커스</td><td>border <code>#2563EB</code> + 3px ring <code>rgba(37,99,235,.15)</code></td></tr>
+            <tr><td>입력 에러</td><td>border <code>#DC2626</code> + 빨간 메시지 11.5 w600 (아래)</td></tr>
+            <tr><td>자동 계산 카드 (정상)</td><td>bg <code>#EFF6FF</code> · 1.5px <code>#2563EB</code> · 좌측 24px 파란 원형 화살표 ic + 라벨 + 우측 22 w800 측정값</td></tr>
+            <tr><td>자동 계산 카드 (에러)</td><td>bg <code>#FEF2F2</code> · border <code>#FECACA</code> · 회색 ic · 값 자리에 "—"</td></tr>
+            <tr><td>비고 textarea</td><td>min-height 140 · padding 13v/14h · 1px <code>#d1d5db</code> · 13 line-height 1.55 · resize none · placeholder 멀티라인 (예시 노출)</td></tr>
+            <tr><td>하단 버튼바</td><td>top border 1px · 2칸 grid (1fr : 1.5fr) · gap 10 · padding 14v/16h</td></tr>
+            <tr><td>"다시 촬영"</td><td>height 48 · radius 10 · white · 1px <code>#d1d5db</code> · 14.5 w700 · 카메라 16px</td></tr>
+            <tr><td>"저장" (활성)</td><td>height 48 · bg <code>#2563EB</code> · 흰 · shadow <code>0 2px 8px rgba(37,99,235,.18)</code></td></tr>
+            <tr><td>"저장" (비활성)</td><td>bg <code>#D1D5DB</code> · <code>#9CA3AF</code> · cursor not-allowed · shadow 제거</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function(){
+  const startInput = document.getElementById('startInput');
+  const endInput = document.getElementById('endInput');
+  const resultCard = document.getElementById('resultCard');
+  const resultValue = document.getElementById('resultValue');
+  const errorMsg = document.getElementById('errorMsg');
+  const saveBtn = document.getElementById('saveBtn');
+
+  function parse(v){
+    const n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+  function updateClearBtn(input){
+    const btn = input.parentElement.querySelector('.clear-btn');
+    if(!btn) return;
+    if(input.value && input.value.length > 0) btn.classList.add('show');
+    else btn.classList.remove('show');
+  }
+  function update(){
+    const s = parse(startInput.value);
+    const e = parse(endInput.value);
+    const valid = s !== null && e !== null && e > s;
+    if(valid){
+      const m = +(e - s).toFixed(2);
+      resultValue.textContent = m;
+      resultCard.classList.remove('invalid');
+      endInput.classList.remove('error');
+      errorMsg.classList.remove('show');
+      saveBtn.classList.remove('disabled');
+    } else {
+      if(s !== null && e !== null && e <= s){
+        endInput.classList.add('error');
+        errorMsg.classList.add('show');
+        resultValue.textContent = '—';
+      } else {
+        endInput.classList.remove('error');
+        errorMsg.classList.remove('show');
+        resultValue.textContent = '—';
+      }
+      resultCard.classList.add('invalid');
+      saveBtn.classList.add('disabled');
+    }
+    updateClearBtn(startInput);
+    updateClearBtn(endInput);
+  }
+  startInput.addEventListener('input', update);
+  endInput.addEventListener('input', update);
+
+  // 클리어 버튼
+  document.querySelectorAll('.clear-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const input = document.getElementById(targetId);
+      if(!input) return;
+      input.value = '';
+      input.focus();
+      update();
+    });
+  });
+
+  update();
+
+  // 저장 클릭 피드백
+  saveBtn.addEventListener('click', () => {
+    if(saveBtn.classList.contains('disabled')) return;
+    const flash = saveBtn.style.background;
+    saveBtn.style.background = '#1E3A8A';
+    setTimeout(() => saveBtn.style.background = flash, 150);
+  });
+})();
+</script>
+
+<script src="_embed.js"></script>
+</body>
+</html>
