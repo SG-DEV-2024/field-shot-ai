@@ -171,48 +171,25 @@ class DataInputPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              // 저장 버튼 2개
               Expanded(
                 flex: 3,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: (valid && !saving) ? () => ctrl.save(continueCapture: true) : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E3A8A),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: saving
-                              ? const SizedBox(
-                                  height: 16,
-                                  width: 16,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                )
-                              : const Text('저장 후 계속 촬영', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: (valid && !saving) ? ctrl.save : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E3A8A),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    const SizedBox(height: 6),
-                    Expanded(
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: (valid && !saving) ? () => ctrl.save(continueCapture: false) : null,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1E3A8A),
-                            side: const BorderSide(color: Color(0xFF1E3A8A)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text('저장 후 메인으로', style: TextStyle(fontSize: 13)),
-                        ),
-                      ),
-                    ),
-                  ],
+                    child: saving
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text('저장 후 계속 촬영', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  ),
                 ),
               ),
             ],

@@ -276,8 +276,8 @@ body{
 }
 
 /* ---- 하단 버튼 ----
-   v1 패턴: 좌측 "다시 촬영" 단일 (전체 높이) + 우측 컬럼에 "저장 후 계속 촬영"(primary)·"저장 후 메인으로"(outlined) 2단 stack.
-   연속 촬영이 기본 동작이므로 primary는 "저장 후 계속 촬영". */
+   카메라 촬영 흐름에서는 메인으로 직행할 필요 없음 — 저장 시 카메라로 복귀해 연속 측정이 기본.
+   메인으로 가려면 상단 ← 뒤로가기. 좌측 "다시 촬영"(미저장 폐기) + 우측 "저장 후 계속 촬영"(primary) 단일. */
 .bottom-bar{
   flex-shrink:0;
   padding:14px 16px;
@@ -286,13 +286,7 @@ body{
   gap:10px;
   border-top:1px solid #e5e7eb;
   background:#fff;
-  align-items:stretch;
 }
-.save-stack{
-  display:flex; flex-direction:column;
-  gap:6px;
-}
-.save-stack .btn{ flex:1; }
 .btn{
   height:48px;
   border-radius:10px;
@@ -302,7 +296,6 @@ body{
   transition:transform .08s, background-color .12s, color .12s;
   user-select:none;
 }
-.save-stack .btn{ height:auto; min-height:0; font-size:13.5px; }
 .btn.secondary{
   background:#fff; color:#374151;
   border:1px solid #d1d5db;
@@ -324,17 +317,6 @@ body{
 }
 .btn.primary.disabled:hover{background:#D1D5DB;}
 .btn.primary.disabled:active{transform:none;}
-.btn.outlined{
-  background:#fff; color:var(--blue-deep);
-  border:1.5px solid var(--blue-deep);
-}
-.btn.outlined:hover{background:#EFF6FF;}
-.btn.outlined:active{transform:scale(0.98); background:#DBEAFE;}
-.btn.outlined.disabled{
-  color:#9CA3AF; border-color:#D1D5DB;
-  cursor:not-allowed;
-}
-.btn.outlined.disabled:hover{background:#fff;}
 
 /* ====== 기획 명세 패널 ====== */
 .spec-section{
@@ -501,7 +483,7 @@ body{
 
       </div>
 
-      <!-- 하단 버튼 (v1 패턴: 다시촬영 + 저장 2단 stack) -->
+      <!-- 하단 버튼: 다시 촬영 + 저장 후 계속 촬영 (단일) -->
       <div class="bottom-bar">
         <div class="btn secondary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -509,10 +491,7 @@ body{
           </svg>
           다시 촬영
         </div>
-        <div class="save-stack">
-          <div class="btn primary" id="saveContinueBtn">저장 후 계속 촬영</div>
-          <div class="btn outlined" id="saveMainBtn">저장 후 메인으로</div>
-        </div>
+        <div class="btn primary" id="saveBtn">저장 후 계속 촬영</div>
       </div>
 
     </div>
@@ -532,7 +511,7 @@ body{
           <b>페이지</b><div><code>DimensionInputPage</code> (신규)</div>
           <b>컨트롤러</b><div><code>DimensionInputController</code> (신규)</div>
           <b>저장 모델</b><div><code>SurveyRecord</code> + <code>DimensionAnnotation</code></div>
-          <b>다음 화면</b><div>저장 후 계속 촬영 → <code>/camera</code>(같은 subtype) 복귀 / 저장 후 메인 → <code>/</code></div>
+          <b>다음 화면</b><div>저장 후 <code>/camera</code>(같은 subtype)로 복귀 — 연속 측정. 메인은 카메라 상단 ← 뒤로가기로</div>
         </div>
       </div>
 
@@ -547,9 +526,9 @@ body{
             <tr><td>끝값 입력</td><td>입력</td><td>자동 계산 실시간 갱신, 검증</td></tr>
             <tr><td>비고</td><td>입력</td><td>note 텍스트 저장 준비 (선택, 특이사항 자유 기입)</td></tr>
             <tr><td>다시 촬영</td><td>탭</td><td>사진/좌표 초기화 → S-003 카메라로 복귀</td></tr>
-            <tr><td>저장 후 계속 촬영 (활성)</td><td>탭</td><td>SurveyRecord 생성 → StorageService 저장 → <b>카메라(S-003) 같은 subtype 유지</b>로 복귀 — 연속 측정 가능</td></tr>
-            <tr><td>저장 후 메인으로 (활성)</td><td>탭</td><td>SurveyRecord 생성 → StorageService 저장 → 메인 화면(S-001) 복귀</td></tr>
+            <tr><td>저장 후 계속 촬영 (활성)</td><td>탭</td><td>SurveyRecord 생성 → StorageService 저장 → <b>카메라(S-003) 같은 subtype 유지</b>로 복귀 — 연속 측정. <code>Get.back()</code>로 이전 카메라 라우트 복귀</td></tr>
             <tr><td>저장 (비활성)</td><td>탭</td><td>반응 없음 (검증 실패 시)</td></tr>
+            <tr><td>메인으로 이동</td><td>—</td><td>카메라 화면(S-003) 상단 ← 뒤로가기 → S-002 → 다시 ← → S-001. 입력 화면에서 메인 직행 액션은 의도적으로 제외</td></tr>
           </tbody>
         </table>
       </div>
@@ -620,7 +599,7 @@ body{
       <div class="spec-card" style="grid-column:1 / -1;">
         <h2>저장 동작 — <code>SurveyRecord</code> + <code>DimensionAnnotation</code></h2>
         <p style="margin:0 0 10px; font-size:13px; color:#334155;">
-          "저장 후 계속 촬영"/"저장 후 메인으로" 둘 다 동일한 데이터 모델로 변환되어 <code>StorageService.I.addRecord()</code>를 호출한다. 차이는 복귀 라우트뿐 — 전자는 <code>/camera</code>(같은 subtype 유지), 후자는 <code>/</code>(메인).
+          "저장 후 계속 촬영" 탭 시 다음 데이터 모델로 변환되어 <code>StorageService.I.addRecord()</code> 호출 후 <code>Get.back()</code>으로 카메라(같은 subtype)로 복귀. 연속 측정이 기본 흐름이며, 메인으로 가려면 카메라에서 ← 뒤로가기를 사용한다.
         </p>
         <table>
           <tbody>
@@ -658,11 +637,10 @@ body{
             <tr><td>자동 계산 카드 (정상)</td><td>bg <code>#EFF6FF</code> · 1.5px <code>#2563EB</code> · 좌측 24px 파란 원형 화살표 ic + 라벨 + 우측 22 w800 측정값</td></tr>
             <tr><td>자동 계산 카드 (에러)</td><td>bg <code>#FEF2F2</code> · border <code>#FECACA</code> · 회색 ic · 값 자리에 "—"</td></tr>
             <tr><td>비고 textarea</td><td>min-height 140 · padding 13v/14h · 1px <code>#d1d5db</code> · 13 line-height 1.55 · resize none · placeholder 멀티라인 (예시 노출)</td></tr>
-            <tr><td>하단 버튼바</td><td>top border 1px · 2칸 grid (1fr : 1.5fr) · gap 10 · padding 14v/16h. <b>우측 1.5fr 칸은 세로 2단(<code>.save-stack</code>)</b>: 위 "저장 후 계속 촬영"(primary), 아래 "저장 후 메인으로"(outlined). v1 데이터 입력 패턴 일치.</td></tr>
+            <tr><td>하단 버튼바</td><td>top border 1px · 2칸 grid (1fr : 1.5fr) · gap 10 · padding 14v/16h. 좌측 "다시 촬영"(secondary) + 우측 "저장 후 계속 촬영"(primary) 단일. 카메라 흐름에서 메인 직행 액션은 의도적 제외.</td></tr>
             <tr><td>"다시 촬영"</td><td>height 48 · radius 10 · white · 1px <code>#d1d5db</code> · 14.5 w700 · 카메라 16px</td></tr>
-            <tr><td>"저장 후 계속 촬영" (활성, primary)</td><td>radius 10 · bg <code>#2563EB</code> · 흰 · 13.5 w700 · shadow <code>0 2px 8px rgba(37,99,235,.18)</code> · flex 1 (save-stack 내 위 칸)</td></tr>
-            <tr><td>"저장 후 메인으로" (활성, outlined)</td><td>radius 10 · 흰 bg · 1.5px <code>#1E40AF</code> · 텍스트 <code>#1E40AF</code> · 13.5 w700 · flex 1 (save-stack 내 아래 칸) · hover bg <code>#EFF6FF</code></td></tr>
-            <tr><td>저장 (비활성)</td><td>primary: bg <code>#D1D5DB</code> · <code>#9CA3AF</code> · shadow 제거. outlined: text/border <code>#9CA3AF</code>/<code>#D1D5DB</code>. 둘 다 cursor not-allowed</td></tr>
+            <tr><td>"저장 후 계속 촬영" (활성)</td><td>height 48 · radius 10 · bg <code>#2563EB</code> · 흰 · 14.5 w700 · shadow <code>0 2px 8px rgba(37,99,235,.18)</code></td></tr>
+            <tr><td>"저장 후 계속 촬영" (비활성)</td><td>bg <code>#D1D5DB</code> · <code>#9CA3AF</code> · cursor not-allowed · shadow 제거</td></tr>
           </tbody>
         </table>
       </div>
@@ -677,9 +655,7 @@ body{
   const resultCard = document.getElementById('resultCard');
   const resultValue = document.getElementById('resultValue');
   const errorMsg = document.getElementById('errorMsg');
-  const saveContinueBtn = document.getElementById('saveContinueBtn');
-  const saveMainBtn = document.getElementById('saveMainBtn');
-  const saveBtns = [saveContinueBtn, saveMainBtn];
+  const saveBtn = document.getElementById('saveBtn');
 
   function parse(v){
     const n = parseFloat(v);
@@ -701,7 +677,7 @@ body{
       resultCard.classList.remove('invalid');
       endInput.classList.remove('error');
       errorMsg.classList.remove('show');
-      saveBtns.forEach(b => b.classList.remove('disabled'));
+      saveBtn.classList.remove('disabled');
     } else {
       if(s !== null && e !== null && e <= s){
         endInput.classList.add('error');
@@ -713,7 +689,7 @@ body{
         resultValue.textContent = '—';
       }
       resultCard.classList.add('invalid');
-      saveBtns.forEach(b => b.classList.add('disabled'));
+      saveBtn.classList.add('disabled');
     }
     updateClearBtn(startInput);
     updateClearBtn(endInput);
@@ -735,14 +711,12 @@ body{
 
   update();
 
-  // 저장 클릭 피드백 (2개 버튼 공통)
-  saveBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      if(btn.classList.contains('disabled')) return;
-      const flash = btn.style.background;
-      btn.style.background = '#1E3A8A';
-      setTimeout(() => btn.style.background = flash, 150);
-    });
+  // 저장 클릭 피드백
+  saveBtn.addEventListener('click', () => {
+    if(saveBtn.classList.contains('disabled')) return;
+    const flash = saveBtn.style.background;
+    saveBtn.style.background = '#1E3A8A';
+    setTimeout(() => saveBtn.style.background = flash, 150);
   });
 })();
 </script>

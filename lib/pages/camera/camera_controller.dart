@@ -137,13 +137,10 @@ class CameraController2 extends GetxController {
       await File(file.path).copy(destPath);
       lastPhotoPath.value = destPath;
 
+      // 저장 후 카메라로 복귀 — 연속 측정 흐름. 메인 이동은 사용자가 ← 뒤로가기로.
       Get.toNamed(AppRoutes.dataInput, arguments: {
         'photoPath': destPath,
         'surveyType': surveyType,
-      })?.then((result) {
-        if (result == 'main') {
-          Get.until((route) => Get.currentRoute == AppRoutes.main);
-        }
       });
     } finally {
       isCapturing.value = false;

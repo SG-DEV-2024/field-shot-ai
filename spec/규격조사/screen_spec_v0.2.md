@@ -530,12 +530,12 @@ Scaffold
 - placeholder는 "줄자 시작 눈금" / "줄자 끝 눈금" (구체 숫자 예시 안 함 — 학습 데이터 다양성 유도)
 - **빠른 입력 칩(0, 10, 50, 100 등)은 의도적으로 제외** — 특정 값 유도가 학습 다양성 ↓
 
-**저장 동작 — "저장 후 계속 촬영" / "저장 후 메인으로" 2개 액션 (v1 패턴)**
+**저장 동작 — 단일 "저장 후 계속 촬영" (v1 패턴 일치)**
 
-v1 탄산화와 동일하게 우측에 두 개의 버튼이 stack으로 배치된다. 좌측은 "다시 촬영"(retake), 우측 상단은 "저장 후 계속 촬영"(primary, blue), 우측 하단은 "저장 후 메인으로"(outlined, blue 외곽). 연속 측정이 기본 흐름이므로 primary가 "저장 후 계속 촬영"이다.
+카메라 촬영 흐름에서 메인 직행 액션은 의도적 제외. 저장 시 카메라(같은 subtype 유지)로 복귀해 연속 측정이 기본. 메인으로 가려면 카메라(S-003·S-006) 상단 ← 뒤로가기 사용. 이는 v1 탄산화 데이터 입력의 단순화된 패턴([data_input_controller.dart:42-58](../../lib/pages/data_input/data_input_controller.dart#L42-L58))과 동일.
 
 ```dart
-Future<void> save({required bool continueCapture}) async {
+Future<void> save() async {
   final annotation = DimensionAnnotation(
     startPointPixel:  partial['startPointPixel'],
     endPointPixel:    partial['endPointPixel'],
@@ -565,15 +565,12 @@ Future<void> save({required bool continueCapture}) async {
     annotation: annotation,
   );
   await StorageService.I.addRecord(record);
-
-  // 카메라(S-003·S-006)는 v1 패턴대로 result를 받아 분기.
-  // continueCapture: true  → 카메라 페이지 유지 (다시 셔터 가능)
-  // continueCapture: false → 메인까지 pop
-  Get.back(result: continueCapture ? 'continue' : 'main');
+  // 카메라(/annotate를 거쳐 그 이전 /camera)로 복귀 — 연속 측정.
+  Get.back();
 }
 ```
 
-**카메라(S-003/S-006) 측 처리** — `Get.toNamed('/annotate', ...)?.then((r){ if (r == 'main') Get.until(메인); })` 형태. `'continue'` 결과는 별도 처리 없이 카메라 화면이 자연 유지된다 (v1 `camera_controller.dart` 패턴 그대로).
+**카메라(S-003/S-006) 측 처리** — `Get.toNamed('/annotate', ...)`만 호출. result 처리 불필요 (v1 `camera_controller.dart`의 단순화된 패턴과 동일).
 
 ### S-009 보관함 (기존 화면 수정 · 이전 ID S-012)
 

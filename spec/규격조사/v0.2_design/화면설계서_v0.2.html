@@ -534,7 +534,7 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
         <div class="item"><b>라우트</b><span><code>/dimension-input</code></span></div>
         <div class="item"><b>계산식</b><span><code>end - start</code></span></div>
         <div class="item"><b>입력</b><span>시작값 + 끝값 (mm)</span></div>
-        <div class="item"><b>저장 후</b><span>계속 촬영(카메라) 또는 메인</span></div>
+        <div class="item"><b>저장 후</b><span>카메라(S-003) 복귀 — 연속 측정</span></div>
       </div>
       <div class="mockup-screen">
         <div class="toolbar">
@@ -548,7 +548,7 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
         <li>폭은 시작값 보통 0, 간격은 임의 값 (예: 120). 측정값 = end - start.</li>
         <li>학습 품질 자가 체크 제거 — 비고 자유 기입으로 통합 (작업자 입력 부담 ↓).</li>
         <li>끝값 ≤ 시작값 → 빨간 에러 + 저장 비활성.</li>
-        <li><b>저장 액션 2개 (v1 패턴)</b> — "저장 후 계속 촬영"(primary, 카메라 S-003으로 복귀해 연속 측정), "저장 후 메인으로"(outlined, 메인 S-001 복귀). 좌측 "다시 촬영"은 미저장 폐기 + 카메라 복귀.</li>
+        <li><b>저장 액션 단일 "저장 후 계속 촬영"</b> — 저장 후 카메라(S-003, 같은 subtype 유지)로 복귀해 연속 측정. 좌측 "다시 촬영"은 미저장 폐기 + 카메라 복귀. <b>메인 직행 액션은 의도적 제외</b> — 메인으로 가려면 카메라 상단 ← 뒤로가기 사용.</li>
       </ul>
     </section>
 
@@ -607,7 +607,7 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
         <div class="item"><b>라우트</b><span><code>/dimension-input</code></span></div>
         <div class="item"><b>계산식</b><span><code>= visible_reading_value</code></span></div>
         <div class="item"><b>입력</b><span>단일 값 (mm)</span></div>
-        <div class="item"><b>저장 후</b><span>계속 촬영(카메라) 또는 메인</span></div>
+        <div class="item"><b>저장 후</b><span>카메라(S-006) 복귀 — 연속 측정</span></div>
       </div>
       <div class="mockup-screen">
         <div class="toolbar">
@@ -621,7 +621,7 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
         <li>0 이하면 빨간 에러 + 저장 비활성.</li>
         <li>subtype chip 색상 amber 톤으로 홀 깊이 일관성.</li>
         <li>저장 시 S-007에서 받은 좌표·라디오 값을 모두 포함.</li>
-        <li><b>저장 액션 2개 (S-005와 동일 정책)</b> — "저장 후 계속 촬영"(primary, 카메라 S-006으로 복귀), "저장 후 메인으로"(outlined, S-001 복귀).</li>
+        <li><b>저장 액션 단일 "저장 후 계속 촬영"</b> — S-005와 동일 정책. 저장 후 카메라(S-006) 복귀. 메인은 카메라 상단 ← 뒤로가기.</li>
       </ul>
     </section>
 
@@ -675,7 +675,7 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
           <tr><td>수정 모달 subtype별 분기 — 탄산화(단일 값), 폭/간격(시작값+끝값+자동계산), 홀 깊이(줄자 읽은 값) 3가지 변형. 각각 원본 입력 화면(S-탄산화/S-005/S-008) 구조와 일치</td><td>2026-06-01</td><td>S-009</td></tr>
           <tr><td>입력 화면 키보드 buffer 120px — Flutter <code>resizeToAvoidBottomInset:true</code> 위에 안전 여유 공간 부여, 비고 textarea가 키패드 위로 올라올 수 있도록</td><td>2026-06-01</td><td>S-005 / S-008</td></tr>
           <tr><td>인터랙티브 플로우 프로토타입 분리 — 9개 mockup + 3개 sub-screen 모달을 postMessage 기반 단일 시뮬레이션 페이지(<code>플로우_v0.2.html</code>)로 통합</td><td>2026-06-01</td><td>전체</td></tr>
-          <tr><td>저장 액션 2개 분리 — "저장 후 계속 촬영"(primary, 카메라 복귀해 연속 측정) / "저장 후 메인으로"(outlined, 메인 복귀). v1 탄산화 데이터 입력과 동일 패턴. 단일 저장 → 메인 정책 폐기</td><td>2026-06-02</td><td>S-005 / S-008</td></tr>
+          <tr><td>단일 "저장 후 계속 촬영" 액션으로 통일 — 카메라 촬영 흐름에서 메인 직행 액션 의도적 제외. 저장 시 카메라(같은 subtype 유지)로 복귀해 연속 측정이 기본. 메인은 카메라 상단 ← 뒤로가기. v1 코드(<code>data_input_controller</code>, <code>camera_controller</code>)도 동일하게 단순화 적용.</td><td>2026-06-02</td><td>S-005 / S-008 + v1 탄산화</td></tr>
         </tbody>
       </table>
     </section>

@@ -680,7 +680,7 @@ const SCREENS = {
     name: '폭 · 간격 입력',
     route: '/dimension-input',
     desc: '시작값/끝값 두 숫자 입력. 끝값 > 시작값 검증 통과 시 저장 활성.',
-    next: '저장 후 계속 촬영(카메라 복귀) 또는 저장 후 메인'
+    next: '저장 후 카메라로 복귀 (연속 측정)'
   },
   'S-006': {
     file: 'mockups/S-006_camera_hole.html',
@@ -701,7 +701,7 @@ const SCREENS = {
     name: '홀 깊이 입력',
     route: '/dimension-input',
     desc: '줄자에서 읽은 깊이값 1개 입력. 0 초과 검증 통과 시 저장 활성.',
-    next: '저장 후 계속 촬영(카메라 복귀) 또는 저장 후 메인'
+    next: '저장 후 카메라로 복귀 (연속 측정)'
   },
   'S-009': {
     file: 'mockups/S-009_archive.html',
@@ -774,8 +774,7 @@ const TRANSITIONS = {
   },
   'S-005': {
     triggers: [
-      { type:'id', id:'saveContinueBtn', target:'S-003', label:'저장 후 계속 촬영', sub:'카메라(S-003)로 복귀 — 연속 측정' },
-      { type:'id', id:'saveMainBtn',     target:'S-001', label:'저장 후 메인으로', sub:'메인 화면 복귀' }
+      { type:'id', id:'saveBtn', target:'S-003', label:'저장 후 계속 촬영', sub:'카메라(S-003)로 복귀 — 연속 측정' }
     ],
     back: 'S-004'
   },
@@ -794,8 +793,7 @@ const TRANSITIONS = {
   },
   'S-008': {
     triggers: [
-      { type:'id', id:'saveContinueBtn', target:'S-006', label:'저장 후 계속 촬영', sub:'카메라(S-006)로 복귀 — 연속 측정' },
-      { type:'id', id:'saveMainBtn',     target:'S-001', label:'저장 후 메인으로', sub:'메인 화면 복귀' }
+      { type:'id', id:'saveBtn', target:'S-006', label:'저장 후 계속 촬영', sub:'카메라(S-006)로 복귀 — 연속 측정' }
     ],
     back: 'S-007'
   },

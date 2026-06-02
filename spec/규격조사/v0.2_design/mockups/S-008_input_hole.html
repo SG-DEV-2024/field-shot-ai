@@ -281,7 +281,8 @@ body{
 }
 
 /* ---- 하단 버튼 ----
-   v1 패턴: 좌측 "다시 촬영" 단일 + 우측 컬럼 "저장 후 계속 촬영" / "저장 후 메인으로" 2단. S-005와 동일 정책. */
+   카메라 흐름에서 메인 직행 액션은 의도적 제외 — 저장 시 카메라로 복귀해 연속 측정.
+   S-005와 동일 정책 (단일 "저장 후 계속 촬영" primary). */
 .bottom-bar{
   flex-shrink:0;
   padding:14px 16px;
@@ -290,12 +291,7 @@ body{
   gap:10px;
   border-top:1px solid #e5e7eb;
   background:#fff;
-  align-items:stretch;
 }
-.save-stack{
-  display:flex; flex-direction:column; gap:6px;
-}
-.save-stack .btn{ flex:1; height:auto; min-height:0; font-size:13.5px; }
 .btn{
   height:48px;
   border-radius:10px;
@@ -326,17 +322,6 @@ body{
 }
 .btn.primary.disabled:hover{background:#D1D5DB;}
 .btn.primary.disabled:active{transform:none;}
-.btn.outlined{
-  background:#fff; color:var(--blue-deep);
-  border:1.5px solid var(--blue-deep);
-}
-.btn.outlined:hover{background:#EFF6FF;}
-.btn.outlined:active{transform:scale(0.98); background:#DBEAFE;}
-.btn.outlined.disabled{
-  color:#9CA3AF; border-color:#D1D5DB;
-  cursor:not-allowed;
-}
-.btn.outlined.disabled:hover{background:#fff;}
 
 /* ====== 기획 명세 패널 ====== */
 .spec-section{
@@ -487,7 +472,7 @@ body{
 
       </div>
 
-      <!-- 하단 버튼 (v1 패턴: 다시촬영 + 저장 2단 stack) -->
+      <!-- 하단 버튼: 다시 촬영 + 저장 후 계속 촬영 (단일) -->
       <div class="bottom-bar">
         <div class="btn secondary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -495,10 +480,7 @@ body{
           </svg>
           다시 촬영
         </div>
-        <div class="save-stack">
-          <div class="btn primary" id="saveContinueBtn">저장 후 계속 촬영</div>
-          <div class="btn outlined" id="saveMainBtn">저장 후 메인으로</div>
-        </div>
+        <div class="btn primary" id="saveBtn">저장 후 계속 촬영</div>
       </div>
 
     </div>
@@ -518,7 +500,7 @@ body{
           <b>페이지</b><div><code>DimensionInputPage</code> (S-005와 공유, subtype 분기)</div>
           <b>컨트롤러</b><div><code>DimensionInputController</code></div>
           <b>저장 모델</b><div><code>SurveyRecord</code> + <code>DimensionAnnotation</code></div>
-          <b>다음 화면</b><div>저장 후 계속 촬영 → <code>/camera</code>(<code>hole_depth</code>) 복귀 / 저장 후 메인 → <code>/</code></div>
+          <b>다음 화면</b><div>저장 후 <code>/camera</code>(<code>hole_depth</code>)로 복귀 — 연속 측정. 메인은 카메라 상단 ← 뒤로가기로</div>
         </div>
       </div>
 
@@ -533,9 +515,9 @@ body{
             <tr><td>× 클리어 버튼</td><td>탭</td><td>입력값 비우고 포커스 유지</td></tr>
             <tr><td>비고</td><td>입력</td><td>note 텍스트 저장 준비 (선택, 특이사항 자유 기입)</td></tr>
             <tr><td>다시 촬영</td><td>탭</td><td>사진/좌표 초기화 → S-006 카메라로 복귀</td></tr>
-            <tr><td>저장 후 계속 촬영 (활성)</td><td>탭</td><td>SurveyRecord 생성 → StorageService 저장 → <b>카메라(S-006) 같은 subtype 유지</b>로 복귀 — 연속 측정 가능</td></tr>
-            <tr><td>저장 후 메인으로 (활성)</td><td>탭</td><td>SurveyRecord 생성 → StorageService 저장 → 메인 화면(S-001) 복귀</td></tr>
+            <tr><td>저장 후 계속 촬영 (활성)</td><td>탭</td><td>SurveyRecord 생성 → StorageService 저장 → <b>카메라(S-006) hole_depth 유지</b>로 복귀 — 연속 측정. <code>Get.back()</code>로 이전 카메라 라우트 복귀</td></tr>
             <tr><td>저장 (비활성)</td><td>탭</td><td>반응 없음 (검증 실패 시)</td></tr>
+            <tr><td>메인으로 이동</td><td>—</td><td>카메라(S-006) 상단 ← 뒤로가기로. 입력 화면에서 메인 직행 액션은 의도적 제외</td></tr>
           </tbody>
         </table>
       </div>
@@ -573,7 +555,7 @@ body{
       <div class="spec-card" style="grid-column:1 / -1;">
         <h2>저장 동작 — <code>SurveyRecord</code> + <code>DimensionAnnotation</code></h2>
         <p style="margin:0 0 10px; font-size:13px; color:#334155;">
-          "저장 후 계속 촬영"/"저장 후 메인으로" 둘 다 동일 모델로 변환되어 <code>StorageService.I.addRecord()</code>를 호출한다. 차이는 복귀 라우트뿐 — 전자는 <code>/camera</code>(<code>hole_depth</code> subtype 유지), 후자는 <code>/</code>(메인).
+          "저장 후 계속 촬영" 탭 시 다음 데이터 모델로 변환되어 <code>StorageService.I.addRecord()</code> 호출 후 <code>Get.back()</code>으로 카메라(<code>hole_depth</code>)로 복귀. 연속 측정이 기본 흐름.
         </p>
         <table>
           <tbody>
@@ -614,7 +596,7 @@ body{
             <tr><td>자동 계산 카드 (에러)</td><td>S-005와 동일 (회색 ic + "—")</td></tr>
             <tr><td>입력 에러 메시지</td><td>"끝값은 시작값보다 커야 합니다" → <b>"깊이값은 0보다 커야 합니다"</b></td></tr>
             <tr><td>비고 textarea</td><td>S-005와 동일 (min-height 140) · placeholder 예시 변경: "줄자 흐림, 가림, 입구 손상, 내부 이물 등"</td></tr>
-            <tr><td>하단 버튼바</td><td>S-005와 동일 (다시 촬영 / save-stack[저장 후 계속 촬영 · 저장 후 메인으로] · 1fr : 1.5fr)</td></tr>
+            <tr><td>하단 버튼바</td><td>S-005와 동일 (다시 촬영 / 저장 후 계속 촬영 · 1fr : 1.5fr 단일 primary)</td></tr>
           </tbody>
         </table>
       </div>
@@ -628,9 +610,7 @@ body{
   const resultCard = document.getElementById('resultCard');
   const resultValue = document.getElementById('resultValue');
   const errorMsg = document.getElementById('errorMsg');
-  const saveContinueBtn = document.getElementById('saveContinueBtn');
-  const saveMainBtn = document.getElementById('saveMainBtn');
-  const saveBtns = [saveContinueBtn, saveMainBtn];
+  const saveBtn = document.getElementById('saveBtn');
 
   function parse(v){
     const n = parseFloat(v);
@@ -650,7 +630,7 @@ body{
       resultCard.classList.remove('invalid');
       depthInput.classList.remove('error');
       errorMsg.classList.remove('show');
-      saveBtns.forEach(b => b.classList.remove('disabled'));
+      saveBtn.classList.remove('disabled');
     } else {
       if(v !== null && v <= 0){
         depthInput.classList.add('error');
@@ -661,7 +641,7 @@ body{
       }
       resultValue.textContent = '—';
       resultCard.classList.add('invalid');
-      saveBtns.forEach(b => b.classList.add('disabled'));
+      saveBtn.classList.add('disabled');
     }
     updateClearBtn(depthInput);
   }
@@ -679,14 +659,12 @@ body{
     });
   });
 
-  // 저장 클릭 피드백 (2개 버튼 공통)
-  saveBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      if(btn.classList.contains('disabled')) return;
-      const flash = btn.style.background;
-      btn.style.background = '#1E3A8A';
-      setTimeout(() => btn.style.background = flash, 150);
-    });
+  // 저장 클릭 피드백
+  saveBtn.addEventListener('click', () => {
+    if(saveBtn.classList.contains('disabled')) return;
+    const flash = saveBtn.style.background;
+    saveBtn.style.background = '#1E3A8A';
+    setTimeout(() => saveBtn.style.background = flash, 150);
   });
 
   update();

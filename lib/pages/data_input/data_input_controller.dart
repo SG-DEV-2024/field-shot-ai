@@ -39,7 +39,7 @@ class DataInputController extends GetxController {
     Get.toNamed('/photo-viewer', arguments: {'photoPath': photoPath});
   }
 
-  Future<void> save({required bool continueCapture}) async {
+  Future<void> save() async {
     if (!isValid.value || isSaving.value) return;
     isSaving.value = true;
 
@@ -55,7 +55,9 @@ class DataInputController extends GetxController {
     await StorageService.I.addRecord(record);
     isSaving.value = false;
 
-    Get.back(result: continueCapture ? 'continue' : 'main');
+    // 저장 후 카메라(이전 화면)로 복귀 — 연속 측정.
+    // 메인으로 가려면 사용자가 카메라에서 ← 뒤로가기 사용.
+    Get.back();
   }
 
   void retake() {
