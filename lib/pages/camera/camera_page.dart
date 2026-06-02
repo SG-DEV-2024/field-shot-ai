@@ -64,9 +64,7 @@ class CameraPage extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
-            // 카메라 뒤로가기는 메인 직행. v1 탄산화는 자연스럽게 같았고,
-            // v2 규격조사는 사이에 /survey-type-select가 있어도 한 번에 메인으로 복귀.
-            onPressed: () => Get.until((route) => route.settings.name == AppRoutes.main),
+            onPressed: () => Get.back(),
           ),
           const Spacer(),
           Obx(() => GestureDetector(

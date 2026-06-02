@@ -763,7 +763,7 @@ const TRANSITIONS = {
     triggers: [
       { type:'class', cls:'shutter', target:'S-004', label:'셔터 (촬영)', sub:'사진 캡처 + 사전 좌표 저장' }
     ],
-    back: 'S-001'  /* 카메라 ← 뒤로가기는 사이의 S-002 건너뛰고 메인 직행 */
+    back: 'S-002'
   },
   'S-004': {
     triggers: [
@@ -782,7 +782,7 @@ const TRANSITIONS = {
     triggers: [
       { type:'class', cls:'shutter', target:'S-007', label:'셔터 (촬영)', sub:'사진 캡처' }
     ],
-    back: 'S-001'  /* 카메라 ← 뒤로가기는 사이의 S-002 건너뛰고 메인 직행 */
+    back: 'S-002'
   },
   'S-007': {
     triggers: [
@@ -873,6 +873,15 @@ window.addEventListener('message', e => {
   if (msg.type === 'flow:navigate') {
     if (msg.target && SCREENS[msg.target]) {
       navigate(msg.target, msg.label || '이동', msg.state || null);
+    }
+    return;
+  }
+
+  // 각 mockup의 ← 뒤로가기 버튼 → 현재 화면에 정의된 back 타겟으로 이동
+  if (msg.type === 'flow:back') {
+    const target = TRANSITIONS[currentScreen] && TRANSITIONS[currentScreen].back;
+    if (target && SCREENS[target]) {
+      navigate(target, '뒤로가기 (← 버튼)');
     }
     return;
   }

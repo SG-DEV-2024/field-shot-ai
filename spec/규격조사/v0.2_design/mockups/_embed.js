@@ -234,6 +234,28 @@
       });
     });
 
+    // ---------- 상단 ← 뒤로가기 버튼 자동 wiring (모든 화면 공통) ----------
+    // 각 mockup은 .back-btn 요소를 가지고 있어 부모가 TRANSITIONS[현재].back으로 이동시킨다.
+    // 화면별 트리거 정의 없이도 모든 화면의 ← 버튼이 동작.
+    Array.prototype.slice.call(root.querySelectorAll('.back-btn'))
+      .filter(Boolean)
+      .forEach(function (el) {
+        el.classList.add('_flow_tappable');
+        el.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          el.classList.remove('_flow_pressed');
+          void el.offsetWidth;
+          el.classList.add('_flow_pressed');
+          setTimeout(function () {
+            window.parent.postMessage({
+              type: 'flow:back',
+              from: SCREEN_ID
+            }, '*');
+          }, 150);
+        }, true);
+      });
+
     // 부모에게 ready 알림
     try {
       window.parent.postMessage({

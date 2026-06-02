@@ -572,9 +572,7 @@ Future<void> save() async {
 }
 ```
 
-**카메라(S-003/S-006) 측 처리**
-- `Get.toNamed('/annotate', ...)`만 호출. result 처리 불필요.
-- **카메라 상단 ← 뒤로가기 = 메인 직행** (`Get.until((r) => r.settings.name == AppRoutes.main)`). v1 탄산화 카메라도 동일 패턴으로 통일 ([camera_page.dart](../../lib/pages/camera/camera_page.dart)). 이는 사이의 `/survey-type-select`(v0.2 규격조사) 한 장을 건너뛰어 한 번에 메인으로 가게 한다.
+**카메라(S-003/S-006) 측 처리** — `Get.toNamed('/annotate', ...)`만 호출. result 처리 불필요.
 
 ### S-009 보관함 (기존 화면 수정 · 이전 ID S-012)
 

@@ -675,8 +675,7 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
           <tr><td>수정 모달 subtype별 분기 — 탄산화(단일 값), 폭/간격(시작값+끝값+자동계산), 홀 깊이(줄자 읽은 값) 3가지 변형. 각각 원본 입력 화면(S-탄산화/S-005/S-008) 구조와 일치</td><td>2026-06-01</td><td>S-009</td></tr>
           <tr><td>입력 화면 키보드 buffer 120px — Flutter <code>resizeToAvoidBottomInset:true</code> 위에 안전 여유 공간 부여, 비고 textarea가 키패드 위로 올라올 수 있도록</td><td>2026-06-01</td><td>S-005 / S-008</td></tr>
           <tr><td>인터랙티브 플로우 프로토타입 분리 — 9개 mockup + 3개 sub-screen 모달을 postMessage 기반 단일 시뮬레이션 페이지(<code>플로우_v0.2.html</code>)로 통합</td><td>2026-06-01</td><td>전체</td></tr>
-          <tr><td>단일 "저장 후 계속 촬영" 액션으로 통일 — 카메라 촬영 흐름에서 메인 직행 액션 의도적 제외. 저장 시 카메라(같은 subtype 유지)로 복귀해 연속 측정이 기본. 메인은 카메라 상단 ← 뒤로가기. v1 코드(<code>data_input_controller</code>, <code>camera_controller</code>)도 동일하게 단순화 적용.</td><td>2026-06-02</td><td>S-005 / S-008 + v1 탄산화</td></tr>
-          <tr><td>카메라 ← 뒤로가기는 <b>메인 직행</b> — <code>Get.until((r) =&gt; r.settings.name == AppRoutes.main)</code>로 사이의 <code>/survey-type-select</code>(v0.2)도 한 번에 건너뜀. v1 탄산화도 동일 패턴으로 통일 (스택 길이와 무관하게 메인 도달).</td><td>2026-06-02</td><td>S-003 / S-006 + v1 카메라</td></tr>
+          <tr><td>단일 "저장 후 계속 촬영" 액션으로 통일 — 카메라 촬영 흐름에서 저장 시 카메라(같은 subtype 유지)로 복귀해 연속 측정. 메인은 카메라 상단 ← 뒤로가기로 자연 pop. v1 코드(<code>data_input_controller</code>, <code>camera_controller</code>)도 동일하게 단순화 적용.</td><td>2026-06-02</td><td>S-005 / S-008 + v1 탄산화</td></tr>
         </tbody>
       </table>
     </section>
