@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>C-003 데이터 입력 — 탄산화 조사 (v0.2)</title>
+<style>
+/* ============================================================
+   C-003 데이터 입력 — 탄산화 조사 (v0.2 디자인 시스템)
+   기준: lib/pages/data_input/data_input_page.dart (v1)
+   포함: 정상 입력 / 입력 완료 2개 stage + 인터랙션·디자인 명세
+   ============================================================ */
+:root{
+  --ink:#111827; --muted:#6B7280; --line:#E5E7EB;
+  --blue:#2563EB; --blue-weak:#EFF6FF; --blue-deep:#1E40AF;
+  --green:#16A34A; --green-weak:#DCFCE7;
+  --red:#DC2626;
+  --amber:#f59e0b; --amber-deep:#d97706;
+  --gray-50:#F9FAFB; --gray-100:#F3F4F6; --gray-disabled:#D1D5DB;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#f1f5f9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#0f172a;
+  padding:40px 24px 60px;
+  line-height:1.55;
+}
+
+/* ====== 페이지 헤더 ====== */
+.page-head{ max-width:1280px; margin:0 auto 28px; text-align:center; }
+.page-head .eyebrow{
+  display:inline-block;
+  font-size:11.5px; letter-spacing:0.14em; font-weight:800;
+  color:#2563EB; background:#DBEAFE;
+  padding:5px 12px; border-radius:999px;
+  margin-bottom:10px;
+}
+.page-head h1{ margin:0; font-size:24px; font-weight:800; letter-spacing:-0.025em; color:#0f172a; }
+.page-head p{margin:6px 0 0; color:#64748b; font-size:13.5px;}
+.page-head .hint{
+  display:inline-block; margin-top:10px;
+  font-size:12px; color:#475569;
+  background:#fff; border:1px solid #cbd5e1;
+  border-radius:999px; padding:6px 14px;
+}
+.page-head .hint kbd{
+  font-family:"Roboto Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px; background:#f1f5f9; color:#1e293b;
+  padding:1px 6px; border-radius:4px; border:1px solid #e2e8f0;
+}
+
+/* ====== Mockup 행 ====== */
+.mockup-row{
+  display:flex; justify-content:center; align-items:flex-start;
+  gap:36px; flex-wrap:wrap;
+  margin-bottom:48px;
+}
+.stage{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+.stage .tag{
+  font-size:12px; font-weight:700; color:#475569;
+  background:#fff; border:1px solid #cbd5e1;
+  border-radius:999px; padding:6px 14px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.stage .tag .dot{ width:6px; height:6px; border-radius:50%; background:#94a3b8; }
+.stage .tag.empty .dot{ background:#6B7280; }
+.stage .tag.filled .dot{ background:#16A34A; }
+.stage .desc{
+  text-align:center; font-size:11.5px; color:#64748b;
+  max-width:300px; line-height:1.4;
+}
+
+/* ====== 스크린 ====== */
+.screen{
+  width:360px; height:720px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(15,23,42,.10);
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+}
+
+/* ====== 상단 앱바 ====== */
+.appbar{
+  display:flex; align-items:center;
+  padding:14px 12px 6px 8px;
+  gap:4px;
+  flex-shrink:0;
+  border-bottom:1px solid #f1f5f9;
+}
+.back-btn{
+  width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  color:#111827;
+  cursor:pointer; border-radius:8px;
+  transition:background-color .12s;
+}
+.back-btn:hover{ background:rgba(0,0,0,0.05); }
+.back-btn:active{ background:rgba(0,0,0,0.10); }
+.back-btn svg{ width:22px; height:22px; stroke-width:2.2; }
+.appbar h1{
+  margin:0;
+  font-size:18px; font-weight:800;
+  letter-spacing:-0.2px; color:var(--ink);
+  line-height:1.2;
+}
+.appbar .subtype-chip{
+  margin-left:auto;
+  background:#DBEAFE; color:#1E40AF;
+  padding:4px 10px; border-radius:999px;
+  font-size:10.5px; font-weight:800;
+  letter-spacing:0.02em;
+}
+
+/* ====== 스크롤 영역 (키보드 buffer 120px) ====== */
+.scroll-area{
+  flex:1; overflow-y:auto;
+  padding:0 0 120px;
+}
+.scroll-area::-webkit-scrollbar{ width:6px; }
+.scroll-area::-webkit-scrollbar-thumb{ background:#e2e8f0; border-radius:3px; }
+
+/* 사진 프리뷰 */
+.photo-preview{
+  position:relative;
+  width:100%;
+  height:220px;
+  background:#1f1c19;
+  overflow:hidden;
+}
+.photo-preview::before{
+  content:"";
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(255,255,255,0.10), transparent 65%),
+    linear-gradient(180deg, #5a5650 0%, #4a4742 50%, #3a3733 100%);
+}
+.photo-preview::after{
+  content:"";
+  position:absolute; inset:0;
+  background-image:
+    radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1.5px),
+    radial-gradient(rgba(0,0,0,0.18) 1px, transparent 1.5px);
+  background-size:18px 18px, 22px 22px;
+  background-position:0 0, 9px 11px;
+  opacity:0.55;
+}
+/* 캡쳐된 캘리퍼스 액정 시뮬 (중앙) */
+.caliper-display{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%, -50%);
+  z-index:2;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+.caliper-display .caliper-body{
+  position:relative;
+  width:200px; height:96px;
+  background:#0a0907;
+  border:2px solid #1f1d1a;
+  border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 12px rgba(0,0,0,0.6), inset 0 0 8px rgba(255,255,255,0.06);
+}
+.caliper-display .lcd-value{
+  font-family:"Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+  font-size:36px; font-weight:800; color:#fbbf24;
+  letter-spacing:-0.5px;
+  text-shadow:0 0 4px rgba(251,191,36,0.4);
+}
+.caliper-display .lcd-unit{
+  font-family:-apple-system,Arial,sans-serif;
+  font-size:14px; color:#fbbf24; font-weight:600;
+  margin-left:4px; opacity:0.8;
+}
+.magnify-btn{
+  position:absolute;
+  right:12px; bottom:12px;
+  width:36px; height:36px;
+  background:rgba(0,0,0,0.55);
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff;
+  cursor:pointer;
+  z-index:5;
+  transition:background-color .12s;
+}
+.magnify-btn:hover{ background:rgba(0,0,0,0.78); }
+.magnify-btn:active{ transform:scale(0.96); }
+.magnify-btn svg{ width:20px; height:20px; }
+
+/* 입력 영역 */
+.input-section{ padding:18px 16px 0; }
+.instruction{
+  font-size:14px; font-weight:600; color:#374151;
+  margin-bottom:12px;
+  letter-spacing:-0.1px;
+}
+
+.input-field{
+  position:relative;
+  margin-bottom:18px;
+}
+.input-field input{
+  width:100%;
+  height:56px;
+  padding:0 86px 0 16px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  background:#fff;
+  font-size:20px; font-weight:700; color:#111827;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  outline:none;
+  transition:border-color .12s, box-shadow .12s;
+  -moz-appearance:textfield;
+  appearance:textfield;
+}
+.input-field input::-webkit-outer-spin-button,
+.input-field input::-webkit-inner-spin-button{
+  -webkit-appearance:none; appearance:none; margin:0;
+}
+.input-field input::placeholder{
+  color:#9CA3AF; font-weight:500; font-size:15px;
+}
+.input-field input:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+.input-field .suffix{
+  position:absolute; right:16px; top:50%;
+  transform:translateY(-50%);
+  font-size:14px; color:#6B7280; font-weight:600;
+  pointer-events:none;
+}
+.input-field .clear-btn{
+  position:absolute;
+  right:50px; top:50%;
+  transform:translateY(-50%);
+  width:24px; height:24px;
+  background:#e5e7eb;
+  border:none; border-radius:50%;
+  display:none;
+  align-items:center; justify-content:center;
+  cursor:pointer;
+  color:#6b7280;
+  transition:background-color .12s, color .12s;
+  padding:0;
+}
+.input-field .clear-btn.show{ display:flex; }
+.input-field .clear-btn:hover{ background:#d1d5db; color:#374151; }
+.input-field .clear-btn:active{ background:#9ca3af; color:#fff; }
+.input-field .clear-btn svg{ width:12px; height:12px; }
+
+/* 비고 */
+.memo-group{ margin-bottom:8px; }
+.memo-group .label{
+  font-size:13px; font-weight:700; color:#0f172a;
+  margin-bottom:6px;
+  display:flex; align-items:center; gap:6px;
+}
+.memo-group .label .optional{
+  font-size:10.5px; color:#9CA3AF; font-weight:600;
+}
+.memo-group textarea{
+  width:100%; min-height:140px;
+  padding:13px 14px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  font-family:inherit;
+  font-size:13px; color:#111827; line-height:1.55;
+  resize:none;
+  outline:none;
+  transition:border-color .12s, box-shadow .12s;
+}
+.memo-group textarea::placeholder{ color:#9CA3AF; }
+.memo-group textarea:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+
+/* ====== 하단 버튼바 ====== */
+.bottom-bar{
+  flex-shrink:0;
+  padding:14px 16px;
+  display:grid;
+  grid-template-columns:1fr 1.5fr;
+  gap:10px;
+  border-top:1px solid #e5e7eb;
+  background:#fff;
+}
+.btn{
+  height:48px;
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14.5px; font-weight:700;
+  cursor:pointer;
+  transition:transform .08s, background-color .12s;
+  user-select:none;
+  letter-spacing:-0.1px;
+}
+.btn.secondary{
+  background:#fff; color:#374151;
+  border:1px solid #d1d5db;
+}
+.btn.secondary:hover{ background:#f9fafb; }
+.btn.secondary:active{ transform:scale(0.98); background:#f3f4f6; }
+.btn.secondary svg{ width:16px; height:16px; margin-right:6px; }
+.btn.primary{
+  background:var(--blue); color:#fff;
+  border:1.5px solid var(--blue);
+  box-shadow:0 2px 8px rgba(37,99,235,.18);
+}
+.btn.primary:hover{ background:#1D4ED8; }
+.btn.primary:active{ transform:scale(0.98); background:var(--blue-deep); }
+.btn.primary.disabled{
+  background:#D1D5DB; color:#9CA3AF;
+  border-color:#D1D5DB; box-shadow:none;
+  cursor:not-allowed;
+}
+.btn.primary.disabled:hover{ background:#D1D5DB; }
+.btn.primary.disabled:active{ transform:none; }
+
+/* ====== 기획 명세 패널 ====== */
+.spec-section{ max-width:1280px; margin:0 auto; }
+.spec-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:18px;
+}
+.spec-card{
+  background:#fff; border:1px solid #e2e8f0;
+  border-radius:14px; padding:22px 24px;
+  box-shadow:0 4px 14px rgba(15,23,42,.04);
+}
+.spec-card h2{
+  margin:0 0 12px;
+  font-size:15px; font-weight:800; color:var(--ink);
+  letter-spacing:-0.2px;
+  display:flex; align-items:center; gap:8px;
+}
+.spec-card h2::before{
+  content:""; display:inline-block;
+  width:4px; height:14px;
+  background:var(--blue); border-radius:2px;
+}
+.spec-card .kv{
+  display:grid; grid-template-columns:90px 1fr; gap:8px 14px;
+  font-size:13px;
+}
+.spec-card .kv b{ font-weight:700; color:#475569; }
+.spec-card .kv code{
+  font-family:"Roboto Mono",ui-monospace,monospace;
+  background:#f1f5f9; color:var(--blue-deep);
+  padding:1px 6px; border-radius:4px; font-size:12px;
+}
+.spec-card ul.flow{
+  list-style:none; padding:0; margin:0;
+  display:flex; flex-direction:column; gap:8px;
+}
+.spec-card ul.flow li{
+  font-size:13px; color:#334155; line-height:1.5;
+  position:relative; padding-left:22px;
+}
+.spec-card ul.flow li::before{
+  content:""; position:absolute; left:6px; top:7px;
+  width:6px; height:6px; border-radius:50%;
+  background:var(--blue);
+}
+.spec-card ul.flow li b{ color:#0f172a; font-weight:700; }
+.spec-card table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.spec-card table th, .spec-card table td{
+  border:1px solid #e5e7eb; padding:7px 10px; text-align:left;
+}
+.spec-card table th{ background:#f8fafc; color:#475569; font-weight:700; }
+.spec-card table td code{
+  font-family:"Roboto Mono",ui-monospace,monospace;
+  background:#f1f5f9; color:var(--blue-deep);
+  padding:1px 5px; border-radius:3px; font-size:11.5px;
+}
+.chip{
+  display:inline-block;
+  font-size:10.5px; font-weight:700; color:#0f172a;
+  background:#fef3c7; border:1px solid #fde68a;
+  padding:1px 6px; border-radius:3px;
+  margin-right:3px;
+}
+.chip.v1{ background:#dcfce7; border-color:#bbf7d0; color:#166534; }
+
+@media (max-width:980px){
+  .spec-grid{ grid-template-columns:1fr; }
+  .spec-card{ box-shadow:none; }
+}
+</style>
+</head>
+<body>
+
+  <div class="page-head">
+    <span class="eyebrow">SCREEN MOCKUP & SPEC · C-003 (탄산화 조사)</span>
+    <h1>데이터 입력 — 탄산화 조사</h1>
+    <p>v1 데이터 입력 화면을 v0.2 디자인 시스템으로 재정리. 단일 측정값(액정에 표시된 캘리퍼스 수치) + 비고. 동작 로직 v1 유지.</p>
+    <div class="hint">💡 사진 프리뷰 · 액정 수치 단일 입력 · 비고(선택) · "저장 후 계속 촬영"으로 C-001 카메라 복귀</div>
+  </div>
+
+  <!-- ========== Mockup Row (2 stage) ========== -->
+  <div class="mockup-row">
+
+    <!-- ① 입력 대기 (빈 상태) -->
+    <div class="stage">
+      <div class="screen">
+        <div class="appbar">
+          <span class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </span>
+          <h1>데이터 입력</h1>
+          <span class="subtype-chip">탄산화</span>
+        </div>
+
+        <div class="scroll-area">
+          <div class="photo-preview">
+            <div class="caliper-display">
+              <div class="caliper-body">
+                <span class="lcd-value">7.02</span>
+                <span class="lcd-unit">mm</span>
+              </div>
+            </div>
+            <span class="magnify-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                <line x1="11" y1="8" x2="11" y2="14"/>
+                <line x1="8" y1="11" x2="14" y2="11"/>
+              </svg>
+            </span>
+          </div>
+
+          <div class="input-section">
+            <div class="instruction">액정에 표시된 수치를 입력해주세요</div>
+
+            <div class="input-field">
+              <input id="valueInput1" type="text" inputmode="decimal" placeholder="0.00"/>
+              <span class="suffix">mm</span>
+            </div>
+
+            <div class="memo-group">
+              <div class="label">비고 <span class="optional">(선택)</span></div>
+              <textarea placeholder="특이사항이나 메모를 입력하세요&#10;예) 위치, 환경, 측정 부위 등"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="btn secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            다시 촬영
+          </div>
+          <div class="btn primary disabled">저장 후 계속 촬영</div>
+        </div>
+      </div>
+      <div class="tag empty"><span class="dot"></span>① 입력 대기 (빈 상태)</div>
+      <div class="desc">진입 직후 — 값 입력란 비어있음. 저장 버튼 회색 disabled. 다시 촬영은 즉시 가능.</div>
+    </div>
+
+    <!-- ② 입력 완료 (저장 가능) -->
+    <div class="stage">
+      <div class="screen">
+        <div class="appbar">
+          <span class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </span>
+          <h1>데이터 입력</h1>
+          <span class="subtype-chip">탄산화</span>
+        </div>
+
+        <div class="scroll-area">
+          <div class="photo-preview">
+            <div class="caliper-display">
+              <div class="caliper-body">
+                <span class="lcd-value">7.02</span>
+                <span class="lcd-unit">mm</span>
+              </div>
+            </div>
+            <span class="magnify-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                <line x1="11" y1="8" x2="11" y2="14"/>
+                <line x1="8" y1="11" x2="14" y2="11"/>
+              </svg>
+            </span>
+          </div>
+
+          <div class="input-section">
+            <div class="instruction">액정에 표시된 수치를 입력해주세요</div>
+
+            <div class="input-field">
+              <input id="valueInput2" type="text" inputmode="decimal" value="7.02"/>
+              <button type="button" class="clear-btn show" data-target="valueInput2" aria-label="값 지우기">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+              <span class="suffix">mm</span>
+            </div>
+
+            <div class="memo-group">
+              <div class="label">비고 <span class="optional">(선택)</span></div>
+              <textarea placeholder="특이사항이나 메모를 입력하세요&#10;예) 위치, 환경, 측정 부위 등">3층 북측 벽면 시료</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="btn secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            다시 촬영
+          </div>
+          <div class="btn primary" id="saveBtn">저장 후 계속 촬영</div>
+        </div>
+      </div>
+      <div class="tag filled"><span class="dot"></span>② 입력 완료 (저장 활성)</div>
+      <div class="desc">값 7.02 + 비고 입력 완료. 저장 버튼 파란색 활성. 탭 시 SurveyRecord 저장 + 카메라(C-001)로 복귀.</div>
+    </div>
+
+  </div>
+
+  <!-- ========== Spec Section ========== -->
+  <div class="spec-section">
+    <div class="spec-grid">
+
+      <!-- 화면 정보 -->
+      <div class="spec-card">
+        <h2>화면 정보</h2>
+        <div class="kv">
+          <b>화면 ID</b><div><code>C-003</code> (탄산화)</div>
+          <b>라우트</b><div><code>/data-input</code> · <code>{surveyType: carbonation, photoPath}</code></div>
+          <b>페이지</b><div><code>DataInputPage</code> · <a href="../../../../lib/pages/data_input/data_input_page.dart">lib/pages/data_input/data_input_page.dart</a></div>
+          <b>컨트롤러</b><div><code>DataInputController</code></div>
+          <b>v0.2 변경</b><div>디자인 토큰만 v0.2 시스템으로 통일 <span class="chip v1">v1 유지</span></div>
+          <b>다음 화면</b><div>저장 → C-001(카메라) 복귀 — 연속 측정. 다시 촬영 → C-001 복귀 (저장 안 함)</div>
+        </div>
+      </div>
+
+      <!-- 인터랙션 시나리오 -->
+      <div class="spec-card">
+        <h2>인터랙션 시나리오</h2>
+        <table>
+          <thead><tr><th>요소</th><th>동작</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>← 뒤로가기</td><td>탭</td><td><code>Get.back()</code> · C-001 카메라로 복귀 (사진 폐기)</td></tr>
+            <tr><td>사진 프리뷰</td><td>탭</td><td>이미지 자체 탭은 무동작 (확대 버튼 별도)</td></tr>
+            <tr><td>🔍 확대 버튼</td><td>탭</td><td><code>/photo-viewer</code> · 전체화면 사진 뷰어</td></tr>
+            <tr><td>측정값 입력</td><td>입력</td><td>실시간 검증 (숫자 + 비어있지 않음 → 저장 활성)</td></tr>
+            <tr><td>× 클리어 버튼</td><td>탭</td><td>입력값 비우기 + 포커스 유지 · 값 있을 때만 표시</td></tr>
+            <tr><td>비고</td><td>입력</td><td>note 텍스트 저장 준비 (선택)</td></tr>
+            <tr><td>다시 촬영</td><td>탭</td><td>사진 폐기 (deleteSync) → C-001 복귀</td></tr>
+            <tr><td>저장 후 계속 촬영 (활성)</td><td>탭</td><td>SurveyRecord 생성 → StorageService 저장 → <code>Get.back()</code> · C-001 카메라로 복귀 (연속 측정)</td></tr>
+            <tr><td>저장 후 계속 촬영 (비활성)</td><td>탭</td><td>반응 없음 (값 미입력 시)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 데이터 상태 -->
+      <div class="spec-card">
+        <h2>입력 검증 (실시간)</h2>
+        <ul class="flow">
+          <li><b>측정값</b> · 숫자(소수 허용) 1개. 빈 값이면 저장 비활성</li>
+          <li><b>placeholder</b> · "0.00" (구체적 예시 값은 의도적으로 안 함 — 학습 다양성 유도)</li>
+          <li><b>저장 버튼 활성 조건</b> · 값이 숫자로 파싱 가능. 음수도 허용 (현장 상황에 따라)</li>
+          <li><b>비고</b> · 선택 입력. 저장 활성 조건에 영향 없음</li>
+        </ul>
+      </div>
+
+      <!-- 저장 동작 -->
+      <div class="spec-card">
+        <h2>저장 동작 — <code>SurveyRecord</code></h2>
+        <p style="margin:0 0 10px; font-size:13px; color:#334155;">
+          "저장 후 계속 촬영" 탭 시 다음 데이터 모델로 변환되어 <code>StorageService.I.addRecord()</code> 호출 후 <code>Get.back()</code>으로 C-001(카메라)로 복귀.
+        </p>
+        <table>
+          <tbody>
+            <tr><td><code>SurveyRecord.id</code></td><td><code>'${DateTime.now().millisecondsSinceEpoch}'</code></td></tr>
+            <tr><td><code>SurveyRecord.surveyType</code></td><td><code>SurveyType.carbonation</code></td></tr>
+            <tr><td><code>SurveyRecord.photoPath</code></td><td>C-001에서 캡처된 jpg 경로</td></tr>
+            <tr><td><code>SurveyRecord.value</code></td><td>측정값 (double)</td></tr>
+            <tr><td><code>SurveyRecord.note</code></td><td>비고 textarea 값 (trim)</td></tr>
+            <tr><td><code>SurveyRecord.timestamp</code></td><td><code>DateTime.now()</code></td></tr>
+            <tr><td><code>SurveyRecord.uploadStatus</code></td><td><code>UploadStatus.pending</code></td></tr>
+            <tr><td><code>SurveyRecord.measurementSubtype</code></td><td><code>null</code> (탄산화는 subtype 없음)</td></tr>
+            <tr><td><code>SurveyRecord.annotation</code></td><td><code>null</code> (탄산화는 좌표 annotation 없음)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 디자인 스펙 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>디자인 스펙</h2>
+        <table>
+          <tbody>
+            <tr><td>AppBar</td><td>padding 14t/12r/6b/8l · 40×40 back-btn · 18 w800 제목 · 우측 "탄산화" subtype-chip (<code>#DBEAFE</code>/<code>#1E40AF</code>)</td></tr>
+            <tr><td>스크롤 영역</td><td>flex 1 · overflow-y auto · <b>padding-bottom 120px</b> (S-005/S-008 공통 키보드 buffer 정책)</td></tr>
+            <tr><td>사진 프리뷰</td><td>220px 높이 · 100% 너비 · 검은 bg · 중앙 캘리퍼스 액정 시뮬(200×96 검정 박스 + amber LCD 텍스트)</td></tr>
+            <tr><td>확대 버튼</td><td>36×36 원형 · 우하단 12px offset · 검정 55% bg · 흰 search 아이콘 · hover 시 78%</td></tr>
+            <tr><td>안내 문구</td><td>"액정에 표시된 수치를 입력해주세요" · 14 w600 grey-700</td></tr>
+            <tr><td>입력 필드</td><td>type text inputmode=decimal · 56px height · 20 w700 monospace · placeholder "0.00" 15 w500 grey · suffix "mm" 우측 16px · clear btn 24×24 ⓧ (값 있을 때만)</td></tr>
+            <tr><td>입력 포커스</td><td>border <code>#2563EB</code> + 3px ring <code>rgba(37,99,235,.15)</code></td></tr>
+            <tr><td>비고 textarea</td><td>min-height 140 · padding 13v/14h · 1px <code>#d1d5db</code> · 13 line-height 1.55 · resize none · placeholder 멀티라인 (예시 노출)</td></tr>
+            <tr><td>하단 버튼바</td><td>top border 1px · 2칸 grid (1fr : 1.5fr) · gap 10 · padding 14v/16h · S-005/S-008과 동일</td></tr>
+            <tr><td>"다시 촬영"</td><td>height 48 · radius 10 · 흰 bg · 1px <code>#d1d5db</code> · 14.5 w700 grey-700 · 카메라 아이콘 16px</td></tr>
+            <tr><td>"저장 후 계속 촬영" (활성)</td><td>height 48 · radius 10 · bg <code>#2563EB</code> · 흰 · 14.5 w700 · shadow <code>0 2px 8px rgba(37,99,235,.18)</code></td></tr>
+            <tr><td>"저장 후 계속 촬영" (비활성)</td><td>bg <code>#D1D5DB</code> · <code>#9CA3AF</code> · cursor not-allowed · shadow 제거</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function(){
+  const input = document.getElementById('valueInput2');
+  const clearBtn = document.querySelector('.clear-btn[data-target="valueInput2"]');
+  if (input && clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      input.focus();
+      clearBtn.classList.remove('show');
+    });
+    input.addEventListener('input', () => {
+      if (input.value.length > 0) clearBtn.classList.add('show');
+      else clearBtn.classList.remove('show');
+    });
+  }
+})();
+</script>
+
+<script src="../../../규격조사/v0.2_design/mockups/_embed.js"></script>
+</body>
+</html>

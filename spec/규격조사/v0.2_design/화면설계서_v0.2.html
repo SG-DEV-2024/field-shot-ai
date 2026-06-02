@@ -242,6 +242,11 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
       <a href="#s008">S-008 수치 입력 (홀 깊이)</a>
       <a href="#s009">S-009 보관함</a>
 
+      <div class="nav-group">탄산화 (v0.2 디자인 적용)</div>
+      <a href="#c001">C-001 촬영 (탄산화)</a>
+      <a href="#c003">C-003 데이터 입력 (탄산화)</a>
+      <a href="#c002">C-002 보관함 (탄산화)</a>
+
       <div class="nav-group">정리</div>
       <a href="#decisions">6. v0.2 주요 결정</a>
       <a href="#handoff">7. 개발자 인도</a>
@@ -656,6 +661,87 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
       </ul>
     </section>
 
+    <!-- ========== 탄산화 화면 (v0.2 디자인 적용) ========== -->
+    <section id="carb-intro">
+      <h2><span class="sec-num" style="background:#fef3c7; color:#92400e;">탄산화</span>탄산화 화면 — v0.2 디자인 적용</h2>
+      <div class="note" style="background:#fef3c7; border-color:#fde68a; color:#92400e;">
+        <b>스코프 안내</b> · v1 탄산화 모듈 3개 화면(촬영 / 데이터 입력 / 보관함)을 v0.2 디자인 시스템으로 재정리. <b>동작 로직·라우트·데이터 모델은 v1 코드 그대로 유지</b>, 시각 일관성만 통일. 자세한 코드 명세는
+        <a href="../screen_spec_v0.2.md#6X-탄산화-화면" style="font-weight:800;">screen_spec §6.X 탄산화 화면 ↗</a>
+      </div>
+    </section>
+
+    <!-- ========== C-001 ========== -->
+    <section id="c001">
+      <h2><span class="sec-num" style="background:#fef3c7; color:#92400e;">C-001</span>촬영 가이드 — 탄산화</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/camera</code> · <code>carbonation</code></span></div>
+        <div class="item"><b>페이지</b><span><code>CameraPage</code> (v1)</span></div>
+        <div class="item"><b>가이드</b><span>사각형 + 원 + 크로스헤어</span></div>
+        <div class="item"><b>자세 잠금</b><span>16° 초과 시 빨강 + 셔터 잠금</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#f59e0b; color:#fff; border:none;">C-001</span> &nbsp;촬영 가이드 — 탄산화</span>
+          <a href="../../탄산화/v0.2_design/mockups/C-001_camera.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="../../탄산화/v0.2_design/mockups/C-001_camera.html" loading="lazy" title="C-001 탄산화 촬영"></iframe>
+      </div>
+      <ul>
+        <li>가이드 박스: 248×128 노란 dashed 사각형 + 84 내부 원 + 36 녹색 크로스헤어 (잠금 시 빨강 톤).</li>
+        <li>줌 1x / 2x / 3x (기본 2x amber active) + ⚡ Auto 플래시 pill.</li>
+        <li>좌하단 보관함 썸네일 → <code>/archive</code> (C-002) · 중앙 흰 셔터 → 사진 캡쳐 + <code>/data-input</code> (C-003) 진입.</li>
+        <li><b>자세 잠금 정책</b> · SMA 5샘플 + 데드존 1.5° + 15°/16° 임계 (탄산화 전용 — 규격조사 카메라는 미적용).</li>
+      </ul>
+    </section>
+
+    <!-- ========== C-003 ========== -->
+    <section id="c003">
+      <h2><span class="sec-num" style="background:#fef3c7; color:#92400e;">C-003</span>데이터 입력 — 탄산화</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/data-input</code> · <code>carbonation</code></span></div>
+        <div class="item"><b>입력</b><span>단일 값 (mm)</span></div>
+        <div class="item"><b>저장 후</b><span>C-001 카메라 복귀 — 연속 측정</span></div>
+        <div class="item"><b>키보드 buffer</b><span>120px (S-005·S-008 공통)</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#f59e0b; color:#fff; border:none;">C-003</span> &nbsp;데이터 입력 — 탄산화</span>
+          <a href="../../탄산화/v0.2_design/mockups/C-003_data_input.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="../../탄산화/v0.2_design/mockups/C-003_data_input.html" loading="lazy" title="C-003 탄산화 데이터 입력"></iframe>
+      </div>
+      <ul>
+        <li>상단 사진 프리뷰(220px) + 우하단 🔍 확대 버튼(→ <code>/photo-viewer</code>).</li>
+        <li>안내: "액정에 표시된 수치를 입력해주세요" + 단일 값 입력(<code>inputmode=decimal</code>, 우측 × 클리어).</li>
+        <li>비고 textarea(선택). 저장 활성 조건: 값이 숫자로 파싱 가능.</li>
+        <li><b>저장 액션 단일 "저장 후 계속 촬영"</b> — 저장 후 카메라(C-001) 복귀. 메인 직행 액션은 의도적 제외 (S-005/S-008과 동일 정책).</li>
+      </ul>
+    </section>
+
+    <!-- ========== C-002 ========== -->
+    <section id="c002">
+      <h2><span class="sec-num" style="background:#fef3c7; color:#92400e;">C-002</span>사진 보관함 — 탄산화</h2>
+      <div class="spec-strip">
+        <div class="item"><b>라우트</b><span><code>/archive</code></span></div>
+        <div class="item"><b>페이지</b><span><code>ArchivePage</code> (v1)</span></div>
+        <div class="item"><b>모달</b><span>수정 다이얼로그 (단일 값 + 비고)</span></div>
+        <div class="item"><b>통합 권장</b><span>실제 앱은 S-009 통합 보관함 사용</span></div>
+      </div>
+      <div class="mockup-screen">
+        <div class="toolbar">
+          <span><span class="screen-id" style="background:#f59e0b; color:#fff; border:none;">C-002</span> &nbsp;사진 보관함 — 탄산화</span>
+          <a href="../../탄산화/v0.2_design/mockups/C-002_archive.html" target="_blank">↗ 새 창으로 열기</a>
+        </div>
+        <iframe src="../../탄산화/v0.2_design/mockups/C-002_archive.html" loading="lazy" title="C-002 탄산화 보관함"></iframe>
+      </div>
+      <ul>
+        <li>데이터 상태 3종 (빈 / 데이터 있음 3건 / 수정 모달).</li>
+        <li>카드 썸네일: <b>S-001 메인 캘리퍼스 아이콘과 동일</b> (S-009 보관함과 통일).</li>
+        <li>업로드 버튼 상태 4종: 빈("모든 데이터 전송 완료") / 대기 있음("미전송 N건 업로드") / 전체 완료 / 진행 중(spinner).</li>
+        <li><b>실제 앱 구현 권장</b> — 라우트는 <code>/archive</code> 단일이므로 탄산화·규격조사 통합 표시(S-009 패턴). C-002는 v1 디자인 재정리 시 명확성을 위해 탄산화만 분리해 표시한 변형.</li>
+      </ul>
+    </section>
+
     <!-- ===== 6. v0.2 주요 결정사항 ===== -->
     <section id="decisions">
       <h2><span class="sec-num">§6</span>v0.2 주요 결정사항 요약</h2>
@@ -675,7 +761,8 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
           <tr><td>수정 모달 subtype별 분기 — 탄산화(단일 값), 폭/간격(시작값+끝값+자동계산), 홀 깊이(줄자 읽은 값) 3가지 변형. 각각 원본 입력 화면(S-탄산화/S-005/S-008) 구조와 일치</td><td>2026-06-01</td><td>S-009</td></tr>
           <tr><td>입력 화면 키보드 buffer 120px — Flutter <code>resizeToAvoidBottomInset:true</code> 위에 안전 여유 공간 부여, 비고 textarea가 키패드 위로 올라올 수 있도록</td><td>2026-06-01</td><td>S-005 / S-008</td></tr>
           <tr><td>인터랙티브 플로우 프로토타입 분리 — 9개 mockup + 3개 sub-screen 모달을 postMessage 기반 단일 시뮬레이션 페이지(<code>플로우_v0.2.html</code>)로 통합</td><td>2026-06-01</td><td>전체</td></tr>
-          <tr><td>단일 "저장 후 계속 촬영" 액션으로 통일 — 카메라 촬영 흐름에서 저장 시 카메라(같은 subtype 유지)로 복귀해 연속 측정. 메인은 카메라 상단 ← 뒤로가기로 자연 pop. v1 코드(<code>data_input_controller</code>, <code>camera_controller</code>)도 동일하게 단순화 적용.</td><td>2026-06-02</td><td>S-005 / S-008 + v1 탄산화</td></tr>
+          <tr><td>단일 "저장 후 계속 촬영" 액션으로 통일 — 카메라 촬영 흐름에서 저장 시 카메라(같은 subtype 유지)로 복귀해 연속 측정. 메인은 카메라 상단 ← 뒤로가기로 자연 pop. v1 코드(<code>data_input_controller</code>, <code>camera_controller</code>)도 동일하게 단순화 적용.</td><td>2026-06-02</td><td>S-005 / S-008 / C-003 + v1 탄산화</td></tr>
+          <tr><td>탄산화 화면 3종(C-001 촬영 / C-003 데이터 입력 / C-002 보관함)을 v0.2 디자인 시스템으로 재정리. 동작 로직·라우트·데이터 모델은 v1 유지. 보관함 카드 썸네일은 S-009 / C-002 모두 S-002 카드 아이콘과 통일. 메인의 우상단 설정 버튼은 제거(미사용 placeholder)</td><td>2026-06-02</td><td>C-001 / C-002 / C-003 + S-001</td></tr>
         </tbody>
       </table>
     </section>
@@ -690,7 +777,8 @@ code{background:#f2f4f7; border:1px solid var(--line); border-radius:6px; paddin
         <tbody>
           <tr><td><code>화면설계서_v0.2.html</code> (이 문서)</td><td>9개 mockup + 명세를 통합한 마스터 화면설계서. iframe으로 각 mockup을 직접 확인</td><td>기획·디자인·개발 공통</td></tr>
           <tr><td><a href="플로우_v0.2.html" target="_blank"><code>플로우_v0.2.html</code></a></td><td>인터랙티브 플로우 프로토타입. 실제 앱처럼 카드·셔터·다음·저장 등 탭하면 화면 전이. S-003 핸들 조정도 S-004로 그대로 전달됨. 좌측 플로우맵·우측 액션 패널·이동 히스토리 포함</td><td>UX 검토·QA·개발자 동작 확인</td></tr>
-          <tr><td><code>mockups/S-001 ~ S-009.html</code> (9개)</td><td>각 화면의 완성형 mockup + 데이터 상태 변형 + 인터랙션 사양 + 개발자 명세를 한 파일에 통합</td><td>개발자 픽셀·코드 값 참조</td></tr>
+          <tr><td><code>mockups/S-001 ~ S-009.html</code> (9개)</td><td>규격조사 화면의 완성형 mockup + 데이터 상태 변형 + 인터랙션 사양 + 개발자 명세를 한 파일에 통합</td><td>개발자 픽셀·코드 값 참조</td></tr>
+          <tr><td><a href="../../탄산화/v0.2_design/mockups/"><code>../탄산화/v0.2_design/mockups/C-001 ~ C-003.html</code></a> (3개)</td><td>탄산화 화면의 v0.2 디자인 적용 mockup (동작 로직은 v1 유지). 촬영 / 데이터 입력 / 보관함</td><td>개발자 픽셀·코드 값 참조</td></tr>
           <tr><td><code>mockups/_embed.js</code></td><td><b>프로토타입 전용</b> — iframe 내에서 page-head/spec을 숨기고 트리거를 부착해 부모와 postMessage 통신. <b>실제 앱 코드에 포함하지 않음</b></td><td>프로토타입 인프라</td></tr>
           <tr><td><a href="../screen_spec_v0.2.md"><code>screen_spec_v0.2.md</code></a></td><td>Flutter 위젯 트리, 데이터 모델(SurveyType/MeasurementSubtype/DimensionAnnotation), 좌표 변환식, 라우팅, Phase 분할 등 코드 레벨 상세</td><td>개발자 구현 기준</td></tr>
           <tr><td><a href="assets/README.md"><code>assets/README.md</code></a> + <code>assets/icons/</code></td><td>v0.2에서 새로 그린 SVG 아이콘 6종 + 사용 가이드 (메인 카드, 가이드박스 분기 등)</td><td>개발자 자산</td></tr>

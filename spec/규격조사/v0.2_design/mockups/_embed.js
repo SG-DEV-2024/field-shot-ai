@@ -14,7 +14,7 @@
 
   // ---------- 화면 ID 식별 ----------
   const fileName = location.pathname.split('/').pop() || '';
-  const m = fileName.match(/^(S-\d+)/);
+  const m = fileName.match(/^([SC]-\d+)/);
   const SCREEN_ID = m ? m[1] : null;
   if (!SCREEN_ID) return;
 
@@ -22,7 +22,9 @@
   // 해시로 override 가능. 없으면 화면별 기본값 사용.
   const STAGE_INDEX = {
     'S-001': 2,  // 미전송 12건 (현실적 상태)
-    'S-009': 2   // 데이터 3건
+    'S-009': 2,  // 데이터 3건
+    'C-002': 2,  // 탄산화 보관함 데이터 3건
+    'C-003': 2   // 데이터 입력 완료 (저장 활성)
   };
   const stageIdx = hashStage || STAGE_INDEX[SCREEN_ID] || 1;
 
@@ -55,6 +57,12 @@
   // 각 트리거: { find: root => Element[], target: 'S-xxx', label: '액션 설명' }
   const TRIGGERS = {
     'S-001': [
+      // 탄산화 카드 → C-001 (탄산화 카메라). enabled 카드 중 "규격"이 안 들어간 것이 탄산화.
+      { find: function (r) {
+          return Array.from(r.querySelectorAll('.card.enabled'))
+            .filter(function (el) { return el.textContent.includes('탄산화'); });
+        },
+        target: 'C-001', label: '탄산화 조사 카드' },
       { find: function (r) { return cardsByText(r, '규격'); },
         target: 'S-002', label: '규격 조사 카드' },
       { find: function (r) { return linksByText(r, '보관함'); },
@@ -109,6 +117,37 @@
       { find: function (r) { var el = r.querySelector('#saveBtn'); return el ? [el] : []; },
         target: 'S-006', label: '저장 후 계속 촬영' }
     ],
+    // ===== 탄산화 (C-) =====
+    'C-001': [
+      // 셔터 → C-003 (데이터 입력)
+      { find: function (r) { var el = r.querySelector('.shutter'); return el ? [el] : []; },
+        target: 'C-003', label: '셔터 (촬영)' },
+      // 좌하단 갤러리 썸네일 → C-002 (탄산화 보관함)
+      { find: function (r) { var el = r.querySelector('.gallery-thumb'); return el ? [el] : []; },
+        target: 'C-002', label: '보관함 (갤러리 썸네일)' }
+    ],
+    // C-002 — stage 2(리스트) / stage 3(수정 모달)
+    'C-002': function (stage) {
+      if (stage === 3) {
+        return [
+          { find: function (r) { return Array.from(r.querySelectorAll('.modal-cancel')); },
+            target: 'C-002', label: '취소 (모달 닫기)' },
+          { find: function (r) { return Array.from(r.querySelectorAll('.modal-save')); },
+            target: 'C-002', label: '저장 (모달 닫기)' }
+        ];
+      }
+      // stage 1(빈) or stage 2(데이터있음): edit-btn → C-002E
+      return [
+        { find: function (r) { return Array.from(r.querySelectorAll('.edit-btn')); },
+          target: 'C-002E', label: '수정 (모달 열기)' }
+      ];
+    },
+    'C-003': [
+      // 저장 후 계속 촬영 → C-001 카메라 복귀
+      { find: function (r) { var el = r.querySelector('#saveBtn'); return el ? [el] : []; },
+        target: 'C-001', label: '저장 후 계속 촬영' }
+    ],
+
     // S-009는 stage별 동작 분기:
     //   stage 2 = 리스트 → 각 카드 수정 버튼이 subtype에 맞는 모달로 이동
     //   stage 3/4/5 = 모달 열림 (탄산화/폭간격/홀깊이) → 취소·저장 시 리스트 복귀

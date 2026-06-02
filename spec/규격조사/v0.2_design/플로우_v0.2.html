@@ -557,6 +557,12 @@ body{
       <a class="screen-link active" data-screen="S-001"><span class="id">S-001</span><span class="label">메인</span></a>
       <a class="screen-link" data-screen="S-002"><span class="id">S-002</span><span class="label">측정 종류</span></a>
 
+      <div class="group-label">탄산화</div>
+      <a class="screen-link" data-screen="C-001"><span class="id">C-001</span><span class="label">촬영</span></a>
+      <a class="screen-link" data-screen="C-003"><span class="id">C-003</span><span class="label">데이터 입력</span></a>
+      <a class="screen-link" data-screen="C-002"><span class="id">C-002</span><span class="label">보관함</span></a>
+      <a class="screen-link sub" data-screen="C-002E"><span class="id">C-002E</span><span class="label">수정 모달</span></a>
+
       <div class="group-label">폭 · 간격</div>
       <a class="screen-link" data-screen="S-003"><span class="id">S-003</span><span class="label">촬영</span></a>
       <a class="screen-link" data-screen="S-004"><span class="id">S-004</span><span class="label">보정</span></a>
@@ -645,7 +651,42 @@ body{
      ============================================================ -->
 <script>
 // ==================== 화면 메타데이터 ====================
+// 탄산화(C-) mockup은 spec/탄산화/v0.2_design/ 폴더에 있음 → 상대 경로 변환
 const SCREENS = {
+  /* ===== 탄산화 ===== */
+  'C-001': {
+    file: '../../탄산화/v0.2_design/mockups/C-001_camera.html',
+    name: '탄산화 촬영',
+    route: '/camera · {surveyType: carbonation}',
+    desc: '버니어 캘리퍼스 액정이 가이드 박스(사각형 + 원) 안에 들어오도록 비추고 셔터 탭. 자세 잠금(16°) 적용.',
+    next: 'C-003 (촬영) 또는 C-002 (보관함)'
+  },
+  'C-002': {
+    file: '../../탄산화/v0.2_design/mockups/C-002_archive.html',
+    name: '탄산화 보관함',
+    route: '/archive',
+    desc: '탄산화 측정 기록 카드 리스트. 카드 수정 가능. v1 패턴 유지.',
+    next: '수정 모달 또는 S-001 복귀',
+    stage: 2
+  },
+  'C-002E': {
+    file: '../../탄산화/v0.2_design/mockups/C-002_archive.html',
+    name: '탄산화 보관함 · 수정 모달',
+    route: '/archive (dialog)',
+    desc: '카드 "수정" 탭 시 표시되는 단일 측정값 + 비고 다이얼로그. v1 동일.',
+    next: 'C-002 복귀',
+    stage: 3
+  },
+  'C-003': {
+    file: '../../탄산화/v0.2_design/mockups/C-003_data_input.html',
+    name: '탄산화 데이터 입력',
+    route: '/data-input · {surveyType: carbonation, photoPath}',
+    desc: '캡처한 사진에서 보이는 액정 수치(mm) 단일 입력 + 비고. 저장 후 카메라로 복귀해 연속 측정.',
+    next: '저장 → C-001 카메라 복귀',
+    stage: 2
+  },
+
+  /* ===== 규격조사 ===== */
   'S-001': {
     file: 'mockups/S-001_main.html',
     name: '메인',
@@ -746,10 +787,38 @@ const SCREENS = {
 const TRANSITIONS = {
   'S-001': {
     triggers: [
+      { type:'card-text', text:'탄산화', target:'C-001', label:'탄산화 조사 카드', sub:'버니어 캘리퍼스 촬영' },
       { type:'card-text', text:'규격', target:'S-002', label:'규격 조사 카드 탭', sub:'줄자 기반 측정 시작' },
       { type:'link-text', text:'보관함', target:'S-009', label:'보관함 보기 pill', sub:'저장 기록 열람' }
     ],
     back: null
+  },
+  /* ===== 탄산화 transitions ===== */
+  'C-001': {
+    triggers: [
+      { type:'class', cls:'shutter',       target:'C-003', label:'셔터 (촬영)',          sub:'사진 캡처 → 데이터 입력' },
+      { type:'class', cls:'gallery-thumb', target:'C-002', label:'보관함 (썸네일 탭)',   sub:'탄산화 보관함 진입' }
+    ],
+    back: 'S-001'
+  },
+  'C-002': {
+    triggers: [
+      { type:'class', cls:'edit-btn', target:'C-002E', label:'수정 (모달 열기)', sub:'카드 수정 다이얼로그' }
+    ],
+    back: 'S-001'
+  },
+  'C-002E': {
+    triggers: [
+      { type:'class', cls:'modal-cancel', target:'C-002', label:'취소 (모달 닫기)', sub:'변경 폐기' },
+      { type:'class', cls:'modal-save',   target:'C-002', label:'저장 (모달 닫기)', sub:'updateRecord(carbonation)' }
+    ],
+    back: 'C-002'
+  },
+  'C-003': {
+    triggers: [
+      { type:'id', id:'saveBtn', target:'C-001', label:'저장 후 계속 촬영', sub:'카메라(C-001)로 복귀 — 연속 측정' }
+    ],
+    back: 'C-001'
   },
   'S-002': {
     triggers: [
