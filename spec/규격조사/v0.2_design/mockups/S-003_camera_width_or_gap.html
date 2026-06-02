@@ -459,7 +459,7 @@ body{
         <table>
           <thead><tr><th>요소</th><th>동작</th><th>결과</th></tr></thead>
           <tbody>
-            <tr><td>← 뒤로가기</td><td>탭</td><td>S-002로 복귀</td></tr>
+            <tr><td>← 뒤로가기</td><td>탭</td><td><b>메인(S-001)으로 직행</b> — 사이의 S-002 건너뛰고 한 번에. <code>Get.until((r) => r.settings.name == AppRoutes.main)</code></td></tr>
             <tr><td>플래시 pill</td><td>탭</td><td>Auto → On → Off → Auto 순환</td></tr>
             <tr><td>줌 1x/2x/3x</td><td>탭</td><td>선택 줌 적용</td></tr>
             <tr><td><b>시작 핸들 (파랑)</b></td><td>드래그</td><td>박스 좌측 끝 이동 = 측정 시작점 좌표 사전 지정 (핸들 자체는 박스 외곽에 위치, 박스 안쪽 측정 영역을 가리지 않음)</td></tr>

@@ -565,12 +565,16 @@ Future<void> save() async {
     annotation: annotation,
   );
   await StorageService.I.addRecord(record);
-  // 카메라(/annotate를 거쳐 그 이전 /camera)로 복귀 — 연속 측정.
-  Get.back();
+  // dimension은 스택이 [main, /survey-type-select, /camera, /annotate, /dimension-input].
+  // /camera로 복귀하기 위해 /annotate + /dimension-input 2장 pop.
+  // v1 탄산화는 [main, /camera, /data-input] 구조라 Get.back() 한 번으로 충분.
+  Get.until((r) => r.settings.name == AppRoutes.camera);
 }
 ```
 
-**카메라(S-003/S-006) 측 처리** — `Get.toNamed('/annotate', ...)`만 호출. result 처리 불필요 (v1 `camera_controller.dart`의 단순화된 패턴과 동일).
+**카메라(S-003/S-006) 측 처리**
+- `Get.toNamed('/annotate', ...)`만 호출. result 처리 불필요.
+- **카메라 상단 ← 뒤로가기 = 메인 직행** (`Get.until((r) => r.settings.name == AppRoutes.main)`). v1 탄산화 카메라도 동일 패턴으로 통일 ([camera_page.dart](../../lib/pages/camera/camera_page.dart)). 이는 사이의 `/survey-type-select`(v0.2 규격조사) 한 장을 건너뛰어 한 번에 메인으로 가게 한다.
 
 ### S-009 보관함 (기존 화면 수정 · 이전 ID S-012)
 

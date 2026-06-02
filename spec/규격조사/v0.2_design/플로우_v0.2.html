@@ -763,7 +763,7 @@ const TRANSITIONS = {
     triggers: [
       { type:'class', cls:'shutter', target:'S-004', label:'셔터 (촬영)', sub:'사진 캡처 + 사전 좌표 저장' }
     ],
-    back: 'S-002'
+    back: 'S-001'  /* 카메라 ← 뒤로가기는 사이의 S-002 건너뛰고 메인 직행 */
   },
   'S-004': {
     triggers: [
@@ -782,7 +782,7 @@ const TRANSITIONS = {
     triggers: [
       { type:'class', cls:'shutter', target:'S-007', label:'셔터 (촬영)', sub:'사진 캡처' }
     ],
-    back: 'S-002'
+    back: 'S-001'  /* 카메라 ← 뒤로가기는 사이의 S-002 건너뛰고 메인 직행 */
   },
   'S-007': {
     triggers: [
