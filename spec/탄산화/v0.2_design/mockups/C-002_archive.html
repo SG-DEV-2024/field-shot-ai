@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>C-002 사진 보관함 — 탄산화 조사 (v0.2)</title>
+<style>
+/* ============================================================
+   C-002 사진 보관함 — 탄산화 조사 (v0.2 디자인 시스템)
+   기준: spec/origin_assets/현장촬영실제화면/탄산화조사_사진보관함.jpg
+         + lib/pages/archive/archive_page.dart (v1)
+   포함: 빈/데이터있음/수정모달 3개 stage + 인터랙션·디자인 명세
+   ============================================================ */
+:root{
+  --ink:#111827; --muted:#6B7280; --line:#E5E7EB;
+  --blue:#2563EB; --blue-weak:#EFF6FF; --blue-deep:#1E40AF;
+  --green:#16A34A; --green-weak:#DCFCE7;
+  --red:#DC2626; --gray-50:#F9FAFB; --gray-100:#F3F4F6; --gray-disabled:#D1D5DB;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:#f1f5f9;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR","Apple SD Gothic Neo",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  color:#0f172a;
+  padding:40px 24px 60px;
+  line-height:1.55;
+}
+
+/* ====== 페이지 헤더 ====== */
+.page-head{ max-width:1280px; margin:0 auto 28px; text-align:center; }
+.page-head .eyebrow{
+  display:inline-block;
+  font-size:11.5px; letter-spacing:0.14em; font-weight:800;
+  color:#2563EB; background:#DBEAFE;
+  padding:5px 12px; border-radius:999px;
+  margin-bottom:10px;
+}
+.page-head h1{
+  margin:0; font-size:24px; font-weight:800; letter-spacing:-0.025em; color:#0f172a;
+}
+.page-head p{margin:6px 0 0; color:#64748b; font-size:13.5px;}
+.page-head .hint{
+  display:inline-block;
+  margin-top:10px;
+  font-size:12px; color:#475569;
+  background:#fff; border:1px solid #cbd5e1;
+  border-radius:999px; padding:6px 14px;
+}
+.page-head .hint kbd{
+  font-family:"Roboto Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px;
+  background:#f1f5f9; color:#1e293b;
+  padding:1px 6px; border-radius:4px;
+  border:1px solid #e2e8f0;
+}
+
+/* ====== Mockup 행 ====== */
+.mockup-row{
+  display:flex; justify-content:center; align-items:flex-start;
+  gap:36px; flex-wrap:wrap;
+  margin-bottom:48px;
+}
+.stage{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+.stage .tag{
+  font-size:12px; font-weight:700; color:#475569;
+  background:#fff; border:1px solid #cbd5e1;
+  border-radius:999px; padding:6px 14px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.stage .tag .dot{ width:6px; height:6px; border-radius:50%; background:#94a3b8; }
+.stage .tag.empty .dot{ background:#6B7280; }
+.stage .tag.filled .dot{ background:#2563EB; }
+.stage .tag.modal .dot{ background:#f59e0b; }
+.stage .desc{
+  text-align:center; font-size:11.5px; color:#64748b;
+  max-width:300px; line-height:1.4;
+}
+
+/* ====== 스크린 (Android 논리 360dp) ====== */
+.screen{
+  width:360px; height:720px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:18px;
+  box-shadow:0 12px 32px rgba(15,23,42,.10);
+  overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+}
+
+/* ====== 상단 앱바 ====== */
+.appbar{
+  display:flex; align-items:center;
+  padding:14px 20px 8px 4px;
+  gap:0;
+  flex-shrink:0;
+}
+.back-btn{
+  width:44px; height:44px;
+  display:flex; align-items:center; justify-content:center;
+  color:#0f172a;
+  cursor:pointer; border-radius:8px;
+  transition:background-color .12s;
+  margin-left:4px;
+}
+.back-btn:hover{ background:#f1f5f9; }
+.back-btn:active{ background:#e2e8f0; }
+.back-btn svg{ width:22px; height:22px; stroke-width:2.2; }
+.appbar h1{
+  margin:0;
+  font-size:18px; font-weight:800;
+  letter-spacing:-0.2px; color:var(--ink);
+  line-height:1.2;
+}
+
+/* ====== 스크롤 영역 ====== */
+.scroll-area{
+  flex:1; overflow-y:auto;
+}
+.scroll-area::-webkit-scrollbar{ width:6px; }
+.scroll-area::-webkit-scrollbar-thumb{ background:#e2e8f0; border-radius:3px; }
+
+/* 빈 상태 */
+.empty-state{
+  height:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px;
+  padding:0 32px;
+  color:#94a3b8;
+}
+.empty-state .ic{
+  width:64px; height:64px;
+  background:#f1f5f9;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:#cbd5e1;
+}
+.empty-state .ic svg{ width:32px; height:32px; stroke-width:1.6; }
+.empty-state .title{
+  font-size:14.5px; font-weight:600; color:#94a3b8;
+  letter-spacing:-0.1px;
+}
+
+/* 데이터 리스트 */
+.list-head{
+  font-size:14.5px; font-weight:700; color:#0f172a;
+  padding:16px 20px 8px;
+}
+.records{
+  padding:0 16px 16px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.record-card{
+  display:flex; align-items:center; gap:12px;
+  padding:12px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:12px;
+  transition:border-color .12s, box-shadow .12s;
+  cursor:pointer;
+}
+.record-card:hover{ border-color:#cbd5e1; box-shadow:0 2px 8px rgba(15,23,42,.06); }
+.record-card .thumb{
+  width:60px; height:60px;
+  border-radius:8px;
+  overflow:hidden;
+  flex-shrink:0;
+  background:#e2e8f0;
+}
+.record-card .thumb svg{ width:100%; height:100%; display:block; }
+.record-card .record-info{
+  flex:1; min-width:0;
+  display:flex; flex-direction:column; gap:3px;
+}
+.record-meta{
+  font-size:11px; color:#64748b;
+  display:flex; align-items:center; gap:6px;
+  letter-spacing:-0.1px;
+}
+.record-meta .sep{ color:#cbd5e1; }
+.record-value{
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:18px; font-weight:800; color:#0f172a;
+  letter-spacing:-0.2px;
+}
+.record-value .unit{
+  font-size:12px; color:#6B7280; font-weight:600;
+  font-family:-apple-system,Arial,sans-serif;
+  margin-left:3px;
+}
+.record-status{
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:10.5px; font-weight:700;
+  padding:1px 6px;
+  border-radius:4px;
+  width:fit-content;
+  margin-top:1px;
+}
+.record-status .dot{ width:5px; height:5px; border-radius:50%; }
+.record-status.pending{ background:#FEF2F2; color:var(--red); }
+.record-status.pending .dot{ background:var(--red); }
+.record-status.uploaded{ background:var(--green-weak); color:var(--green); }
+.record-status.uploaded .dot{ background:var(--green); }
+.edit-btn{
+  flex-shrink:0;
+  font-size:12px; font-weight:600;
+  color:#374151;
+  background:#fff;
+  border:1px solid #d1d5db;
+  border-radius:6px;
+  padding:6px 12px;
+  cursor:pointer;
+  transition:background-color .12s, border-color .12s;
+}
+.edit-btn:hover{ background:#f9fafb; border-color:#9ca3af; }
+.edit-btn:active{ transform:scale(0.97); background:#f3f4f6; }
+
+/* ====== 하단 업로드 버튼 ====== */
+.bottom-bar{
+  padding:14px 20px 24px;
+  border-top:1px solid #f1f5f9;
+  background:#fff;
+  flex-shrink:0;
+}
+.upload-btn{
+  width:100%;
+  min-height:52px;
+  border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14.5px; font-weight:700;
+  padding:14px 20px;
+  letter-spacing:-0.1px;
+  transition:background-color .12s, transform .08s;
+  user-select:none;
+}
+.upload-btn.disabled{
+  background:#e5e7eb;
+  color:#9CA3AF;
+  cursor:not-allowed;
+}
+.upload-btn.active{
+  background:var(--blue);
+  color:#fff;
+  cursor:pointer;
+  box-shadow:0 4px 12px rgba(37,99,235,.22);
+}
+.upload-btn.active:hover{ background:#1D4ED8; }
+.upload-btn.active:active{ background:var(--blue-deep); transform:scale(0.98); }
+.upload-btn.loading{
+  background:#9CA3AF; color:#fff; cursor:wait;
+  gap:8px;
+}
+.upload-btn.loading .spinner{
+  width:18px; height:18px;
+  border:2.5px solid rgba(255,255,255,0.4);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{ to { transform:rotate(360deg); } }
+
+/* ====== 수정 모달 ====== */
+.modal-backdrop{
+  position:absolute; inset:0;
+  background:rgba(15,23,42,0.55);
+  display:flex; align-items:center; justify-content:center;
+  padding:20px;
+  z-index:10;
+  backdrop-filter:blur(2px);
+}
+.modal{
+  width:100%;
+  background:#f3f3f7;
+  border-radius:18px;
+  padding:18px;
+  box-shadow:0 20px 50px rgba(15,23,42,.25);
+}
+.modal-title{
+  font-size:14px; font-weight:700; color:#0f172a;
+  margin-bottom:10px;
+}
+.modal-input{
+  width:100%; height:54px;
+  padding:0 16px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  background:#fff;
+  font-size:20px; font-weight:700; color:#111827;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  outline:none;
+  margin-bottom:14px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.modal-input .val{ flex:1; }
+.modal-input .unit{
+  font-size:14px; color:#6B7280; font-weight:600;
+  font-family:-apple-system,Arial,sans-serif;
+}
+.modal-label{
+  font-size:13px; font-weight:700; color:#0f172a;
+  margin-bottom:6px;
+}
+.modal-memo{
+  width:100%; min-height:80px;
+  padding:10px 14px;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  background:#fff;
+  font-family:inherit;
+  font-size:12px; color:#9ca3af;
+  outline:none;
+  margin-bottom:14px;
+}
+.modal-actions{
+  display:flex; align-items:center; justify-content:flex-end;
+  gap:14px;
+}
+.modal-cancel{
+  background:transparent; color:#374151;
+  border:none;
+  font-size:13px; font-weight:600;
+  cursor:pointer;
+  padding:8px 4px;
+}
+.modal-cancel:hover{ color:#0f172a; }
+.modal-save{
+  background:var(--blue-deep);
+  color:#fff; border:none;
+  border-radius:999px;
+  padding:9px 22px;
+  font-size:13px; font-weight:800;
+  cursor:pointer;
+  transition:background-color .12s, transform .08s;
+}
+.modal-save:hover{ background:#1e3a8a; }
+.modal-save:active{ transform:scale(0.97); }
+
+/* ====== 기획 명세 패널 ====== */
+.spec-section{ max-width:1280px; margin:0 auto; }
+.spec-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:18px;
+}
+.spec-card{
+  background:#fff; border:1px solid #e2e8f0;
+  border-radius:14px; padding:22px 24px;
+  box-shadow:0 4px 14px rgba(15,23,42,.04);
+}
+.spec-card h2{
+  margin:0 0 12px;
+  font-size:15px; font-weight:800; color:var(--ink);
+  letter-spacing:-0.2px;
+  display:flex; align-items:center; gap:8px;
+}
+.spec-card h2::before{
+  content:""; display:inline-block;
+  width:4px; height:14px;
+  background:var(--blue); border-radius:2px;
+}
+.spec-card .kv{
+  display:grid; grid-template-columns:90px 1fr; gap:8px 14px;
+  font-size:13px;
+}
+.spec-card .kv b{ font-weight:700; color:#475569; }
+.spec-card .kv code{
+  font-family:"Roboto Mono",ui-monospace,monospace;
+  background:#f1f5f9; color:var(--blue-deep);
+  padding:1px 6px; border-radius:4px; font-size:12px;
+}
+.spec-card ul.flow{
+  list-style:none; padding:0; margin:0;
+  display:flex; flex-direction:column; gap:8px;
+}
+.spec-card ul.flow li{
+  font-size:13px; color:#334155; line-height:1.5;
+  position:relative; padding-left:22px;
+}
+.spec-card ul.flow li::before{
+  content:""; position:absolute; left:6px; top:7px;
+  width:6px; height:6px; border-radius:50%;
+  background:var(--blue);
+}
+.spec-card ul.flow li b{ color:#0f172a; font-weight:700; }
+.spec-card table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.spec-card table th, .spec-card table td{
+  border:1px solid #e5e7eb; padding:7px 10px; text-align:left;
+}
+.spec-card table th{ background:#f8fafc; color:#475569; font-weight:700; }
+.spec-card table td code{
+  font-family:"Roboto Mono",ui-monospace,monospace;
+  background:#f1f5f9; color:var(--blue-deep);
+  padding:1px 5px; border-radius:3px; font-size:11.5px;
+}
+.chip{
+  display:inline-block;
+  font-size:10.5px; font-weight:700; color:#0f172a;
+  background:#fef3c7; border:1px solid #fde68a;
+  padding:1px 6px; border-radius:3px;
+  margin-right:3px;
+}
+.chip.v1{ background:#dcfce7; border-color:#bbf7d0; color:#166534; }
+
+@media (max-width:980px){
+  .spec-grid{ grid-template-columns:1fr; }
+  .spec-card{ box-shadow:none; }
+}
+</style>
+</head>
+<body>
+
+  <div class="page-head">
+    <span class="eyebrow">SCREEN MOCKUP & SPEC · C-002 (탄산화 조사)</span>
+    <h1>사진 보관함 — 탄산화 조사</h1>
+    <p>v1 보관함 화면을 v0.2 디자인 시스템으로 재정리. v1 동작 로직 유지 (records.json 로드, 카드 리스트, 수정 다이얼로그, 일괄 업로드).</p>
+    <div class="hint">💡 빈 상태 ↔ 데이터 있음 ↔ 수정 모달 3종 표시. 카드 탭 = 사진 뷰어 · "수정" 탭 = 측정값 + 비고 보정 모달</div>
+  </div>
+
+  <!-- ========== Mockup Row (3 stage) ========== -->
+  <div class="mockup-row">
+
+    <!-- ① 빈 보관함 -->
+    <div class="stage">
+      <div class="screen">
+        <div class="appbar">
+          <span class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </span>
+          <h1>사진 보관함</h1>
+        </div>
+
+        <div class="scroll-area">
+          <div class="empty-state">
+            <div class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </div>
+            <div class="title">오늘 수집한 데이터가 없습니다</div>
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="upload-btn disabled">모든 데이터 전송 완료</div>
+        </div>
+      </div>
+      <div class="tag empty"><span class="dot"></span>① 빈 보관함</div>
+      <div class="desc">신규 설치 직후 또는 오늘자 데이터가 모두 전송 완료된 상태. 일괄 업로드 버튼은 비활성 ("모든 데이터 전송 완료").</div>
+    </div>
+
+    <!-- ② 데이터 있음 -->
+    <div class="stage">
+      <div class="screen">
+        <div class="appbar">
+          <span class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </span>
+          <h1>사진 보관함</h1>
+        </div>
+
+        <div class="scroll-area">
+          <div class="list-head">오늘 수집한 데이터 (3)</div>
+          <div class="records">
+
+            <div class="record-card">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#5d5b54"/>
+                  </linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t1)"/>
+                  <rect x="14" y="20" width="32" height="20" rx="2" fill="#1f1d1a" stroke="#0a0907"/>
+                  <text x="30" y="33" font-size="9" font-family="monospace" fill="#fbbf24" text-anchor="middle" font-weight="800">25.85</text>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:25</span><span class="sep">|</span><span>탄산화 조사</span></div>
+                <div class="record-value">25.85<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#5d5b54"/>
+                  </linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t2)"/>
+                  <rect x="14" y="20" width="32" height="20" rx="2" fill="#1f1d1a" stroke="#0a0907"/>
+                  <text x="30" y="33" font-size="9" font-family="monospace" fill="#fbbf24" text-anchor="middle" font-weight="800">7.02</text>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:32</span><span class="sep">|</span><span>탄산화 조사</span></div>
+                <div class="record-value">7.02<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t3" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#5d5b54"/>
+                  </linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t3)"/>
+                  <rect x="14" y="20" width="32" height="20" rx="2" fill="#1f1d1a" stroke="#0a0907"/>
+                  <text x="30" y="33" font-size="9" font-family="monospace" fill="#fbbf24" text-anchor="middle" font-weight="800">0.2</text>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:48</span><span class="sep">|</span><span>탄산화 조사</span></div>
+                <div class="record-value">0.2<span class="unit">mm</span></div>
+                <div class="record-status uploaded"><span class="dot"></span>전송 완료</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="upload-btn active">미전송 데이터 (2건) 업로드</div>
+        </div>
+      </div>
+      <div class="tag filled"><span class="dot"></span>② 데이터 있음 (대기 2 / 완료 1)</div>
+      <div class="desc">시각 + 측정값(mm) + 상태(대기중 빨강 / 전송 완료 초록) + "수정" pill. 카드 탭 = 사진 뷰어. 하단 = 미전송 N건 업로드.</div>
+    </div>
+
+    <!-- ③ 수정 모달 열림 -->
+    <div class="stage">
+      <div class="screen">
+        <div class="appbar">
+          <span class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </span>
+          <h1>사진 보관함</h1>
+        </div>
+
+        <div class="scroll-area">
+          <div class="list-head">오늘 수집한 데이터 (3)</div>
+          <div class="records">
+
+            <div class="record-card">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t1m" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#5d5b54"/>
+                  </linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t1m)"/>
+                  <rect x="14" y="20" width="32" height="20" rx="2" fill="#1f1d1a" stroke="#0a0907"/>
+                  <text x="30" y="33" font-size="9" font-family="monospace" fill="#fbbf24" text-anchor="middle" font-weight="800">25.85</text>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:25</span><span class="sep">|</span><span>탄산화 조사</span></div>
+                <div class="record-value">25.85<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t2m" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#5d5b54"/>
+                  </linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t2m)"/>
+                  <rect x="14" y="20" width="32" height="20" rx="2" fill="#1f1d1a" stroke="#0a0907"/>
+                  <text x="30" y="33" font-size="9" font-family="monospace" fill="#fbbf24" text-anchor="middle" font-weight="800">7.02</text>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:32</span><span class="sep">|</span><span>탄산화 조사</span></div>
+                <div class="record-value">7.02<span class="unit">mm</span></div>
+                <div class="record-status pending"><span class="dot"></span>대기중</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+            <div class="record-card">
+              <div class="thumb">
+                <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice">
+                  <defs><linearGradient id="t3m" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#9b9991"/><stop offset="1" stop-color="#5d5b54"/>
+                  </linearGradient></defs>
+                  <rect width="60" height="60" fill="url(#t3m)"/>
+                  <rect x="14" y="20" width="32" height="20" rx="2" fill="#1f1d1a" stroke="#0a0907"/>
+                  <text x="30" y="33" font-size="9" font-family="monospace" fill="#fbbf24" text-anchor="middle" font-weight="800">0.2</text>
+                </svg>
+              </div>
+              <div class="record-info">
+                <div class="record-meta"><span>11:48</span><span class="sep">|</span><span>탄산화 조사</span></div>
+                <div class="record-value">0.2<span class="unit">mm</span></div>
+                <div class="record-status uploaded"><span class="dot"></span>전송 완료</div>
+              </div>
+              <button class="edit-btn">수정</button>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="bottom-bar">
+          <div class="upload-btn active">미전송 데이터 (2건) 업로드</div>
+        </div>
+
+        <!-- 수정 모달 오버레이 (카드 2 7.02mm 수정 예시) -->
+        <div class="modal-backdrop">
+          <div class="modal">
+            <div class="modal-title">액정에 표시된 수치를 입력해주세요</div>
+            <div class="modal-input">
+              <span class="val">7.02</span>
+              <span class="unit">mm</span>
+            </div>
+            <div class="modal-label">비고 (선택)</div>
+            <div class="modal-memo">특이사항이나 메모를 입력하세요...</div>
+            <div class="modal-actions">
+              <button class="modal-cancel">취소</button>
+              <button class="modal-save">저장</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tag modal"><span class="dot"></span>③ 수정 모달 열림</div>
+      <div class="desc">카드 "수정" 탭 시 측정값 + 비고 보정 다이얼로그. v1 패턴 유지. 사진·timestamp·조사 종류는 보관함에서 변경 불가.</div>
+    </div>
+
+  </div>
+
+  <!-- ========== Spec Section ========== -->
+  <div class="spec-section">
+    <div class="spec-grid">
+
+      <!-- 화면 정보 -->
+      <div class="spec-card">
+        <h2>화면 정보</h2>
+        <div class="kv">
+          <b>화면 ID</b><div><code>C-002</code> (탄산화)</div>
+          <b>라우트</b><div><code>/archive</code></div>
+          <b>페이지</b><div><code>ArchivePage</code> · <a href="../../../../lib/pages/archive/archive_page.dart">lib/pages/archive/archive_page.dart</a></div>
+          <b>컨트롤러</b><div><code>ArchiveController</code></div>
+          <b>진입</b><div>C-001 좌하단 썸네일 탭 / S-001 "보관함 보기" pill 탭</div>
+          <b>v0.2 변경</b><div>디자인 토큰만 v0.2 시스템으로 통일 <span class="chip v1">v1 유지</span></div>
+        </div>
+      </div>
+
+      <!-- 인터랙션 시나리오 -->
+      <div class="spec-card">
+        <h2>인터랙션 시나리오</h2>
+        <table>
+          <thead><tr><th>요소</th><th>동작</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>← 뒤로가기</td><td>탭</td><td><code>Get.back()</code> — 이전 화면 복귀 (카메라 또는 메인)</td></tr>
+            <tr><td>카드 (썸네일/본문)</td><td>탭</td><td>사진 뷰어 (<code>/photo-viewer</code>) — 전체화면 사진</td></tr>
+            <tr><td>수정 버튼</td><td>탭</td><td>수정 모달 표시 (측정값 + 비고 편집)</td></tr>
+            <tr><td>모달 입력</td><td>입력</td><td>측정값 보정</td></tr>
+            <tr><td>모달 비고</td><td>입력</td><td>note 텍스트 보정</td></tr>
+            <tr><td>모달 [취소]</td><td>탭</td><td>변경 폐기 + 모달 닫음</td></tr>
+            <tr><td>모달 [저장]</td><td>탭</td><td><code>StorageService.I.updateRecord(updated)</code> → records.json 갱신 + 카드 표시 갱신</td></tr>
+            <tr><td>업로드 (활성)</td><td>탭</td><td>미전송 레코드 일괄 업로드. 진행 중 spinner + "전송 중... (n/m)" 표시</td></tr>
+            <tr><td>업로드 (비활성)</td><td>탭</td><td>반응 없음 — "모든 데이터 전송 완료" 안내만</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 데이터 상태 -->
+      <div class="spec-card">
+        <h2>데이터 상태 (3종)</h2>
+        <table>
+          <thead><tr><th>상태</th><th>조건</th><th>업로드 버튼</th></tr></thead>
+          <tbody>
+            <tr><td>① 빈</td><td><code>records.isEmpty</code></td><td>회색 disabled "모든 데이터 전송 완료"</td></tr>
+            <tr><td>② 데이터 있음 (대기 있음)</td><td><code>pendingCount &gt; 0</code></td><td>파랑 active "미전송 데이터 (N건) 업로드"</td></tr>
+            <tr><td>② 데이터 있음 (대기 없음)</td><td><code>records.length &gt; 0 && pendingCount == 0</code></td><td>회색 disabled "모든 데이터 전송 완료" (전부 완료)</td></tr>
+            <tr><td>③ 수정 모달</td><td>카드 "수정" 탭</td><td>리스트 상태 그대로 + 다크 backdrop + 모달 오버레이</td></tr>
+            <tr><td>(추가) 업로드 중</td><td><code>isUploading</code></td><td>spinner + "전송 중... (n/m)" · 회색 bg · cursor wait</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 카드 디자인 -->
+      <div class="spec-card">
+        <h2>레코드 카드 디자인</h2>
+        <ul class="flow">
+          <li><b>전체</b> · 12px padding · 1px <code>#E5E7EB</code> border · radius 12 · 흰 bg · hover 시 border <code>#cbd5e1</code> + subtle shadow</li>
+          <li><b>썸네일</b> · 60×60 · radius 8 · 사진 또는 카메라 placeholder. 탄산화는 액정 영역(black bg + amber 숫자)이 보이는 미리보기</li>
+          <li><b>본문</b> · 시각(<code>HH:mm</code>) + "탄산화 조사" 11px grey · 측정값 18 w800 mono(<code>25.85 mm</code>) · 상태 chip 10.5 w700</li>
+          <li><b>상태 chip</b> · 대기중 <code>#FEF2F2</code>/<code>#DC2626</code> · 전송 완료 <code>#DCFCE7</code>/<code>#16A34A</code> · 5×5 dot + 텍스트</li>
+          <li><b>수정 pill</b> · 12 w600 grey-700 · 1px <code>#d1d5db</code> · radius 6 · padding 6v/12h · hover bg <code>#f9fafb</code></li>
+        </ul>
+      </div>
+
+      <!-- 수정 모달 -->
+      <div class="spec-card">
+        <h2>수정 모달 (v1 패턴 유지)</h2>
+        <ul class="flow">
+          <li><b>표시 트리거</b> · 카드 우측 "수정" 버튼 탭</li>
+          <li><b>편집 가능</b> · 측정값(<code>SurveyRecord.value</code>) + 비고(<code>SurveyRecord.note</code>)만</li>
+          <li><b>편집 불가</b> · 사진, surveyType, timestamp — 보관함에서 변경 불가 (다시 측정하려면 재촬영)</li>
+          <li><b>저장 동작</b> · <code>StorageService.I.updateRecord(updated)</code> · records.json 갱신 + 카드 표시 갱신</li>
+          <li><b>모달 backdrop</b> · 다크 반투명 <code>rgba(15,23,42,0.55)</code> + 2px blur</li>
+        </ul>
+      </div>
+
+      <!-- 디자인 스펙 -->
+      <div class="spec-card" style="grid-column:1 / -1;">
+        <h2>디자인 스펙</h2>
+        <table>
+          <tbody>
+            <tr><td>배경</td><td>흰색 (<code>#fff</code>) — v1 동일</td></tr>
+            <tr><td>AppBar</td><td>padding 14t/20r/8b/4l · 44×44 back-btn (탭 영역 확보) · 18 w800 제목 "사진 보관함"</td></tr>
+            <tr><td>빈 상태</td><td>중앙 정렬 · 64×64 회색 원 + 아이콘 + 14.5 w600 텍스트 "오늘 수집한 데이터가 없습니다"</td></tr>
+            <tr><td>리스트 헤더</td><td>14.5 w700 · padding 16t/20h/8b · "오늘 수집한 데이터 (N)"</td></tr>
+            <tr><td>리스트 영역</td><td>padding 0/16h/16b · 카드 간 gap 8</td></tr>
+            <tr><td>업로드 버튼 영역</td><td>padding 14t/20h/24b · 상단 1px <code>#f1f5f9</code> divider · 흰 bg</td></tr>
+            <tr><td>업로드 버튼 (활성)</td><td>full width · min-height 52 · radius 12 · bg <code>#2563EB</code> · 흰 · 14.5 w700 · shadow <code>0 4px 12px rgba(37,99,235,.22)</code></td></tr>
+            <tr><td>업로드 버튼 (비활성)</td><td>bg <code>#e5e7eb</code> · <code>#9CA3AF</code> · cursor not-allowed · shadow 제거</td></tr>
+            <tr><td>업로드 버튼 (진행)</td><td>bg <code>#9CA3AF</code> · 흰 · gap 8 + 18×18 spinner · cursor wait</td></tr>
+            <tr><td>모달</td><td>S-009 수정 모달 스펙과 동일 (탄산화 단일 값 + 비고). 자세한 토큰은 S-009 디자인 표 참조</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
