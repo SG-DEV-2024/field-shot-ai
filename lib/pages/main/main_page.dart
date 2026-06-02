@@ -108,14 +108,6 @@ class MainPage extends StatelessWidget {
               ),
             );
           }),
-          const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Color(0xFF6B7280)),
-            iconSize: 22,
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(),
-            onPressed: () {},
-          ),
         ],
       ),
     );
