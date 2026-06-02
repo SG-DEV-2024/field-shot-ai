@@ -139,6 +139,7 @@ version: 1.0.0+1
 - **규격 조사 카메라는 자세(기울기) 잠금 미적용** — 천장 등 다양한 각도 촬영이 필요하므로 셔터 항상 활성. 탄산화는 기존 잠금 동작 유지
 - **보관함 수정 모달 subtype별 3변형** (v0.2 추가) — 탄산화(단일 값), 폭/간격(시작값+끝값+자동계산), 홀 깊이(줄자 읽은 값). 각각 원본 입력 화면 구조와 일치
 - **입력 화면(S-005/S-008) 키보드 buffer 120px** — Flutter `resizeToAvoidBottomInset:true` 위에 안전 여유 공간 부여, 비고 textarea가 키패드 위로 올라올 수 있도록
+- **저장 액션 2개 — "저장 후 계속 촬영" / "저장 후 메인으로" (v1 패턴 일치)** — primary는 연속 측정용(카메라 복귀, 같은 subtype 유지), outlined는 메인 복귀. v1 탄산화 `data_input_controller.save({continueCapture})` + `camera_controller`의 result 처리 패턴 그대로 적용
 - 업로드 API: `image_file` + `annotation_json` (탄산화 레코드는 annotation_json=null)
 
 ### 구현 단계 (Phase)

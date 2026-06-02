@@ -90,8 +90,12 @@
         target: 'S-003', label: '다시 촬영' }
     ],
     'S-005': [
-      { find: function (r) { var el = r.querySelector('#saveBtn'); return el ? [el] : []; },
-        target: 'S-001', label: '저장' }
+      // 저장 후 계속 촬영 (기본) → 카메라(S-003) 복귀해 연속 측정
+      { find: function (r) { var el = r.querySelector('#saveContinueBtn'); return el ? [el] : []; },
+        target: 'S-003', label: '저장 후 계속 촬영' },
+      // 저장 후 메인 → 메인 화면(S-001) 복귀
+      { find: function (r) { var el = r.querySelector('#saveMainBtn'); return el ? [el] : []; },
+        target: 'S-001', label: '저장 후 메인으로' }
     ],
     'S-006': [
       { find: function (r) { var el = r.querySelector('.shutter'); return el ? [el] : []; },
@@ -104,8 +108,12 @@
         target: 'S-006', label: '다시 촬영' }
     ],
     'S-008': [
-      { find: function (r) { var el = r.querySelector('#saveBtn'); return el ? [el] : []; },
-        target: 'S-001', label: '저장' }
+      // 저장 후 계속 촬영 (기본) → 카메라(S-006) 복귀해 연속 측정
+      { find: function (r) { var el = r.querySelector('#saveContinueBtn'); return el ? [el] : []; },
+        target: 'S-006', label: '저장 후 계속 촬영' },
+      // 저장 후 메인 → 메인 화면(S-001) 복귀
+      { find: function (r) { var el = r.querySelector('#saveMainBtn'); return el ? [el] : []; },
+        target: 'S-001', label: '저장 후 메인으로' }
     ],
     // S-009는 stage별 동작 분기:
     //   stage 2 = 리스트 → 각 카드 수정 버튼이 subtype에 맞는 모달로 이동
