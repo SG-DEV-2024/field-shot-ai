@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  icon_subtype_gap.svg
+  규격조사 subtype — 부재 간 간격 측정 (member_gap)
+  사용 위치: S-002 규격조사 유형 선택 화면 카드 (44×44 영역)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44" fill="none">
+  <!-- 좌측 부재 -->
+  <rect x="5" y="10" width="8" height="24" rx="1"
+        fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+  <!-- 우측 부재 -->
+  <rect x="31" y="10" width="8" height="24" rx="1"
+        fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+  <!-- 시작/끝점 마커 (안쪽 면) -->
+  <circle cx="13" cy="22" r="1.7" fill="#2563EB"/>
+  <circle cx="31" cy="22" r="1.7" fill="#2563EB"/>
+  <!-- 양방향 화살표 (사이) -->
+  <path d="M13 22 H31" stroke="#475569" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M16 19.5 L13 22 L16 24.5"
+        stroke="#475569" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M28 19.5 L31 22 L28 24.5"
+        stroke="#475569" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

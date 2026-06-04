@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ai_camera/theme/app_colors.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/models/survey_record.dart';
@@ -35,7 +36,7 @@ class MainPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _SurveyCard(
-                icon: Icons.straighten,
+                iconAsset: 'assets/icons/icon_caliper.svg',
                 title: '탄산화 조사',
                 subtitle: '버니어 캘리퍼스 수치 인식',
                 enabled: true,
@@ -46,7 +47,7 @@ class MainPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _SurveyCard(
-                icon: Icons.square_foot,
+                iconAsset: 'assets/icons/icon_tape.svg',
                 title: '규격 조사',
                 subtitle: '줄자 기반 폭 / 간격 / 깊이 측정',
                 enabled: true,
@@ -57,7 +58,7 @@ class MainPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _SurveyCard(
-                icon: Icons.grid_on,
+                iconAsset: 'assets/icons/icon_crack.svg',
                 title: '배근 간격 조사',
                 subtitle: '서비스 준비 중...',
                 enabled: false,
@@ -252,14 +253,14 @@ class MainPage extends StatelessWidget {
 }
 
 class _SurveyCard extends StatelessWidget {
-  final IconData icon;
+  final String iconAsset;
   final String title;
   final String subtitle;
   final bool enabled;
   final VoidCallback? onTap;
 
   const _SurveyCard({
-    required this.icon,
+    required this.iconAsset,
     required this.title,
     required this.subtitle,
     required this.enabled,
@@ -283,21 +284,16 @@ class _SurveyCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: enabled ? const Color(0xFFBFDBFE) : const Color(0xFFE5E7EB),
-                ),
-              ),
-              child: Icon(
-                icon,
-                size: 24,
-                color: enabled ? AppColors.blue600 : const Color(0xFF9CA3AF),
-              ),
+            // HTML 기준: icon-slot 36×36 투명 슬롯에 네이티브 36 1:1 (흰 박스 없음)
+            SizedBox(
+              width: 36,
+              height: 36,
+              child: enabled
+                  ? SvgPicture.asset(iconAsset, width: 36, height: 36)
+                  : Opacity(
+                      opacity: 0.45,
+                      child: SvgPicture.asset(iconAsset, width: 36, height: 36),
+                    ),
             ),
             const SizedBox(width: 16),
             Column(

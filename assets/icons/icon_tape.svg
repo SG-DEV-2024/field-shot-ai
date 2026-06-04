@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  icon_tape.svg
+  규격 조사 — 줄자 (폭 · 간격 · 깊이 측정)
+  사용 위치: 메인 화면(S-001) 규격 조사 카드 (36×36 영역)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+  <!-- 줄자 케이스 -->
+  <path d="M5 19 a9 9 0 0 1 18 0 v6 a2 2 0 0 1 -2 2 h-14 a2 2 0 0 1 -2 -2 z"
+        fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+
+  <!-- 릴 (안쪽 원) -->
+  <circle cx="14" cy="19" r="4.5" fill="#ffffff" stroke="#94a3b8" stroke-width="1"/>
+  <circle cx="14" cy="19" r="1.4" fill="#94a3b8"/>
+
+  <!-- 빠져나온 테이프 -->
+  <path d="M23 21 H31 V25 H23 z"
+        fill="#e2e8f0" stroke="#94a3b8" stroke-width="1"/>
+
+  <!-- 테이프 눈금 -->
+  <path d="M25 21 V22.6 M27.5 21 V23.4 M30 21 V22.6"
+        stroke="#64748b" stroke-width="0.9" stroke-linecap="round"/>
+</svg>

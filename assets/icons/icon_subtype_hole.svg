@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  icon_subtype_hole.svg
+  규격조사 subtype — 홀 깊이 측정 (hole_depth)
+  사용 위치: S-002 규격조사 유형 선택 화면 카드 (44×44 영역)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44" fill="none">
+  <!-- 표면 (상단 가로 띠) -->
+  <rect x="4" y="9" width="36" height="3.5" rx="0.6"
+        fill="#cbd5e1" stroke="#94a3b8" stroke-width="1"/>
+  <!-- 홀 단면 (위에서 아래로 깊이) -->
+  <path d="M16 12.5 L16 32 Q16 35 19 35 L25 35 Q28 35 28 32 L28 12.5 Z"
+        fill="#f1f5f9" stroke="#94a3b8" stroke-width="1" stroke-linejoin="round"/>
+  <!-- 입구 마커 (홀 입구 좌/우) -->
+  <circle cx="16" cy="12.5" r="1.6" fill="#facc15" stroke="#a16207" stroke-width="0.8"/>
+  <circle cx="28" cy="12.5" r="1.6" fill="#facc15" stroke="#a16207" stroke-width="0.8"/>
+  <!-- 깊이 화살표 -->
+  <path d="M22 15 V32" stroke="#2563EB" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M19.5 29 L22 32 L24.5 29"
+        stroke="#2563EB" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

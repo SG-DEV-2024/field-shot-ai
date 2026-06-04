@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:ai_camera/theme/app_colors.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/models/measurement_subtype.dart';
@@ -57,19 +58,16 @@ class SurveyTypeSelectPage extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                 children: [
                   _SubtypeCard(
-                    icon: Icons.straighten,
                     subtype: MeasurementSubtype.wallOrMemberWidth,
                     onTap: () => ctrl.select(MeasurementSubtype.wallOrMemberWidth),
                   ),
                   const SizedBox(height: 12),
                   _SubtypeCard(
-                    icon: Icons.swap_horiz,
                     subtype: MeasurementSubtype.memberGap,
                     onTap: () => ctrl.select(MeasurementSubtype.memberGap),
                   ),
                   const SizedBox(height: 12),
                   _SubtypeCard(
-                    icon: Icons.radio_button_unchecked,
                     subtype: MeasurementSubtype.holeDepth,
                     onTap: () => ctrl.select(MeasurementSubtype.holeDepth),
                   ),
@@ -84,11 +82,21 @@ class SurveyTypeSelectPage extends StatelessWidget {
 }
 
 class _SubtypeCard extends StatelessWidget {
-  final IconData icon;
   final MeasurementSubtype subtype;
   final VoidCallback onTap;
 
-  const _SubtypeCard({required this.icon, required this.subtype, required this.onTap});
+  const _SubtypeCard({required this.subtype, required this.onTap});
+
+  String get _iconAsset {
+    switch (subtype) {
+      case MeasurementSubtype.wallOrMemberWidth:
+        return 'assets/icons/icon_subtype_width.svg';
+      case MeasurementSubtype.memberGap:
+        return 'assets/icons/icon_subtype_gap.svg';
+      case MeasurementSubtype.holeDepth:
+        return 'assets/icons/icon_subtype_hole.svg';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,15 +112,11 @@ class _SubtypeCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
+            // HTML 기준: icon-slot 44×44 투명 슬롯에 네이티브 44 1:1 (흰 박스 없음)
+            SizedBox(
               width: 44,
               height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFBFDBFE)),
-              ),
-              child: Icon(icon, color: _kBlue, size: 24),
+              child: SvgPicture.asset(_iconAsset, width: 44, height: 44),
             ),
             const SizedBox(width: 16),
             Expanded(
