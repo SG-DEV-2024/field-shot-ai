@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:ai_camera/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/models/survey_record.dart';
@@ -86,7 +87,7 @@ class ArchivePage extends StatelessWidget {
           child: ElevatedButton(
             onPressed: (count > 0 && !ctrl.isUploading.value) ? ctrl.uploadAll : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1E3A8A),
+              backgroundColor: AppColors.blue800,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -208,8 +209,8 @@ class _SubtypeBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isHole = record.measurementSubtype == MeasurementSubtype.holeDepth;
-    final bg = isHole ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE);
-    final fg = isHole ? const Color(0xFF92400E) : const Color(0xFF1E40AF);
+    final bg = isHole ? AppColors.amber100 : const Color(0xFFDBEAFE);
+    final fg = isHole ? const Color(0xFF92400E) : AppColors.blue800;
     final label = record.measurementSubtype?.shortLabel ?? '';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),

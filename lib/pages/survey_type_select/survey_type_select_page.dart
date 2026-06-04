@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:ai_camera/theme/app_colors.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/models/measurement_subtype.dart';
 import 'package:ai_camera/pages/survey_type_select/survey_type_select_controller.dart';
 
-const _kBlue = Color(0xFF2563EB);
-const _kInk = Color(0xFF111827);
+const _kBlue = AppColors.blue600;
+const _kInk = AppColors.ink900;
 
 class SurveyTypeSelectPage extends StatelessWidget {
   const SurveyTypeSelectPage({super.key});
@@ -97,7 +98,7 @@ class _SubtypeCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          color: const Color(0xFFEFF6FF),
+          color: AppColors.blue50,
           border: Border.all(color: _kBlue, width: 1.5),
           borderRadius: BorderRadius.circular(12),
         ),

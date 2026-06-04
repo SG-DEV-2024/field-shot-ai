@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:ai_camera/theme/app_colors.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/models/survey_record.dart';
 import 'package:ai_camera/models/measurement_subtype.dart';
 import 'package:ai_camera/services/storage_service.dart';
 import 'package:ai_camera/services/upload_service.dart';
 
-const _kBlue = Color(0xFF2563EB);
-const _kBlueDeep = Color(0xFF1E40AF);
+const _kBlue = AppColors.blue600;
+const _kBlueDeep = AppColors.blue800;
 
 class ArchiveController extends GetxController {
   static ArchiveController get I => Get.find();
@@ -147,7 +148,7 @@ class ArchiveController extends GetxController {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: valid ? const Color(0xFFEFF6FF) : const Color(0xFFFEF2F2),
+              color: valid ? AppColors.blue50 : const Color(0xFFFEF2F2),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: valid ? _kBlue : const Color(0xFFFECACA)),
             ),
@@ -215,14 +216,14 @@ class ArchiveController extends GetxController {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                     decoration: BoxDecoration(
-                      color: amber ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE),
+                      color: amber ? AppColors.amber100 : const Color(0xFFDBEAFE),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(chip,
                         style: TextStyle(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w800,
-                            color: amber ? const Color(0xFF92400E) : const Color(0xFF1E40AF))),
+                            color: amber ? const Color(0xFF92400E) : AppColors.blue800)),
                   );
                 }),
               ],

@@ -17,6 +17,7 @@ export 'package:flutter/services.dart';
 export 'package:ai_camera/routes/app_pages.dart';
 
 //* Main
+export 'package:ai_camera/theme/app_colors.dart';
 export 'package:ai_camera/global.dart';
 
 //* Package

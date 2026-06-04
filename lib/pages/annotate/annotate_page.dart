@@ -1,12 +1,13 @@
 import 'dart:io';
+import 'package:ai_camera/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/pages/annotate/annotate_controller.dart';
 
-const _kBlue = Color(0xFF2563EB);
-const _kRed = Color(0xFFEF4444);
-const _kAmber = Color(0xFFF59E0B);
-const _kInk = Color(0xFF111827);
+const _kBlue = AppColors.blue600;
+const _kRed = AppColors.red500;
+const _kAmber = AppColors.amber500;
+const _kInk = AppColors.ink900;
 
 class AnnotatePage extends StatelessWidget {
   const AnnotatePage({super.key});
@@ -56,7 +57,7 @@ class AnnotatePage extends StatelessWidget {
 
   Widget _photoArea(AnnotateController ctrl) {
     return Container(
-      color: const Color(0xFF0F172A),
+      color: AppColors.ink900,
       child: LayoutBuilder(builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final scale = ctrl.scaleFor(size);
@@ -289,7 +290,7 @@ class _RadioRow extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: selected ? const Color(0xFFEFF6FF) : Colors.white,
+                        color: selected ? AppColors.blue50 : Colors.white,
                         border: Border.all(color: selected ? _kBlue : const Color(0xFFD1D5DB)),
                         borderRadius: BorderRadius.circular(8),
                       ),

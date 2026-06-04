@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:ai_camera/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/pages/data_input/data_input_controller.dart';
@@ -102,11 +103,11 @@ class DataInputPage extends StatelessWidget {
         suffixStyle: TextStyle(fontSize: 16, color: Colors.grey[600]),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+          borderSide: const BorderSide(color: AppColors.blue800, width: 2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+          borderSide: const BorderSide(color: AppColors.blue800, width: 2),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -131,7 +132,7 @@ class DataInputPage extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 2),
+          borderSide: const BorderSide(color: AppColors.blue800, width: 2),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -174,7 +175,7 @@ class DataInputPage extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: (valid && !saving) ? ctrl.save : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
+                  backgroundColor: AppColors.blue600,
                   disabledBackgroundColor: const Color(0xFFD1D5DB),
                   foregroundColor: Colors.white,
                   disabledForegroundColor: const Color(0xFF9CA3AF),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ai_camera/theme/app_colors.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/models/survey_record.dart';
 import 'package:ai_camera/pages/main/main_controller.dart';
@@ -83,7 +84,7 @@ class MainPage extends StatelessWidget {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF111827),
+                color: AppColors.ink900,
                 letterSpacing: -0.3,
               ),
             ),
@@ -93,7 +94,7 @@ class MainPage extends StatelessWidget {
             final online = ctrl.isOnline.value;
             return Container(
               decoration: BoxDecoration(
-                color: online ? const Color(0xFFDCFCE7) : const Color(0xFFF3F4F6),
+                color: online ? AppColors.green100 : const Color(0xFFF3F4F6),
                 borderRadius: BorderRadius.circular(20),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -102,14 +103,14 @@ class MainPage extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.language_rounded,
-                    color: online ? const Color(0xFF16A34A) : Colors.grey[500],
+                    color: online ? AppColors.green600 : Colors.grey[500],
                     size: 14,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     online ? 'ON' : 'OFF',
                     style: TextStyle(
-                      color: online ? const Color(0xFF16A34A) : Colors.grey[500],
+                      color: online ? AppColors.green600 : Colors.grey[500],
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       height: 1.0,
@@ -143,7 +144,7 @@ class MainPage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827),
+                  color: AppColors.ink900,
                 ),
               ),
               GestureDetector(
@@ -182,7 +183,7 @@ class MainPage extends StatelessWidget {
                         child: _StatItem(
                           label: '총 촬영',
                           value: '${ctrl.totalToday}',
-                          color: const Color(0xFF111827),
+                          color: AppColors.ink900,
                         ),
                       ),
                       const VerticalDivider(width: 1, color: Color(0xFFE5E7EB)),
@@ -190,7 +191,7 @@ class MainPage extends StatelessWidget {
                         child: _StatItem(
                           label: '미전송 대기',
                           value: '${ctrl.pendingCount}',
-                          color: const Color(0xFFDC2626),
+                          color: AppColors.red600,
                         ),
                       ),
                       const VerticalDivider(width: 1, color: Color(0xFFE5E7EB)),
@@ -198,7 +199,7 @@ class MainPage extends StatelessWidget {
                         child: _StatItem(
                           label: '전송 완료',
                           value: '${ctrl.uploadedCount}',
-                          color: const Color(0xFF16A34A),
+                          color: AppColors.green600,
                         ),
                       ),
                     ],
@@ -215,7 +216,7 @@ class MainPage extends StatelessWidget {
                       ? ctrl.uploadPending
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: AppColors.blue600,
                     disabledBackgroundColor: const Color(0xFFD1D5DB),
                     foregroundColor: Colors.white,
                     disabledForegroundColor: const Color(0xFF9CA3AF),
@@ -273,9 +274,9 @@ class _SurveyCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          color: enabled ? const Color(0xFFEFF6FF) : const Color(0xFFF9FAFB),
+          color: enabled ? AppColors.blue50 : const Color(0xFFF9FAFB),
           border: Border.all(
-            color: enabled ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
+            color: enabled ? AppColors.blue600 : const Color(0xFFE5E7EB),
             width: enabled ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -295,7 +296,7 @@ class _SurveyCard extends StatelessWidget {
               child: Icon(
                 icon,
                 size: 24,
-                color: enabled ? const Color(0xFF2563EB) : const Color(0xFF9CA3AF),
+                color: enabled ? AppColors.blue600 : const Color(0xFF9CA3AF),
               ),
             ),
             const SizedBox(width: 16),
@@ -307,7 +308,7 @@ class _SurveyCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: enabled ? const Color(0xFF111827) : const Color(0xFF9CA3AF),
+                    color: enabled ? AppColors.ink900 : const Color(0xFF9CA3AF),
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -315,7 +316,7 @@ class _SurveyCard extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     fontSize: 13,
-                    color: enabled ? const Color(0xFF2563EB) : const Color(0xFF9CA3AF),
+                    color: enabled ? AppColors.blue600 : const Color(0xFF9CA3AF),
                   ),
                 ),
               ],
@@ -343,7 +344,7 @@ class _StatItem extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+            style: const TextStyle(fontSize: 11, color: AppColors.ink500, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 4),
           Text(

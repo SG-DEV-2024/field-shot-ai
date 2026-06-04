@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:ai_camera/theme/app_colors.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -6,7 +7,7 @@ import 'package:ai_camera/pages/camera/camera_controller.dart';
 import 'package:ai_camera/routes/app_pages.dart';
 import 'package:ai_camera/widgets/guide_box_painter.dart';
 
-const _kBlue = Color(0xFF2563EB);
+const _kBlue = AppColors.blue600;
 
 class CameraPage extends StatelessWidget {
   const CameraPage({super.key});
@@ -16,7 +17,7 @@ class CameraPage extends StatelessWidget {
     final ctrl = Get.put(CameraController2());
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A2332),
+      backgroundColor: AppColors.ink900,
       body: SafeArea(
         child: Obx(() {
           if (!ctrl.isInitialized.value) {
@@ -241,7 +242,7 @@ class _TopBar extends StatelessWidget {
             final on = ctrl.flashMode.value == FlashMode2.on;
             final color = off
                 ? const Color(0xFF9CA3AF)
-                : (on ? const Color(0xFFFBBF24) : kGuideYellow);
+                : (on ? AppColors.yellow400 : kGuideYellow);
             return GestureDetector(
               onTap: ctrl.toggleFlash,
               child: Container(
@@ -285,7 +286,7 @@ class _HintBubble extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 24),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         decoration: BoxDecoration(
-          color: locked ? const Color(0xE0DC2626) : Colors.black.withOpacity(0.78),
+          color: locked ? AppColors.red600.withValues(alpha: 0.88) : Colors.black.withOpacity(0.78),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -372,7 +373,7 @@ class _BottomControls extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: active ? const Color(0xFF111827) : Colors.white,
+            color: active ? AppColors.ink900 : Colors.white,
             fontWeight: FontWeight.w700,
             fontSize: 13,
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ai_camera/theme/app_colors.dart';
 import 'package:ai_camera/models/survey_record.dart';
 import 'package:ai_camera/models/measurement_subtype.dart';
 
@@ -23,8 +24,8 @@ GuideBoxMode resolveGuideBoxMode(SurveyType t, MeasurementSubtype? s) {
 }
 
 /// 가이드박스 표준 색 (규격조사 v0.2): 노랑 #facc15 / 잠금 빨강 #ef4444
-const Color kGuideYellow = Color(0xFFFACC15);
-const Color kGuideRed = Color(0xFFEF4444);
+const Color kGuideYellow = AppColors.yellow400;
+const Color kGuideRed = AppColors.red500;
 const Color kGuideGreen = Color(0xFF22C55E);
 
 /// 점선 사각형 페인터 (radius 옵션).

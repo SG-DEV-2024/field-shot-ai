@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:ai_camera/theme/app_colors.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/pages/dimension_input/dimension_input_controller.dart';
 
-const _kBlue = Color(0xFF2563EB);
-const _kBlueDeep = Color(0xFF1E40AF);
-const _kRed = Color(0xFFDC2626);
-const _kAmber = Color(0xFFF59E0B);
-const _kInk = Color(0xFF111827);
+const _kBlue = AppColors.blue600;
+const _kBlueDeep = AppColors.blue800;
+const _kRed = AppColors.red600;
+const _kAmber = AppColors.amber500;
+const _kInk = AppColors.ink900;
 
 class DimensionInputPage extends StatelessWidget {
   const DimensionInputPage({super.key});
@@ -80,7 +81,7 @@ class DimensionInputPage extends StatelessWidget {
   }
 
   Widget _appBar(DimensionInputController ctrl) {
-    final chipBg = ctrl.isHole ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE);
+    final chipBg = ctrl.isHole ? AppColors.amber100 : const Color(0xFFDBEAFE);
     final chipFg = ctrl.isHole ? const Color(0xFF92400E) : _kBlueDeep;
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 14, 16, 6),
@@ -114,7 +115,7 @@ class DimensionInputPage extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: valid ? const Color(0xFFEFF6FF) : const Color(0xFFFEF2F2),
+          color: valid ? AppColors.blue50 : const Color(0xFFFEF2F2),
           border: Border.all(color: valid ? _kBlue : const Color(0xFFFECACA), width: 1.5),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -212,7 +213,7 @@ class _InputField extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _kInk)),
-            const Text('mm', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+            const Text('mm', style: TextStyle(fontSize: 11, color: AppColors.ink500, fontWeight: FontWeight.w600)),
           ],
         ),
         const SizedBox(height: 6),
@@ -224,7 +225,7 @@ class _InputField extends StatelessWidget {
             hintText: hint,
             hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 15, fontWeight: FontWeight.w500, fontFamily: 'Pretendard'),
             suffixText: 'mm',
-            suffixStyle: const TextStyle(fontSize: 14, color: Color(0xFF6B7280), fontWeight: FontWeight.w600),
+            suffixStyle: const TextStyle(fontSize: 14, color: AppColors.ink500, fontWeight: FontWeight.w600),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             enabledBorder: OutlineInputBorder(

@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
       ],
       title: 'FieldShotAI',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E3A8A)),
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.blue800),
         useMaterial3: true,
         fontFamily: 'Pretendard',
       ),
