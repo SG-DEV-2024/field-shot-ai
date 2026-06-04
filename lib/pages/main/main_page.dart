@@ -34,9 +34,9 @@ class MainPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _SurveyCard(
-                imagePath: 'assets/image/icon_ruler.png',
+                icon: Icons.straighten,
                 title: '탄산화 조사',
-                subtitle: '(버니어 캘리퍼스 수치 인식)',
+                subtitle: '버니어 캘리퍼스 수치 인식',
                 enabled: true,
                 onTap: () => ctrl.goToCamera(SurveyType.carbonation),
               ),
@@ -45,8 +45,19 @@ class MainPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _SurveyCard(
-                imagePath: 'assets/image/icon_triangle_ruler.png',
-                title: '배근 간격 조사 (줄자)',
+                icon: Icons.square_foot,
+                title: '규격 조사',
+                subtitle: '줄자 기반 폭 / 간격 / 깊이 측정',
+                enabled: true,
+                onTap: ctrl.goToSurveyTypeSelect,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _SurveyCard(
+                icon: Icons.grid_on,
+                title: '배근 간격 조사',
                 subtitle: '서비스 준비 중...',
                 enabled: false,
                 onTap: null,
@@ -108,14 +119,6 @@ class MainPage extends StatelessWidget {
               ),
             );
           }),
-          const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Color(0xFF6B7280)),
-            iconSize: 22,
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(),
-            onPressed: () {},
-          ),
         ],
       ),
     );
@@ -248,14 +251,14 @@ class MainPage extends StatelessWidget {
 }
 
 class _SurveyCard extends StatelessWidget {
-  final String imagePath;
+  final IconData icon;
   final String title;
   final String subtitle;
   final bool enabled;
   final VoidCallback? onTap;
 
   const _SurveyCard({
-    required this.imagePath,
+    required this.icon,
     required this.title,
     required this.subtitle,
     required this.enabled,
@@ -279,12 +282,21 @@ class _SurveyCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Image.asset(
-              imagePath,
-              width: 36,
-              height: 36,
-              color: enabled ? null : Colors.grey[400],
-              colorBlendMode: BlendMode.srcIn,
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: enabled ? const Color(0xFFBFDBFE) : const Color(0xFFE5E7EB),
+                ),
+              ),
+              child: Icon(
+                icon,
+                size: 24,
+                color: enabled ? const Color(0xFF2563EB) : const Color(0xFF9CA3AF),
+              ),
             ),
             const SizedBox(width: 16),
             Column(

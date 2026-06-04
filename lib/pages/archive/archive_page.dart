@@ -2,7 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/models/survey_record.dart';
+import 'package:ai_camera/models/measurement_subtype.dart';
 import 'package:ai_camera/pages/archive/archive_controller.dart';
+
+String _fmtVal(double v) =>
+    v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
 
 class ArchivePage extends StatelessWidget {
   const ArchivePage({super.key});
@@ -153,13 +157,24 @@ class _RecordCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '$timeStr | ${record.surveyType.label}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        '$timeStr | ${record.surveyType.label}',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      ),
+                    ),
+                    if (record.measurementSubtype != null) ...[
+                      const SizedBox(width: 6),
+                      _SubtypeBadge(record: record),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${record.value} mm',
+                  '${_fmtVal(record.value)} mm',
                   style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
@@ -167,21 +182,41 @@ class _RecordCard extends StatelessWidget {
               ],
             ),
           ),
-          // 수정 버튼 (대기중인 경우만)
-          if (isPending)
-            TextButton(
-              onPressed: onEdit,
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey[700],
-                side: BorderSide(color: Colors.grey[300]!),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text('수정', style: TextStyle(fontSize: 13)),
+          // 수정 버튼
+          TextButton(
+            onPressed: onEdit,
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey[700],
+              side: BorderSide(color: Colors.grey[300]!),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
+            child: const Text('수정', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _SubtypeBadge extends StatelessWidget {
+  final SurveyRecord record;
+  const _SubtypeBadge({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final isHole = record.measurementSubtype == MeasurementSubtype.holeDepth;
+    final bg = isHole ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE);
+    final fg = isHole ? const Color(0xFF92400E) : const Color(0xFF1E40AF);
+    final label = record.measurementSubtype?.shortLabel ?? '';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(5)),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: fg),
       ),
     );
   }

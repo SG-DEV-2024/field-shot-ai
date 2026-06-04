@@ -50,6 +50,11 @@ class MainController extends GetxController {
     Get.toNamed(AppRoutes.camera, arguments: {'surveyType': type})?.then((_) => refresh());
   }
 
+  /// 규격 조사 → 유형 선택(S-002)으로 진입
+  void goToSurveyTypeSelect() {
+    Get.toNamed(AppRoutes.surveyTypeSelect)?.then((_) => refresh());
+  }
+
   void goToArchive() {
     Get.toNamed(AppRoutes.archive)?.then((_) => refresh());
   }
@@ -63,14 +68,7 @@ class MainController extends GetxController {
         .toList();
 
     for (final record in pending) {
-      final success = await UploadService.I.uploadRecord(
-        id: record.id,
-        photoPath: record.photoPath,
-        value: record.value,
-        surveyType: record.surveyType.label,
-        note: record.note,
-        timestamp: record.timestamp,
-      );
+      final success = await UploadService.I.uploadRecord(record);
       if (success) {
         await StorageService.I.markUploaded([record.id]);
       }

@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ai_camera/pages/camera/camera_controller.dart';
 import 'package:ai_camera/routes/app_pages.dart';
+import 'package:ai_camera/widgets/guide_box_painter.dart';
+
+const _kBlue = Color(0xFF2563EB);
 
 class CameraPage extends StatelessWidget {
   const CameraPage({super.key});
@@ -19,131 +22,329 @@ class CameraPage extends StatelessWidget {
           if (!ctrl.isInitialized.value) {
             return const Center(child: CircularProgressIndicator(color: Colors.white));
           }
-          return Stack(
-            children: [
-              // 카메라 프리뷰 (전체 배경)
-              Positioned.fill(child: CameraPreview(ctrl.cameraController)),
+          return LayoutBuilder(builder: (context, constraints) {
+            final w = constraints.maxWidth;
+            return Stack(
+              children: [
+                Positioned.fill(child: CameraPreview(ctrl.cameraController)),
 
-              // 가이드 라벨 (상단 중앙)
-              Positioned(
-                top: 60,
-                left: 20,
-                right: 20,
-                child: Center(child: _buildGuideLabel()),
-              ),
+                // 가이드 오버레이 (모드별)
+                _buildGuide(ctrl, w),
 
-              // 가이드박스 (화면 정중앙)
-              Center(child: _buildGuideBox(ctrl)),
+                // 안내 버블
+                Positioned(
+                  top: 84,
+                  left: 0,
+                  right: 0,
+                  child: Center(child: _HintBubble(ctrl: ctrl)),
+                ),
 
-              // 상단 바 (뒤로 + 플래시)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: _buildTopBar(ctrl),
-              ),
+                // 상단 바
+                Positioned(top: 0, left: 0, right: 0, child: _TopBar(ctrl: ctrl)),
 
-              // 하단 컨트롤
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: _buildBottomControls(ctrl),
-              ),
-            ],
-          );
+                // 하단 컨트롤
+                Positioned(bottom: 0, left: 0, right: 0, child: _BottomControls(ctrl: ctrl)),
+              ],
+            );
+          });
         }),
       ),
     );
   }
 
-  Widget _buildTopBar(CameraController2 ctrl) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 12, 0),
-      child: Row(
+  Widget _buildGuide(CameraController2 ctrl, double width) {
+    switch (ctrl.guideMode) {
+      case GuideBoxMode.rectHorizontalShort:
+        return Center(child: _CarbonationGuide(ctrl: ctrl));
+      case GuideBoxMode.ovalVertical:
+        return const Center(child: _OvalGuide());
+      case GuideBoxMode.rectHorizontalWide:
+        return _WideGuide(ctrl: ctrl, width: width);
+    }
+  }
+}
+
+// ============================================================
+// 탄산화 가이드: 사각형 + 내부 원 + 크로스헤어 (자세 잠금)
+// ============================================================
+class _CarbonationGuide extends StatelessWidget {
+  final CameraController2 ctrl;
+  const _CarbonationGuide({required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final locked = ctrl.isLocked.value;
+      final color = locked ? kGuideRed : kGuideYellow;
+      return SizedBox(
+        width: 248,
+        height: 128,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            CustomPaint(
+              painter: DashedRectPainter(color: color),
+              child: const SizedBox.expand(),
+            ),
+            SizedBox(
+              width: 84,
+              height: 84,
+              child: CustomPaint(
+                painter: DashedOvalPainter(color: color, dashWidth: 7, dashGap: 5),
+              ),
+            ),
+            Transform.rotate(
+              angle: ctrl.tiltAngle.value,
+              child: SizedBox(
+                width: 36,
+                height: 36,
+                child: CustomPaint(painter: _CrosshairPainter(isLevel: ctrl.isLevel.value)),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+// ============================================================
+// 홀 깊이 가이드: 세로 타원 + 중앙 십자
+// ============================================================
+class _OvalGuide extends StatelessWidget {
+  const _OvalGuide();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 172,
+      height: 236,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Get.back(),
+          CustomPaint(
+            painter: DashedOvalPainter(color: kGuideYellow),
+            child: const SizedBox.expand(),
           ),
-          const Spacer(),
-          Obx(() => GestureDetector(
-                onTap: ctrl.toggleFlash,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white30),
-                  ),
-                  child: Text(
-                    ctrl.flashLabel,
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              )),
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CustomPaint(painter: _PlusPainter(color: kGuideYellow.withOpacity(0.7))),
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildGuideLabel() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: const Text(
-        '가이드 박스 안에 숫자가 꽉 차게 맞춰주세요',
-        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+// ============================================================
+// 폭/간격 가이드: 가로 긴 사각형 + 좌/우 드래그 핸들 + 측정점 표시선
+// ============================================================
+class _WideGuide extends StatelessWidget {
+  final CameraController2 ctrl;
+  final double width;
+  const _WideGuide({required this.ctrl, required this.width});
+
+  @override
+  Widget build(BuildContext context) {
+    const boxH = 130.0;
+    return Obx(() {
+      final startX = ctrl.startHandleFrac.value * width;
+      final endX = ctrl.endHandleFrac.value * width;
+      return Stack(
+        children: [
+          // 가이드 박스 (start~end 구간)
+          Positioned(
+            left: startX,
+            width: (endX - startX).clamp(1.0, width),
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: SizedBox(
+                height: boxH,
+                child: CustomPaint(
+                  painter: DashedRectPainter(color: kGuideYellow),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
+          ),
+          // 측정점 표시선 (시작=파랑 / 끝=빨강)
+          _measureLine(startX, boxH, _kBlue),
+          _measureLine(endX, boxH, kGuideRed),
+          // 좌 핸들 (박스 외곽)
+          _handle(
+            cx: startX - 18,
+            color: _kBlue,
+            onDrag: (dx) => ctrl.dragStartHandle(ctrl.startHandleFrac.value + dx / width),
+          ),
+          // 우 핸들
+          _handle(
+            cx: endX + 18,
+            color: kGuideRed,
+            onDrag: (dx) => ctrl.dragEndHandle(ctrl.endHandleFrac.value + dx / width),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _measureLine(double x, double h, Color color) {
+    return Positioned(
+      left: x - 1,
+      top: 0,
+      bottom: 0,
+      child: Center(
+        child: Container(width: 2, height: h, color: color),
       ),
     );
   }
 
-  Widget _buildGuideBox(CameraController2 ctrl) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            CustomPaint(painter: _DashedRectPainter(), child: const SizedBox.expand()),
-            CustomPaint(painter: _DashedCirclePainter(), child: const SizedBox.expand()),
-            // 기울기에 따라 크로스헤어 회전
-            Obx(() => Transform.rotate(
-                  angle: ctrl.tiltAngle.value,
-                  child: _Crosshair(isLevel: ctrl.isLevel.value),
-                )),
-          ],
+  Widget _handle({required double cx, required Color color, required ValueChanged<double> onDrag}) {
+    return Positioned(
+      left: cx - 16,
+      top: 0,
+      bottom: 0,
+      child: Center(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragUpdate: (d) => onDrag(d.delta.dx),
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4)],
+            ),
+            child: const Icon(Icons.drag_indicator, color: Colors.white, size: 16),
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildBottomControls(CameraController2 ctrl) {
+// ============================================================
+// 상단 바
+// ============================================================
+class _TopBar extends StatelessWidget {
+  final CameraController2 ctrl;
+  const _TopBar({required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => Get.back(),
+            child: const Padding(
+              padding: EdgeInsets.all(9),
+              child: Icon(Icons.arrow_back, color: Colors.white, size: 22),
+            ),
+          ),
+          Obx(() {
+            final off = ctrl.flashMode.value == FlashMode2.off;
+            final on = ctrl.flashMode.value == FlashMode2.on;
+            final color = off
+                ? const Color(0xFF9CA3AF)
+                : (on ? const Color(0xFFFBBF24) : kGuideYellow);
+            return GestureDetector(
+              onTap: ctrl.toggleFlash,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.bolt, color: color, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      ctrl.flashLabel,
+                      style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// 안내 버블
+// ============================================================
+class _HintBubble extends StatelessWidget {
+  final CameraController2 ctrl;
+  const _HintBubble({required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final locked = !ctrl.isDimension && ctrl.isLocked.value;
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        decoration: BoxDecoration(
+          color: locked ? const Color(0xE0DC2626) : Colors.black.withOpacity(0.78),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          locked ? '기울기를 맞춰주세요 (셔터 잠금)' : ctrl.hintText,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      );
+    });
+  }
+}
+
+// ============================================================
+// 하단 컨트롤
+// ============================================================
+class _BottomControls extends StatelessWidget {
+  final CameraController2 ctrl;
+  const _BottomControls({required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withOpacity(0.3),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      color: Colors.black.withOpacity(0.55),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 줌 선택
+          // 줌 pill
           Obx(() {
-            final currentZoom = ctrl.zoomLevel.value;
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _ZoomButton(label: '1x', isActive: currentZoom == 1.0, onTap: () => ctrl.setZoom(1.0)),
-                const SizedBox(width: 8),
-                _ZoomButton(label: '2x', isActive: currentZoom == 2.0, onTap: () => ctrl.setZoom(2.0)),
-                const SizedBox(width: 8),
-                _ZoomButton(label: '3x', isActive: currentZoom == 3.0, onTap: () => ctrl.setZoom(3.0)),
-              ],
+            final z = ctrl.zoomLevel.value;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.55),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _zoomBtn('1x', z == 1.0, () => ctrl.setZoom(1.0)),
+                  _zoomBtn('2x', z == 2.0, () => ctrl.setZoom(2.0)),
+                  _zoomBtn('3x', z == 3.0, () => ctrl.setZoom(3.0)),
+                ],
+              ),
             );
           }),
-          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -153,43 +354,39 @@ class CameraPage extends StatelessWidget {
                     child: _Thumbnail(path: ctrl.lastPhotoPath.value),
                   )),
               Obx(() => GestureDetector(
-                    onTap: (ctrl.isCapturing.value || ctrl.isLocked.value) ? null : ctrl.capture,
+                    onTap: (ctrl.isCapturing.value || (!ctrl.isDimension && ctrl.isLocked.value))
+                        ? null
+                        : ctrl.capture,
                     child: _ShutterButton(
                       isCapturing: ctrl.isCapturing.value,
-                      isLocked: ctrl.isLocked.value,
+                      isLocked: !ctrl.isDimension && ctrl.isLocked.value,
                     ),
                   )),
-              const SizedBox(width: 60),
+              const SizedBox(width: 54),
             ],
           ),
         ],
       ),
     );
   }
-}
 
-class _ZoomButton extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-  const _ZoomButton({required this.label, required this.isActive, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _zoomBtn(String label, bool active, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        width: 42,
+        height: 28,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFFBBF24) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          color: active ? kGuideYellow : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isActive ? Colors.black : Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
+            color: active ? const Color(0xFF111827) : Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
           ),
         ),
       ),
@@ -205,15 +402,15 @@ class _ShutterButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 72,
-      height: 72,
+      width: 66,
+      height: 66,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: isLocked ? Colors.red : Colors.white,
+          color: isLocked ? kGuideRed : Colors.white.withOpacity(0.35),
           width: 4,
         ),
-        color: isCapturing ? Colors.grey : (isLocked ? Colors.red.withOpacity(0.3) : Colors.white),
+        color: isCapturing ? Colors.grey : (isLocked ? const Color(0xFF9CA3AF) : Colors.white),
       ),
       child: isCapturing
           ? const Padding(
@@ -221,7 +418,7 @@ class _ShutterButton extends StatelessWidget {
               child: CircularProgressIndicator(color: Colors.black54, strokeWidth: 2),
             )
           : isLocked
-              ? const Icon(Icons.lock, color: Colors.white, size: 28)
+              ? const Icon(Icons.lock, color: Colors.white, size: 26)
               : null,
     );
   }
@@ -234,95 +431,34 @@ class _Thumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 60,
-      height: 60,
+      width: 54,
+      height: 54,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white54, width: 2),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
         color: Colors.black54,
       ),
       clipBehavior: Clip.hardEdge,
       child: path.isEmpty
-          ? const Icon(Icons.image, color: Colors.white38, size: 28)
+          ? const Icon(Icons.image, color: Colors.white38, size: 24)
           : Image.file(File(path), fit: BoxFit.cover),
     );
   }
 }
 
-class _Crosshair extends StatelessWidget {
-  final bool isLevel;
-  const _Crosshair({required this.isLevel});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 40,
-      height: 40,
-      child: CustomPaint(painter: _CrosshairPainter(isLevel: isLevel)),
-    );
-  }
-}
-
-class _DashedRectPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFFBBF24)
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke;
-    final path = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    _drawDashed(canvas, path, paint);
-  }
-
-  void _drawDashed(Canvas canvas, Path path, Paint paint) {
-    const dw = 10.0, dg = 6.0;
-    for (final m in path.computeMetrics()) {
-      double d = 0;
-      while (d < m.length) {
-        canvas.drawPath(m.extractPath(d, d + dw), paint);
-        d += dw + dg;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
-}
-
-class _DashedCirclePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFFFBBF24)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.height * 0.38;
-    final path = Path()..addOval(Rect.fromCircle(center: center, radius: radius));
-    const dw = 8.0, dg = 5.0;
-    for (final m in path.computeMetrics()) {
-      double d = 0;
-      while (d < m.length) {
-        canvas.drawPath(m.extractPath(d, d + dw), paint);
-        d += dw + dg;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
-}
-
+// ============================================================
+// 페인터
+// ============================================================
 class _CrosshairPainter extends CustomPainter {
   final bool isLevel;
   _CrosshairPainter({required this.isLevel});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final color = isLevel ? const Color(0xFF34D399) : Colors.red;
+    final color = isLevel ? kGuideGreen : kGuideRed;
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 2.5
+      ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
     final cx = size.width / 2, cy = size.height / 2;
     canvas.drawLine(Offset(0, cy), Offset(size.width, cy), paint);
@@ -332,4 +468,23 @@ class _CrosshairPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CrosshairPainter old) => old.isLevel != isLevel;
+}
+
+class _PlusPainter extends CustomPainter {
+  final Color color;
+  _PlusPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    final cx = size.width / 2, cy = size.height / 2;
+    canvas.drawLine(Offset(cx, 0), Offset(cx, size.height), paint);
+    canvas.drawLine(Offset(0, cy), Offset(size.width, cy), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PlusPainter old) => old.color != color;
 }

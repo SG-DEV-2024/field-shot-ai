@@ -152,71 +152,46 @@ class DataInputPage extends StatelessWidget {
       child: Obx(() {
         final valid = ctrl.isValid.value;
         final saving = ctrl.isSaving.value;
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 다시 촬영 - 높이를 오른쪽 버튼들 합과 동일하게
-              Expanded(
-                flex: 2,
-                child: OutlinedButton.icon(
-                  onPressed: ctrl.retake,
-                  icon: const Icon(Icons.camera_alt_outlined, size: 18),
-                  label: const Text('다시 촬영'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey[700],
-                    side: BorderSide(color: Colors.grey[400]!),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
+        return Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: OutlinedButton.icon(
+                onPressed: ctrl.retake,
+                icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                label: const Text('다시 촬영'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[700],
+                  side: BorderSide(color: Colors.grey[400]!),
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
-              const SizedBox(width: 10),
-              // 저장 버튼 2개
-              Expanded(
-                flex: 3,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: (valid && !saving) ? () => ctrl.save(continueCapture: true) : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E3A8A),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: saving
-                              ? const SizedBox(
-                                  height: 16,
-                                  width: 16,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                )
-                              : const Text('저장 후 계속 촬영', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Expanded(
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: (valid && !saving) ? () => ctrl.save(continueCapture: false) : null,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1E3A8A),
-                            side: const BorderSide(color: Color(0xFF1E3A8A)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text('저장 후 메인으로', style: TextStyle(fontSize: 13)),
-                        ),
-                      ),
-                    ),
-                  ],
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 3,
+              child: ElevatedButton(
+                onPressed: (valid && !saving) ? ctrl.save : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  disabledBackgroundColor: const Color(0xFFD1D5DB),
+                  foregroundColor: Colors.white,
+                  disabledForegroundColor: const Color(0xFF9CA3AF),
+                  elevation: 0,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
+                child: saving
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text('저장 후 계속 촬영', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold)),
               ),
-            ],
-          ),
+            ),
+          ],
         );
       }),
     );

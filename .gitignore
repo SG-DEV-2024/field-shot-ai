@@ -54,6 +54,9 @@ app.*.map.json
 lib/todo.dart
 .claude/settings.local.json
 
+# 기획/디자인 문서 (참고용, 빌드 무관)
+/_doc/
+
 # Google OAuth client secret
 client_secret_*.apps.googleusercontent.com*
 
