@@ -142,13 +142,14 @@ class CameraController2 extends GetxController {
     }
   }
 
-  /// 핸들 드래그 (preview 비율 0..1). 최소 폭 0.1 유지, 양 끝 0.04 여유.
+  /// 핸들 드래그 (preview 비율 0..1). 핸들 원이 화면 밖으로 나가지 않도록
+  /// 양 끝에 여유를 두고, 최소 간격 0.12 유지.
   void dragStartHandle(double frac) {
-    startHandleFrac.value = frac.clamp(0.04, endHandleFrac.value - 0.1);
+    startHandleFrac.value = frac.clamp(0.1, endHandleFrac.value - 0.12);
   }
 
   void dragEndHandle(double frac) {
-    endHandleFrac.value = frac.clamp(startHandleFrac.value + 0.1, 0.96);
+    endHandleFrac.value = frac.clamp(startHandleFrac.value + 0.12, 0.9);
   }
 
   Future<ui.Size> _readImageSize(String path) async {

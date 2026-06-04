@@ -22,44 +22,41 @@ class CameraPage extends StatelessWidget {
           if (!ctrl.isInitialized.value) {
             return const Center(child: CircularProgressIndicator(color: Colors.white));
           }
-          return LayoutBuilder(builder: (context, constraints) {
-            final w = constraints.maxWidth;
-            return Stack(
-              children: [
-                Positioned.fill(child: CameraPreview(ctrl.cameraController)),
+          return Stack(
+            children: [
+              Positioned.fill(child: CameraPreview(ctrl.cameraController)),
 
-                // 가이드 오버레이 (모드별)
-                _buildGuide(ctrl, w),
+              // 가이드 오버레이 (모드별)
+              _buildGuide(ctrl),
 
-                // 안내 버블
-                Positioned(
-                  top: 84,
-                  left: 0,
-                  right: 0,
-                  child: Center(child: _HintBubble(ctrl: ctrl)),
-                ),
+              // 안내 버블
+              Positioned(
+                top: 84,
+                left: 0,
+                right: 0,
+                child: Center(child: _HintBubble(ctrl: ctrl)),
+              ),
 
-                // 상단 바
-                Positioned(top: 0, left: 0, right: 0, child: _TopBar(ctrl: ctrl)),
+              // 상단 바
+              Positioned(top: 0, left: 0, right: 0, child: _TopBar(ctrl: ctrl)),
 
-                // 하단 컨트롤
-                Positioned(bottom: 0, left: 0, right: 0, child: _BottomControls(ctrl: ctrl)),
-              ],
-            );
-          });
+              // 하단 컨트롤
+              Positioned(bottom: 0, left: 0, right: 0, child: _BottomControls(ctrl: ctrl)),
+            ],
+          );
         }),
       ),
     );
   }
 
-  Widget _buildGuide(CameraController2 ctrl, double width) {
+  Widget _buildGuide(CameraController2 ctrl) {
     switch (ctrl.guideMode) {
       case GuideBoxMode.rectHorizontalShort:
         return Center(child: _CarbonationGuide(ctrl: ctrl));
       case GuideBoxMode.ovalVertical:
         return const Center(child: _OvalGuide());
       case GuideBoxMode.rectHorizontalWide:
-        return _WideGuide(ctrl: ctrl, width: width);
+        return Positioned.fill(child: _WideGuide(ctrl: ctrl));
     }
   }
 }
@@ -142,84 +139,75 @@ class _OvalGuide extends StatelessWidget {
 // ============================================================
 class _WideGuide extends StatelessWidget {
   final CameraController2 ctrl;
-  final double width;
-  const _WideGuide({required this.ctrl, required this.width});
+  const _WideGuide({required this.ctrl});
+
+  static const double _boxH = 130.0;
 
   @override
   Widget build(BuildContext context) {
-    const boxH = 130.0;
-    return Obx(() {
-      final startX = ctrl.startHandleFrac.value * width;
-      final endX = ctrl.endHandleFrac.value * width;
-      return Stack(
-        children: [
-          // 가이드 박스 (start~end 구간)
-          Positioned(
-            left: startX,
-            width: (endX - startX).clamp(1.0, width),
-            top: 0,
-            bottom: 0,
-            child: Center(
-              child: SizedBox(
-                height: boxH,
-                child: CustomPaint(
-                  painter: DashedRectPainter(color: kGuideYellow),
-                  child: const SizedBox.expand(),
-                ),
-              ),
+    return LayoutBuilder(builder: (context, c) {
+      final w = c.maxWidth;
+      final h = c.maxHeight;
+      final cy = h / 2;
+      return Obx(() {
+        final startX = ctrl.startHandleFrac.value * w;
+        final endX = ctrl.endHandleFrac.value * w;
+        final top = cy - _boxH / 2;
+        return Stack(
+          children: [
+            // 가이드 박스 (start~end 구간)
+            Positioned(
+              left: startX,
+              top: top,
+              width: (endX - startX).clamp(1.0, w),
+              height: _boxH,
+              child: CustomPaint(painter: DashedRectPainter(color: kGuideYellow)),
             ),
-          ),
-          // 측정점 표시선 (시작=파랑 / 끝=빨강)
-          _measureLine(startX, boxH, _kBlue),
-          _measureLine(endX, boxH, kGuideRed),
-          // 좌 핸들 (박스 외곽)
-          _handle(
-            cx: startX - 18,
-            color: _kBlue,
-            onDrag: (dx) => ctrl.dragStartHandle(ctrl.startHandleFrac.value + dx / width),
-          ),
-          // 우 핸들
-          _handle(
-            cx: endX + 18,
-            color: kGuideRed,
-            onDrag: (dx) => ctrl.dragEndHandle(ctrl.endHandleFrac.value + dx / width),
-          ),
-        ],
-      );
+            // 측정점 표시선 (시작=파랑 / 끝=빨강)
+            Positioned(left: startX - 1, top: top, width: 2, height: _boxH, child: Container(color: _kBlue)),
+            Positioned(left: endX - 1, top: top, width: 2, height: _boxH, child: Container(color: kGuideRed)),
+            // 좌 핸들 (박스 외곽)
+            _handle(
+              cx: startX - 18,
+              cy: cy,
+              color: _kBlue,
+              onDrag: (dx) => ctrl.dragStartHandle(ctrl.startHandleFrac.value + dx / w),
+            ),
+            // 우 핸들
+            _handle(
+              cx: endX + 18,
+              cy: cy,
+              color: kGuideRed,
+              onDrag: (dx) => ctrl.dragEndHandle(ctrl.endHandleFrac.value + dx / w),
+            ),
+          ],
+        );
+      });
     });
   }
 
-  Widget _measureLine(double x, double h, Color color) {
-    return Positioned(
-      left: x - 1,
-      top: 0,
-      bottom: 0,
-      child: Center(
-        child: Container(width: 2, height: h, color: color),
-      ),
-    );
-  }
-
-  Widget _handle({required double cx, required Color color, required ValueChanged<double> onDrag}) {
+  Widget _handle({
+    required double cx,
+    required double cy,
+    required Color color,
+    required ValueChanged<double> onDrag,
+  }) {
     return Positioned(
       left: cx - 16,
-      top: 0,
-      bottom: 0,
-      child: Center(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragUpdate: (d) => onDrag(d.delta.dx),
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 3),
-              boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4)],
-            ),
-            child: const Icon(Icons.drag_indicator, color: Colors.white, size: 16),
+      top: cy - 16,
+      width: 32,
+      height: 32,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragUpdate: (d) => onDrag(d.delta.dx),
+        child: Container(
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4)],
           ),
+          child: const Icon(Icons.drag_indicator, color: Colors.white, size: 16),
         ),
       ),
     );

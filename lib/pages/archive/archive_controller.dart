@@ -210,16 +210,21 @@ class ArchiveController extends GetxController {
               children: [
                 Text(title, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800)),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF3C7),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(chip,
-                      style: const TextStyle(
-                          fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF92400E))),
-                ),
+                Builder(builder: (_) {
+                  final amber = chip.contains('홀');
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: amber ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(chip,
+                        style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w800,
+                            color: amber ? const Color(0xFF92400E) : const Color(0xFF1E40AF))),
+                  );
+                }),
               ],
             ),
             const SizedBox(height: 4),
