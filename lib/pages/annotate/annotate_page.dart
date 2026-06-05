@@ -200,6 +200,24 @@ class AnnotatePage extends StatelessWidget {
                 ));
               }
 
+              // 돋보기(확대 보기) — 우하단, 최상단. 탭 시 전체화면 핀치줌 뷰어.
+              children.add(Positioned(
+                right: 10,
+                bottom: 10,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: ctrl.openPhotoViewer,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.search, color: Colors.white, size: 20),
+                  ),
+                ),
+              ));
+
               return Stack(children: children);
             });
           }),

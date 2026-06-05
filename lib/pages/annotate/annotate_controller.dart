@@ -291,6 +291,12 @@ class AnnotateController extends GetxController {
     Get.toNamed(AppRoutes.dimensionInput, arguments: partial);
   }
 
+  /// 돋보기(확대 보기) — 전체화면 핀치줌 뷰어(PhotoViewerPage). 탄산화 데이터입력과 동일.
+  void openPhotoViewer() {
+    if (photoPath.isEmpty) return;
+    Get.toNamed(AppRoutes.photoViewer, arguments: {'photoPath': photoPath});
+  }
+
   void retake() {
     try {
       File(photoPath).deleteSync();

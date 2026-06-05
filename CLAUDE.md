@@ -319,6 +319,6 @@ return Obx(() {
 
 ### 🔜 다음 작업 예정 (TODO)
 - [ ] **메인/유형선택 카드 ink 터치 효과**: 메인(`main_page.dart`) 탄산화·규격 조사 카드 + 유형선택(`survey_type_select`) 폭/간격/홀 3개 카드를 `InkWell`/`Material`로 감싸 탭 시 ripple(잉크) 피드백. (현재 `GestureDetector`라 터치 반응 없음)
-- [ ] **annotate 돋보기(확대 보기)**: 규격조사 보정 화면(S-004/S-007)에 탄산화처럼 돋보기 버튼/핀치줌 추가(목업 `.magnify-btn` 우하단, P6 `photo_view` 예정). 작은 측정점 정밀 배치용.
+- [x] ~~annotate 돋보기(확대 보기)~~ → 완료: 사진 우하단 🔍 버튼(`Icons.search`) → `AnnotateController.openPhotoViewer` → `PhotoViewerPage`(전체화면 핀치줌). 탄산화 데이터입력과 동일 패턴.
 - [x] ~~마커 라벨 이름 정확히 수정~~ → 완료: 폭/간격 `시작면`/`끝면`, 홀 깊이 `홀 입구`/`읽기 위치`.
 - [x] ~~(선택) annotate 라벨 초기 위치 cover 보정~~ → 완료: 위 "점·라벨 프레임 내 clamp" 참조.
