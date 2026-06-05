@@ -221,3 +221,84 @@ Authorization: Bearer {API_KEY}   ← 인증 방식 협의 필요
 ## 커밋 히스토리
 
 - Android 서명 키스토어 생성 (_keys/field-shot-ai.jks) 및 build_release.sh 추가 (v1.0.1)
+
+---
+
+## 2026-06-04 작업 기록 — 규격조사(dimension) 모듈 구현 + 카메라 버그 규명
+
+> 브랜치: `feat/dimension-survey` (origin 푸쉬됨, HEAD `4d4c00d`). main은 건드리지 않음.
+> `_doc/` 은 이번에 `.gitignore` 추가됨(참고 문서, 빌드 무관, git 미추적).
+
+### A. 이번 세션에 구현/커밋된 것 (origin/feat/dimension-survey)
+
+커밋 4개:
+1. `feat: 규격조사 모듈 추가 + 탄산화 v0.2 디자인 (S-001~S-009 / C-001~C-003)`
+2. `fix(ui): 카메라 폭/간격 가이드 렌더링 버그 수정 + 보관함 모달 chip 색 분기`
+3. `refactor(theme): §4 디자인 시스템 12색을 AppColors 전역 토큰으로 분리`
+4. `feat(ui): §4 디자인 시스템 SVG 아이콘 적용 (메인/유형선택 카드)`
+
+산출물 (모두 `screen_spec_v0.2.md` 기반):
+- **신규 모델**: `lib/models/measurement_subtype.dart`(폭/간격/홀깊이 + cameraHint/description/shortLabel), `lib/models/dimension_annotation.dart`(좌표·수치·QualityFlags). `survey_record.dart` 확장 — `SurveyType.dimension` 추가(`rebarSpacing`→`dimension` 호환 매핑), `measurementSubtype`/`annotation` nullable 필드. JSON은 `.code` 저장(기존 탄산화 레코드 그대로 로드).
+- **신규 화면**: `survey_type_select`(S-002), `annotate`(S-004/S-007, 마커 드래그+탭, BoxFit.contain preview↔원본픽셀 변환, 홀깊이 라디오), `dimension_input`(S-005/S-008, 자동계산/단일값, 저장 후 카메라 복귀).
+- **카메라 확장**: subtype 인자, 규격조사 자세잠금 미적용(`_initTiltSensor` 조기 return), 모드별 가이드(`GuideBoxMode`), 폭/간격 핸들→사전좌표, 촬영 후 `dart:ui`로 이미지 크기 읽어 subtype별 라우팅. 위젯: `lib/widgets/guide_box_painter.dart`.
+- **메인**: 카드 2→3(탄산화/규격/배근), 설정 버튼 제거. **데이터입력**: 단일 "저장 후 계속 촬영"(v0.2). **보관함**: subtype 배지 + 수정 모달 3변형.
+- **업로드**: `uploadRecord(SurveyRecord)` + 규격조사 `annotation_json`.
+- **색 토큰**: `lib/theme/app_colors.dart` (Tailwind 가중치 네이밍: `blue600/blue800/blue50, red500/red600, yellow400, amber500/amber100, green600/green100, ink900/ink500`). `index.dart`에서 전역 export. §4 12색 + near-dup 5종(0xE0DC2626→red600α, 0F172A/1A2332→ink900, FBBF24→yellow400, 1E3A8A→blue800) 치환. `Color(0x` 리터럴 105→52(나머지는 중립 회색 등 §4 밖). `#22C55E`(크로스헤어)는 `kGuideGreen`로 유지.
+- **SVG 아이콘**: `assets/icons/`(6종) + `flutter_svg`. 메인 caliper/tape/crack, 유형선택 subtype_width/gap/hole. HTML mockup 기준 흰박스 없이 투명 슬롯에 네이티브 크기(메인 36, subtype 44) 1:1, 비활성 카드 opacity 0.45.
+
+### B. ✅ [수정 완료 2026-06-05] 규격조사 카메라 "뿌연 막" 버그 — 근본 원인 규명 + 수정·검증 완료
+
+**증상**: 규격조사 카메라 3종(폭/간격/홀깊이) 전부 — 프리뷰 위쪽 일부 band만 정상, 나머지 큰 영역이 연회색으로 뿌옇게 + 가이드/핸들 흐릿. 탄산화 카메라는 **같은 장면에서 완전 정상**.
+
+**근본 원인 (디버그 빌드 빨간 에러 화면으로 확정)**:
+> `[Get] the improper use of a GetX has been detected. You should only use GetX or Obx for the specific widget that will be updated...`
+> = Obx 빌더 안에서 observable(`.value`)을 **하나도 안 읽으면** 나는 GetX 예외.
+
+위치: `lib/pages/camera/camera_page.dart` 의 `_HintBubble`:
+```dart
+return Obx(() {
+  final locked = !ctrl.isDimension && ctrl.isLocked.value;  // ← 문제
+  ...
+});
+```
+- 규격조사: `isDimension==true` → `!isDimension==false` → Dart `&&` **단락평가**로 `ctrl.isLocked.value`를 **안 읽음** → Obx가 추적할 observable 0개 → GetX 예외.
+- **릴리즈 모드에선 위젯 빌드 예외가 회색 ErrorWidget로 렌더됨** → 그게 "뿌연 막"의 정체. (디버그에선 빨간 에러 화면)
+- 탄산화: `!isDimension==true` → `isLocked.value`를 읽음 → 정상. → **"규격조사 세개만" 깨진 이유 정확히 설명됨.**
+
+**수정안 (내일 적용)**: Obx가 항상 observable을 읽게.
+```dart
+return Obx(() {
+  final lockedNow = ctrl.isLocked.value;          // 항상 읽기
+  final locked = !ctrl.isDimension && lockedNow;
+  ...
+});
+```
+
+**같이 점검할 것**: `&&`/`||` 뒤에서만 `.value`를 읽어 단락평가로 안 읽힐 수 있는 Obx 전수 점검(전 화면).
+- 카메라 셔터 Obx는 `ctrl.isCapturing.value || (...)` 로 첫 항을 항상 읽어 **안전**.
+- **annotate 화면**: 같은 류 확정됨 — 진범은 `_photoArea`가 아니라 **`_hintCard`**. 폭/간격 모드에서 `if (!ctrl.isHole) { text = '정적문구'; }` 분기가 observable을 0개 읽어 throw. 그 `RenderErrorBox`가 `Column`의 무한 세로 제약을 받아 부풀며 위의 `Expanded(_photoArea)`를 높이 0으로 짜부 → "사진 영역이 회색 + BOTTOM OVERFLOWED"로 보였던 것. (`_photoArea`는 `addMarker(startPoint.value,…)` 인자에서 observable을 읽어 원래 정상이나, 방어적으로 상단 읽기 추가함.)
+
+**삽질 기록 (효과 없던 시도 — 반복 금지)**: 원인을 "프리뷰 렌더/리페인트"로 오판하고 시도했으나 전부 무효였음:
+1. `_LivePreview` (AnimatedBuilder로 매 프레임 CameraPreview 재빌드)
+2. `_CoverPreview` (previewSize 기반 `BoxFit.cover`)
+3. `_RepaintTicker` + `_PulsePainter` (전체화면 CustomPaint 매 프레임 paint 강제)
+→ 셋 다 무효. 진짜 원인은 GetX Obx 예외.
+
+**수정 완료 내역 (2026-06-05)**:
+1. `camera_page.dart`: 실험 위젯 `_RepaintTicker`/`_PulsePainter` + Stack의 child 제거. 프리뷰는 `_CoverPreview`(previewSize 기반 BoxFit.cover) 유지.
+2. `camera_page.dart` `_HintBubble`: `final lockedNow = ctrl.isLocked.value;`를 **무조건 먼저 읽고** `locked = !ctrl.isDimension && lockedNow;` — 단락평가 회피.
+3. `annotate_page.dart` `_hintCard`: `final step = ctrl.currentStep;`를 상단에서 무조건 호출(두 모드 모두 observable 읽음) 후 switch에서 `step` 사용.
+4. `annotate_page.dart` `_photoArea`: 좌표 observable 4종(start/end/lip/tape)을 Obx 상단에서 무조건 읽고 addMarker에 전달(방어).
+
+**전수 점검 결과**: 단락평가로 observable 미접근 위험은 `_HintBubble`/`_hintCard` 둘뿐이었음. 셔터 Obx(`isCapturing.value || …`), archive 업로드(`isUploading.value` 무조건), main(`pendingCount.value` 첫항), dimension_input/data_input(`isValid.value` 상단) 전부 안전.
+
+**기기 검증 완료 (SM-A516N 디버그, `adb` 자동 구동 + 스크린샷)**: 규격 폭 카메라(프리뷰 선명·안내버블·핸들) → 폭 annotate(사진+시작/끝 마커+안내) → 폭 수치입력(자동계산 12−10=2mm reactive) / 홀 카메라(세로타원+십자) → 홀 annotate(기준점지정·단계안내·라디오) / 탄산화 카메라(안내버블+녹색 크로스헤어, 회귀 없음) — **전부 정상, GetX 예외·overflow 0건**.
+
+> 주의: monkey LAUNCHER는 기존 태스크를 **복귀**시킴(메인 재시작 아님). 깨끗한 상태 필요 시 `adb shell am force-stop` 후 `am start -n com.sgits.proj2602a/.MainActivity`.
+
+### C. 빌드/기기/설치 메모
+- 기기: **SM-A516N** (adb id `R5CN406R15D`), Android 13. 패키지명 **`com.sgits.proj2602a`** (디렉토리명 proj2603b와 다름).
+- 폰의 기존 설치본은 **현재 `_keys/field-shot-ai.jks`와 다른 키로 서명** → `adb install -r`(릴리즈/디버그 모두) **서명 불일치로 덮어쓰기 불가**. 새 빌드 올리려면 `adb uninstall com.sgits.proj2602a` 후 설치(=앱 데이터 삭제). 2026-06-04 사용자 동의로 삭제·재설치함.
+- **현재 폰엔 디버그 빌드 설치 상태**(진단용, 빨간 에러 화면 확인됨). 신규 설치라 런타임 권한 재요청 → 카메라 테스트 자동화 전 `adb shell pm grant com.sgits.proj2602a android.permission.CAMERA` 부여(권한 다이얼로그가 input tap 가로채는 것 방지).
+- 설치는 항상 `adb install --user 0`(듀얼앱 복제 방지). 빌드만 flutter, 설치는 adb (글로벌 컨벤션).
+- 디버그 logcat에 보이는 `flutter`(pid 다름) 로그는 **다른 SG 앱 `com.sgits.proj2605a`(geotick)** 것 — 혼동 주의. 본 앱 로그/예외만 필터링할 것.

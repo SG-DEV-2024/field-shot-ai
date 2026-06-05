@@ -62,6 +62,11 @@ class AnnotatePage extends StatelessWidget {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final scale = ctrl.scaleFor(size);
         return Obx(() {
+          // Obx 추적 보장: 사용할 좌표 observable을 최상단에서 무조건 읽는다.
+          final start = ctrl.startPoint.value;
+          final end = ctrl.endPoint.value;
+          final lip = ctrl.holeLip.value;
+          final tape = ctrl.tapeReading.value;
           final children = <Widget>[
             // 사진
             Positioned.fill(
@@ -103,11 +108,11 @@ class AnnotatePage extends StatelessWidget {
           }
 
           if (ctrl.isHole) {
-            addMarker(ctrl.holeLip.value, _kAmber, '입구', (delta) => ctrl.moveHoleLip(delta));
-            addMarker(ctrl.tapeReading.value, _kBlue, '읽기', (delta) => ctrl.moveTape(delta));
+            addMarker(lip, _kAmber, '입구', (delta) => ctrl.moveHoleLip(delta));
+            addMarker(tape, _kBlue, '읽기', (delta) => ctrl.moveTape(delta));
           } else {
-            addMarker(ctrl.startPoint.value, _kBlue, '시작', (delta) => ctrl.moveStart(delta));
-            addMarker(ctrl.endPoint.value, _kRed, '끝', (delta) => ctrl.moveEnd(delta));
+            addMarker(start, _kBlue, '시작', (delta) => ctrl.moveStart(delta));
+            addMarker(end, _kRed, '끝', (delta) => ctrl.moveEnd(delta));
           }
 
           return Stack(children: children);
@@ -118,11 +123,15 @@ class AnnotatePage extends StatelessWidget {
 
   Widget _hintCard(AnnotateController ctrl) {
     return Obx(() {
+      // currentStep는 두 모드 모두 observable(startPoint/holeLip 등)을 읽는다.
+      // 최상단에서 무조건 호출해 Obx 추적을 보장 — 폭/간격 모드에서 정적
+      // 텍스트만 그릴 때 observable 미접근 → "improper use of GetX" 예외 방지.
+      final step = ctrl.currentStep;
       String text;
       if (!ctrl.isHole) {
         text = '마커를 드래그해 시작·끝점을 정밀하게 맞추세요. 사진 빈 곳을 탭하면 가까운 점이 이동합니다.';
       } else {
-        switch (ctrl.currentStep) {
+        switch (step) {
           case 1:
             text = '1단계. 홀 입구 기준점을 터치하세요.';
             break;

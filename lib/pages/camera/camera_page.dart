@@ -25,7 +25,7 @@ class CameraPage extends StatelessWidget {
           }
           return Stack(
             children: [
-              Positioned.fill(child: CameraPreview(ctrl.cameraController)),
+              Positioned.fill(child: _CoverPreview(controller: ctrl.cameraController)),
 
               // 가이드 오버레이 (모드별)
               _buildGuide(ctrl),
@@ -59,6 +59,32 @@ class CameraPage extends StatelessWidget {
       case GuideBoxMode.rectHorizontalWide:
         return Positioned.fill(child: _WideGuide(ctrl: ctrl));
     }
+  }
+}
+
+// ============================================================
+// 풀스크린 프리뷰 — previewSize 기준 BoxFit.cover 로 화면을 채움
+// (Positioned.fill 직접 stretch 시 일부만 정상/나머지 뿌옇게 렌더되던 문제 해결)
+// ============================================================
+class _CoverPreview extends StatelessWidget {
+  final CameraController controller;
+  const _CoverPreview({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = controller.value.previewSize;
+    if (preview == null) return CameraPreview(controller);
+    // previewSize는 가로(landscape) 기준 → portrait에서는 가로/세로를 바꿔 cover.
+    return ClipRect(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: preview.height,
+          height: preview.width,
+          child: CameraPreview(controller),
+        ),
+      ),
+    );
   }
 }
 
@@ -281,7 +307,11 @@ class _HintBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final locked = !ctrl.isDimension && ctrl.isLocked.value;
+      // isLocked.value를 항상 먼저 읽는다 — 규격조사(isDimension)일 때
+      // `!isDimension && isLocked.value` 식이 단락평가로 observable을 안 읽어
+      // "the improper use of a GetX" 예외 → 릴리즈에서 회색 ErrorWidget(뿌연 막)이 됨.
+      final lockedNow = ctrl.isLocked.value;
+      final locked = !ctrl.isDimension && lockedNow;
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 24),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
