@@ -102,12 +102,15 @@ class _SubtypeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(12);
     return Material(
-      color: AppColors.blue50,
+      color: Colors.white,
       borderRadius: radius,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: radius,
+        // 기본 흰색, 누르면(선택) 파란색(blue50)
+        highlightColor: AppColors.blue50,
+        splashColor: AppColors.blue50,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

@@ -271,12 +271,15 @@ class _SurveyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(12);
     return Material(
-      color: enabled ? AppColors.blue50 : const Color(0xFFF9FAFB),
+      color: enabled ? Colors.white : const Color(0xFFF9FAFB),
       borderRadius: radius,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: radius,
+        // 기본 흰색, 누르면(선택) 파란색(blue50)
+        highlightColor: enabled ? AppColors.blue50 : Colors.transparent,
+        splashColor: enabled ? AppColors.blue50 : Colors.transparent,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

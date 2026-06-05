@@ -318,7 +318,7 @@ return Obx(() {
 - **점·라벨 프레임 내 clamp (cover 가시영역)**: 페이지가 `setPreviewSize`로 프레임 크기 전달 → 컨트롤러 `_visibleRect()`(cover 뷰포트)·`_clampPoint`/`_clampLabel`로 점·라벨을 보이는 영역 안에 가둠. `_autoLabel`은 위/아래 중 공간 있는 쪽 선택. **stem이 프레임 밖으로 안 나감**(웹 `toViewBox` clamp 대응). 초기 배치 + 드래그 모두 적용.
 
 ### 🔜 다음 작업 예정 (TODO)
-- [x] ~~메인/유형선택 카드 ink 터치 효과~~ → 완료: `_SurveyCard`(메인)·`_SubtypeCard`(유형선택)를 `Material`(배경색·radius·clip) + `InkWell`(onTap·radius)로 감싸 ripple. 테두리는 내부 `Container`에 유지.
+- [x] ~~메인/유형선택 카드 ink 터치 효과~~ → 완료: `_SurveyCard`(메인)·`_SubtypeCard`(유형선택)를 `Material`+`InkWell`로 감쌈. **기본 배경 흰색 / 누르면(선택) blue50** (`highlightColor`/`splashColor`=blue50). 파란 테두리는 내부 `Container` 유지. 비활성 카드는 회색·ink 없음.
 - [x] ~~annotate 돋보기(확대 보기)~~ → 완료: 사진 우하단 🔍 버튼(`Icons.search`) → `AnnotateController.openPhotoViewer` → `PhotoViewerPage`(전체화면 핀치줌). 탄산화 데이터입력과 동일 패턴.
 - [x] ~~마커 라벨 이름 정확히 수정~~ → 완료: 폭/간격 `시작면`/`끝면`, 홀 깊이 `홀 입구`/`읽기 위치`.
 - [x] ~~(선택) annotate 라벨 초기 위치 cover 보정~~ → 완료: 위 "점·라벨 프레임 내 clamp" 참조.
