@@ -13,9 +13,11 @@
   const hashStage = hashMatch[1] ? parseInt(hashMatch[1], 10) : null;
 
   // ---------- 화면 ID 식별 ----------
+  // 일부 호스트(Netlify Pretty URLs 등)는 경로를 소문자로 바꾸고 .html을 떼므로
+  // 대소문자 무시(/i)로 매칭한 뒤 대문자로 정규화한다. (s-001_main → S-001)
   const fileName = location.pathname.split('/').pop() || '';
-  const m = fileName.match(/^([SC]-\d+)/);
-  const SCREEN_ID = m ? m[1] : null;
+  const m = fileName.match(/^([SC]-\d+)/i);
+  const SCREEN_ID = m ? m[1].toUpperCase() : null;
   if (!SCREEN_ID) return;
 
   // ---------- 화면별 stage 인덱스 ----------
