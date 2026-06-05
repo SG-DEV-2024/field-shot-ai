@@ -109,6 +109,7 @@ class AnnotatePage extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: LayoutBuilder(builder: (context, constraints) {
             final size = Size(constraints.maxWidth, constraints.maxHeight);
+            ctrl.setPreviewSize(size); // cover 가시영역 계산용 (점·라벨 프레임 내 clamp)
             final scale = ctrl.scaleFor(size);
             return Obx(() {
               // Obx 추적 보장: 좌표 observable을 최상단에서 무조건 읽는다.

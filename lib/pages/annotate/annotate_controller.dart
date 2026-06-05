@@ -34,6 +34,11 @@ class AnnotateController extends GetxController {
   Rxn<Offset>? _activePoint;
   Rxn<Offset>? _activeLabel;
 
+  // 현재 사진 프레임 크기 (페이지 LayoutBuilder가 매 빌드 갱신).
+  // cover 로 "보이는 영역" 계산 → 점·라벨이 프레임 밖(잘린 영역)으로 못 나가게 clamp.
+  Size? _previewSize;
+  void setPreviewSize(Size s) => _previewSize = s;
+
   // 홀 깊이 부속 입력
   final startVisibility = Rxn<String>(); // visible | hidden_behind_lip
   final contactConfirm = Rxn<String>(); // yes | no | unknown
@@ -69,12 +74,23 @@ class AnnotateController extends GetxController {
     }
   }
 
-  /// 라벨 초기 위치 — 측정 지점 기준 위쪽(점이 사진 상단이면 아래쪽), x는 dx만큼 비낌.
-  /// vFrac = 점↔라벨 세로 간격(이미지 높이 대비). 홀 깊이는 절반(0.10)으로 호출.
+  /// 라벨 초기 위치 — 보이는 영역(cover 뷰포트) 안에서 측정 지점 위/아래로 vFrac 만큼.
+  /// 위쪽에 공간이 없으면 아래, 둘 다 빡빡하면 점 근처. x는 dx만큼 비낌. 최종 clamp.
   Offset _autoLabel(Offset point, {double dx = 0, double vFrac = 0.20}) {
-    final h = imageHeight.toDouble();
-    final dy = point.dy > h * 0.22 ? -h * vFrac : h * vFrac;
-    return _clamp(Offset(point.dx + dx, point.dy + dy));
+    final r = _visibleRect();
+    final off = imageHeight * vFrac;
+    final padY = math.min(_imgPx(16), r.height / 2);
+    final above = point.dy - off;
+    final below = point.dy + off;
+    final double labelY;
+    if (above >= r.top + padY) {
+      labelY = above;
+    } else if (below <= r.bottom - padY) {
+      labelY = below;
+    } else {
+      labelY = point.dy;
+    }
+    return _clampLabel(Offset(point.dx + dx, labelY));
   }
 
   // ---------- 좌표 변환 (BoxFit.contain) ----------
@@ -112,8 +128,11 @@ class AnnotateController extends GetxController {
 
   void _movePair(Rxn<Offset> point, Rxn<Offset> label, Offset d) {
     if (point.value == null) return;
-    point.value = _clamp(point.value! + d);
-    if (label.value != null) label.value = _clamp(label.value! + d);
+    final old = point.value!;
+    final np = _clampPoint(old + d);
+    point.value = np;
+    // 라벨은 점이 실제 이동한 변위만큼 따라가 오프셋 유지(점이 가장자리에 막혀도 안 어긋남).
+    if (label.value != null) label.value = _clampLabel(label.value! + (np - old));
   }
 
   // ---------- 라벨(label) 자유 드래그 — point는 그대로, 라벨만 이동 ----------
@@ -125,13 +144,50 @@ class AnnotateController extends GetxController {
   void _moveLabel(Rxn<Offset> label, Rxn<Offset> point, Offset d) {
     final base = label.value ?? point.value;
     if (base == null) return;
-    label.value = _clamp(base + d);
+    label.value = _clampLabel(base + d);
   }
 
-  Offset _clamp(Offset o) => Offset(
-        o.dx.clamp(0.0, imageWidth.toDouble()),
-        o.dy.clamp(0.0, imageHeight.toDouble()),
-      );
+  // ---------- 보이는 영역(cover 뷰포트) 기준 clamp ----------
+  /// cover 로 화면에 보이는 이미지 영역(원본 픽셀 Rect). previewSize 미설정 시 전체 이미지.
+  Rect _visibleRect() {
+    final ps = _previewSize;
+    if (ps == null || imageWidth <= 0 || imageHeight <= 0) {
+      return Rect.fromLTWH(0, 0, imageWidth.toDouble(), imageHeight.toDouble());
+    }
+    final scale = scaleFor(ps);
+    final offsetX = (ps.width - imageWidth * scale) / 2;
+    final offsetY = (ps.height - imageHeight * scale) / 2;
+    return Rect.fromLTRB(
+      -offsetX / scale,
+      -offsetY / scale,
+      (ps.width - offsetX) / scale,
+      (ps.height - offsetY) / scale,
+    );
+  }
+
+  /// 화면 px → 원본 px (현재 scale 기준). previewSize 없으면 그대로.
+  double _imgPx(double screenPx) {
+    final ps = _previewSize;
+    if (ps == null) return screenPx;
+    return screenPx / scaleFor(ps);
+  }
+
+  /// 측정 지점 — 보이는 영역 안으로 (가장자리까지 허용).
+  Offset _clampPoint(Offset o) {
+    final r = _visibleRect();
+    return Offset(o.dx.clamp(r.left, r.right), o.dy.clamp(r.top, r.bottom));
+  }
+
+  /// 라벨 — 보이는 영역 안으로 (pill 크기만큼 여유 두어 잘림 방지). stem이 프레임 밖으로 안 나감.
+  Offset _clampLabel(Offset o) {
+    final r = _visibleRect();
+    final padX = math.min(_imgPx(34), r.width / 2);
+    final padY = math.min(_imgPx(16), r.height / 2);
+    return Offset(
+      o.dx.clamp(r.left + padX, r.right - padX),
+      o.dy.clamp(r.top + padY, r.bottom - padY),
+    );
+  }
 
   /// 홀 깊이: 사진 빈 곳 탭 → 다음 단계 점 배치, 둘 다 있으면 가까운 점 이동.
   void tapPlace(Offset original) {
@@ -168,9 +224,9 @@ class AnnotateController extends GetxController {
   void dragActiveTo(Offset original) {
     final p = _activePoint, l = _activeLabel;
     if (p == null || p.value == null) return;
-    final np = _clamp(original);
+    final np = _clampPoint(original);
     final delta = np - p.value!;
-    if (l != null && l.value != null) l.value = _clamp(l.value! + delta);
+    if (l != null && l.value != null) l.value = _clampLabel(l.value! + delta);
     p.value = np;
   }
 
@@ -189,9 +245,10 @@ class AnnotateController extends GetxController {
     }
     if (nearest == null) return;
     final point = nearest[0], label = nearest[1];
-    final delta = target - point.value!;
-    point.value = _clamp(target);
-    if (label.value != null) label.value = _clamp(label.value! + delta);
+    final np = _clampPoint(target);
+    final delta = np - point.value!;
+    point.value = np;
+    if (label.value != null) label.value = _clampLabel(label.value! + delta);
     _setActive(point, label);
   }
 
