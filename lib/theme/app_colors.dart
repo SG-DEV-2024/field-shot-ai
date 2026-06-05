@@ -8,6 +8,7 @@ abstract class AppColors {
   // ── Blue : 시작점 · 활성 · 업로드 ─────────────────────
   static const Color blue600 = Color(0xFF2563EB); // 시작점·활성 (blue)
   static const Color blue800 = Color(0xFF1E40AF); // 일괄 업로드 (blue-deep)
+  static const Color blue100 = Color(0xFFDBEAFE); // 탭 splash (blue-100)
   static const Color blue50 = Color(0xFFEFF6FF); // 활성 카드 bg (blue-weak)
 
   // ── Red : 끝점 · 대기 · 에러 ─────────────────────────

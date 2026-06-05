@@ -277,9 +277,9 @@ class _SurveyCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: radius,
-        // 기본 흰색, 누르면(선택) 파란색(blue50)
+        // 기본 흰색, 누르면(선택) 파란색(blue50) + splash는 blue100
         highlightColor: enabled ? AppColors.blue50 : Colors.transparent,
-        splashColor: enabled ? AppColors.blue50 : Colors.transparent,
+        splashColor: enabled ? AppColors.blue100 : Colors.transparent,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
