@@ -125,20 +125,20 @@ class AnnotatePage extends StatelessWidget {
               final markers = <_MarkerSpec>[];
               if (ctrl.isHole) {
                 if (lip != null) {
-                  markers.add(_MarkerSpec(lip, lipL ?? lip, _kAmber, '입구',
+                  markers.add(_MarkerSpec(lip, lipL ?? lip, _kAmber, '홀 입구',
                       ctrl.moveHoleLip, ctrl.moveHoleLipLabel));
                 }
                 if (tape != null) {
-                  markers.add(_MarkerSpec(tape, tapeL ?? tape, _kBlue, '읽기',
+                  markers.add(_MarkerSpec(tape, tapeL ?? tape, _kBlue, '읽기 위치',
                       ctrl.moveTape, ctrl.moveTapeLabel));
                 }
               } else {
                 if (start != null) {
-                  markers.add(_MarkerSpec(start, startL ?? start, _kBlue, '시작',
+                  markers.add(_MarkerSpec(start, startL ?? start, _kBlue, '시작면',
                       ctrl.moveStart, ctrl.moveStartLabel));
                 }
                 if (end != null) {
-                  markers.add(_MarkerSpec(end, endL ?? end, _kRed, '끝',
+                  markers.add(_MarkerSpec(end, endL ?? end, _kRed, '끝면',
                       ctrl.moveEnd, ctrl.moveEndLabel));
                 }
               }
