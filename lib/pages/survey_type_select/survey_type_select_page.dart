@@ -100,17 +100,22 @@ class _SubtypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        decoration: BoxDecoration(
-          color: AppColors.blue50,
-          border: Border.all(color: _kBlue, width: 1.5),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
+    final radius = BorderRadius.circular(12);
+    return Material(
+      color: AppColors.blue50,
+      borderRadius: radius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          decoration: BoxDecoration(
+            border: Border.all(color: _kBlue, width: 1.5),
+            borderRadius: radius,
+          ),
+          child: Row(
           children: [
             // HTML 기준: icon-slot 44×44 투명 슬롯에 네이티브 44 1:1 (흰 박스 없음)
             SizedBox(
@@ -137,6 +142,7 @@ class _SubtypeCard extends StatelessWidget {
             ),
             const Icon(Icons.chevron_right, color: _kBlue),
           ],
+          ),
         ),
       ),
     );

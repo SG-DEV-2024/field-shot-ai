@@ -269,20 +269,25 @@ class _SurveyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        decoration: BoxDecoration(
-          color: enabled ? AppColors.blue50 : const Color(0xFFF9FAFB),
-          border: Border.all(
-            color: enabled ? AppColors.blue600 : const Color(0xFFE5E7EB),
-            width: enabled ? 1.5 : 1,
+    final radius = BorderRadius.circular(12);
+    return Material(
+      color: enabled ? AppColors.blue50 : const Color(0xFFF9FAFB),
+      borderRadius: radius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: enabled ? AppColors.blue600 : const Color(0xFFE5E7EB),
+              width: enabled ? 1.5 : 1,
+            ),
+            borderRadius: radius,
           ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
+          child: Row(
           children: [
             // HTML 기준: icon-slot 36×36 투명 슬롯에 네이티브 36 1:1 (흰 박스 없음)
             SizedBox(
@@ -318,6 +323,7 @@ class _SurveyCard extends StatelessWidget {
               ],
             ),
           ],
+          ),
         ),
       ),
     );
