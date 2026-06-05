@@ -302,3 +302,21 @@ return Obx(() {
 - **현재 폰엔 디버그 빌드 설치 상태**(진단용, 빨간 에러 화면 확인됨). 신규 설치라 런타임 권한 재요청 → 카메라 테스트 자동화 전 `adb shell pm grant com.sgits.proj2602a android.permission.CAMERA` 부여(권한 다이얼로그가 input tap 가로채는 것 방지).
 - 설치는 항상 `adb install --user 0`(듀얼앱 복제 방지). 빌드만 flutter, 설치는 adb (글로벌 컨벤션).
 - 디버그 logcat에 보이는 `flutter`(pid 다름) 로그는 **다른 SG 앱 `com.sgits.proj2605a`(geotick)** 것 — 혼동 주의. 본 앱 로그/예외만 필터링할 것.
+- standalone(`am start`/monkey) 실행 시 본 앱 flutter 로그가 logcat에 안 잡힘. monkey LAUNCHER는 기존 태스크 **복귀**(메인 재시작 아님) → 깨끗한 상태는 `am force-stop` 후 `am start -n com.sgits.proj2602a/.MainActivity`.
+
+---
+
+## 2026-06-05 작업 기록 — annotate 마커 개편 + 1:1 정사각 디자인
+
+> 브랜치 `feat/dimension-survey`. annotate(측정점/기준점 지정) 화면을 §A 목업(S-004/S-007)에 맞춰 개편.
+
+### 완료 (미커밋, 검증됨)
+- **마커 3요소 분리** (`annotate_page.dart` + `annotate_controller.dart`): 측정 지점(point 16px ●) + 라벨(pill) + stem(점선) 각각 독립. point 드래그=좌표변경+라벨 동반 / label 드래그=라벨만 이동(줄자 가림 회피) / stem 자동 갱신. 컨트롤러에 `startLabel/endLabel/holeLipLabel/tapeReadingLabel` 추가, `_movePair`/`_moveLabel`/`_moveNearestPair`/`_autoLabel`.
+- **찍고 이어끌기**: 사진 빈 곳 `onPanStart`=그 자리 생성/선택 + `onPanUpdate`=`dragActiveTo`로 같은 제스처에서 바로 끌기. `onTapUp`=탭 배치(아레나 상호배타로 중복 없음). 컨트롤러 `_activePoint/_activeLabel` + `dragActiveTo`.
+- **사진 1:1 정사각 + cover(꽉 채움, 잘림)**: `_photoFrame`이 `AspectRatio(1)` + 둥근 테두리 카드. 좌표변환 `toPreview/toOriginal/scaleFor`를 `math.min`(contain)→`math.max`(cover)로 변경. ⚠️ cover라 잘린 영역엔 측정점 못 찍음(사용자 선택). 세로(portrait) 사진은 상하 크롭이라 폭 마커(중앙)는 보존됨.
+- **하단 카드형 개편**: `_StepCard`(번호 원+완료 ✓) — 폭/간격=시작(blue)·끝(red) 정보카드, 홀=①입구·②읽기(완료 시 톤 유지+번호 초록+✓). 홀 `_RadioCard` ③가시성·④접촉(완료 시 카드 초록). appBar에 subtype 칩 추가.
+
+### 🔜 다음 작업 예정 (TODO)
+- [ ] **메인/유형선택 카드 ink 터치 효과**: 메인(`main_page.dart`) 탄산화·규격 조사 카드 + 유형선택(`survey_type_select`) 폭/간격/홀 3개 카드를 `InkWell`/`Material`로 감싸 탭 시 ripple(잉크) 피드백. (현재 `GestureDetector`라 터치 반응 없음)
+- [ ] **annotate 돋보기(확대 보기)**: 규격조사 보정 화면(S-004/S-007)에 탄산화처럼 돋보기 버튼/핀치줌 추가(목업 `.magnify-btn` 우하단, P6 `photo_view` 예정). 작은 측정점 정밀 배치용.
+- [ ] (선택) annotate 라벨 초기 위치: cover 크롭 때문에 사진 상단 근처 점의 라벨이 프레임 위로 잘림 → 보이는 영역 기준으로 위/아래 배치 보정.
