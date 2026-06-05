@@ -304,7 +304,8 @@ class _SurveyCard extends StatelessWidget {
                     ),
             ),
             const SizedBox(width: 16),
-            Column(
+            Expanded(
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -324,7 +325,9 @@ class _SurveyCard extends StatelessWidget {
                   ),
                 ),
               ],
+              ),
             ),
+            Icon(Icons.chevron_right, color: enabled ? AppColors.blue600 : const Color(0xFF9CA3AF)),
           ],
           ),
         ),
