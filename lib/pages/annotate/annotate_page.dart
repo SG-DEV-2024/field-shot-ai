@@ -178,7 +178,11 @@ class AnnotatePage extends StatelessWidget {
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onPanUpdate: (d) => m.onLabelDrag(d.delta / scale),
-                      child: _LabelPill(color: m.color, text: m.text),
+                      // 투명 세로 패딩으로 터치 높이만 확대 (pill 시각/가로는 그대로): ~22 → ~32px
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 5),
+                        child: _LabelPill(color: m.color, text: m.text),
+                      ),
                     ),
                   ),
                 ));
@@ -186,14 +190,14 @@ class AnnotatePage extends StatelessWidget {
               for (final m in markers) {
                 final pp = toPv(m.point);
                 children.add(Positioned(
-                  left: pp.dx - 18,
-                  top: pp.dy - 18,
+                  left: pp.dx - 22,
+                  top: pp.dy - 22,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onPanUpdate: (d) => m.onPointDrag(d.delta / scale),
                     child: SizedBox(
-                      width: 36,
-                      height: 36,
+                      width: 44,
+                      height: 44,
                       child: Center(child: _PointDot(color: m.color)),
                     ),
                   ),
