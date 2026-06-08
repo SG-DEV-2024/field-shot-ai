@@ -1,4 +1,4 @@
-package com.sgits.proj2602a
+package com.sgits.proj2603b
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -87,10 +87,10 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>proj2602a</string>
+				<string>proj2603b</string>
 			</array>
 			<key>CFBundleURLName</key>
-			<string>com.sgits.proj2602a</string>
+			<string>com.sgits.proj2603b</string>
 		</dict>
 		<dict>
 			<key>CFBundleURLSchemes</key>
