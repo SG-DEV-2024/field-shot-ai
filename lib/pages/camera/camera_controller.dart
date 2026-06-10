@@ -71,7 +71,7 @@ class CameraController2 extends GetxController {
     );
     cameraController = CameraController(
       rearCamera,
-      ResolutionPreset.high,
+      ResolutionPreset.veryHigh, // 1080p — 줄자 숫자 판독 정확도 향상
       enableAudio: false,
     );
     await cameraController.initialize();
