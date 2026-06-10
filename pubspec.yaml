@@ -30,6 +30,8 @@ dependencies:
   # Local packages
   utils:
     path: ./ext/utils
+  package_info_plus: ^10.1.0
+  device_info_plus: ^13.1.0
 
 dependency_overrides:
   camera_android_camerax: 0.6.29
